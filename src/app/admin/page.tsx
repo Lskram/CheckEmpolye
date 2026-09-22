@@ -639,10 +639,10 @@ interface EmployeeListItem {
                 </div>
                 <div>
                   <div className="text-4xl font-black tracking-tight font-mono">
-                    {overview?.totalAllowancePaid || 4850} <span className="text-lg font-bold font-sans">บาท</span>
+                    {overview?.totalAllowancePaid ?? 0} <span className="text-lg font-bold font-sans">บาท</span>
                   </div>
                   <div className="text-xs font-bold text-slate-900/80 mt-1">
-                    สะสม {overview?.totalPresent || 97} ครั้ง (ตรงเวลา 100%)
+                    สะสม {overview?.totalPresent ?? 0} ครั้ง (ตรงเวลา 100%)
                   </div>
                 </div>
                 <div className="text-[11px] font-black bg-slate-950 text-amber-300 px-3 py-1 rounded-xl w-fit shadow-xs">
@@ -650,70 +650,66 @@ interface EmployeeListItem {
                 </div>
               </div>
 
-              {/* CENTER HIGHLIGHT CARD: TOTAL HEADCOUNT (Vibrant Royal Blue) */}
-              <div className="bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 text-white p-6 rounded-3xl shadow-xl shadow-blue-600/30 text-center flex flex-col justify-between space-y-3 relative overflow-hidden border border-blue-400/40">
-                <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
-
-                <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-blue-100">
-                  <Users className="w-4 h-4 text-sky-200" />
+              {/* Center Card: Centered Big Headcount */}
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-6 rounded-3xl shadow-lg shadow-blue-500/25 flex flex-col justify-between items-center text-center space-y-3 border border-blue-400/30 relative overflow-hidden">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-100">
+                  <Users className="w-4 h-4 text-blue-200" />
                   <span>จำนวนพนักงานทั้งหมด</span>
                 </div>
-
-                {/* Big Centered Headcount */}
-                <div className="my-auto py-1">
-                  <div className="text-5xl font-black tracking-tight drop-shadow-md font-mono">
+                <div className="my-auto space-y-0.5">
+                  <div className="text-5xl sm:text-6xl font-black tracking-tight font-mono drop-shadow-md">
                     {totalStaffCount} <span className="text-2xl font-bold font-sans">คน</span>
                   </div>
-                  <p className="text-xs text-blue-100 font-semibold mt-1">
+                  <div className="text-xs font-bold text-blue-100">
                     ศูนย์บริการ YOKOHAMA & COSMIS
-                  </p>
+                  </div>
                 </div>
-
-                {/* Breakdown Pills inside Center Card */}
-                <div className="grid grid-cols-3 gap-1.5 bg-black/20 backdrop-blur-xs p-1.5 rounded-2xl text-[11px] border border-white/10">
-                  <div className="text-center">
-                    <div className="font-black text-emerald-300 text-base">{presentCount}</div>
-                    <div className="text-[10px] text-blue-100 font-semibold">ตรงเวลา</div>
+                <div className="grid grid-cols-3 gap-2 w-full pt-2 border-t border-blue-400/30 text-[11px] font-bold">
+                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
+                    <div className="text-white font-mono font-black text-sm">{presentCount}</div>
+                    <div className="text-blue-200 text-[10px]">ตรงเวลา</div>
                   </div>
-                  <div className="text-center border-x border-white/20">
-                    <div className="font-black text-amber-300 text-base">{lateCount}</div>
-                    <div className="text-[10px] text-blue-100 font-semibold">มาสาย</div>
+                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
+                    <div className="text-white font-mono font-black text-sm">{lateCount}</div>
+                    <div className="text-blue-200 text-[10px]">มาสาย</div>
                   </div>
-                  <div className="text-center">
-                    <div className="font-black text-sky-200 text-base">{leaveCount}</div>
-                    <div className="text-[10px] text-blue-100 font-semibold">ลาหยุด</div>
+                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
+                    <div className="text-white font-mono font-black text-sm">{leaveCount}</div>
+                    <div className="text-blue-200 text-[10px]">ลาหยุด</div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Card: On-Time Rate % (Vibrant Emerald & Cyan) */}
-              <div className="bg-gradient-to-br from-emerald-600 to-teal-500 text-white p-6 rounded-3xl shadow-lg shadow-emerald-500/20 flex flex-col justify-between space-y-2 border border-emerald-400">
+              {/* Right Card: On-Time Punctuality Gauge */}
+              <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white p-6 rounded-3xl shadow-lg shadow-emerald-500/25 flex flex-col justify-between space-y-2 border border-emerald-400/30">
                 <div className="flex items-center justify-between text-xs font-bold text-emerald-100">
                   <span className="flex items-center gap-1.5">
-                    <TrendingUp className="w-4 h-4 text-white" />
+                    <TrendingUp className="w-4 h-4 text-emerald-200" />
                     อัตราความตรงต่อเวลา
                   </span>
-                  <span className="bg-white/20 px-2 py-0.5 rounded-full font-bold text-[10px]">
-                    เป้าหมาย &gt; 90%
+                  <span className="bg-emerald-950/40 px-2 py-0.5 rounded-full font-black text-[10px] text-emerald-200 border border-emerald-400/20">
+                    เป้าหมาย {'>'} 90%
                   </span>
                 </div>
                 <div>
                   <div className="text-4xl font-black tracking-tight font-mono">
-                    {onTimePercent}<span className="text-2xl font-bold font-sans">%</span>
+                    {onTimePercent}%
                   </div>
-                  <div className="text-xs font-medium text-emerald-100 mt-1">
-                    ยอดเยี่ยม! สูงกว่าเป้าหมายองค์กร
+                  <div className="text-xs font-bold text-emerald-100 mt-1">
+                    {onTimePercent >= 90 ? 'ยอดเยี่ยม! สูงกว่าเป้าหมายองค์กร' : onTimePercent > 0 ? 'กำลังปรับปรุงความตรงต่อเวลา' : 'รอพนักงานเริ่มลงเวลาวันนี้'}
                   </div>
                 </div>
-                <div className="w-full h-2.5 bg-black/20 rounded-full overflow-hidden flex border border-white/20">
-                  <div style={{ width: `${onTimePercent}%` }} className="bg-white rounded-full"></div>
-                  <div style={{ width: `${100 - onTimePercent}%` }} className="bg-amber-400"></div>
+                <div className="w-full bg-emerald-950/50 h-2.5 rounded-full overflow-hidden border border-emerald-400/20">
+                  <div
+                    className="bg-amber-400 h-full rounded-full transition-all duration-1000"
+                    style={{ width: `${Math.max(onTimePercent, 5)}%` }}
+                  ></div>
                 </div>
               </div>
             </div>
 
             {/* --------------------------------------------------------- */}
-            {/* STEP 2: รายชื่อพนักงานเข้างาน (BEFORE CHARTS)             */}
+            {/* STEP 2: STAFF ATTENDANCE LIST (BEFORE CHARTS)             */}
             {/* --------------------------------------------------------- */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -727,49 +723,38 @@ interface EmployeeListItem {
                   </p>
                 </div>
 
-                {/* Filter & Search */}
+                {/* Filter and Search */}
                 <div className="flex items-center gap-2">
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                       type="text"
+                      placeholder="ค้นหาชื่อ / รหัส..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="ค้นหาชื่อ / รหัส..."
-                      className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-500 w-36 sm:w-48"
+                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-blue-500 w-36 sm:w-48 font-medium"
                     />
                   </div>
 
                   <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-                    <button
-                      onClick={() => setEmpStatusFilter('all')}
-                      className={`px-2.5 py-1 rounded-lg transition-all ${
-                        empStatusFilter === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600'
-                      }`}
-                    >
-                      ทั้งหมด
-                    </button>
-                    <button
-                      onClick={() => setEmpStatusFilter('present')}
-                      className={`px-2.5 py-1 rounded-lg transition-all ${
-                        empStatusFilter === 'present' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600'
-                      }`}
-                    >
-                      ตรงเวลา
-                    </button>
-                    <button
-                      onClick={() => setEmpStatusFilter('late')}
-                      className={`px-2.5 py-1 rounded-lg transition-all ${
-                        empStatusFilter === 'late' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-600'
-                      }`}
-                    >
-                      มาสาย
-                    </button>
+                    {(['all', 'present', 'late'] as const).map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setEmpStatusFilter(filter)}
+                        className={`px-2.5 py-1 rounded-lg transition-all text-[11px] ${
+                          empStatusFilter === filter
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {filter === 'all' ? 'ทั้งหมด' : filter === 'present' ? 'ตรงเวลา' : 'มาสาย'}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Colorful Table */}
+              {/* Attendance Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
@@ -809,11 +794,25 @@ interface EmployeeListItem {
                             className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
                               emp.status === 'PRESENT'
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                : emp.status === 'LATE'
+                                ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
                             }`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${emp.status === 'PRESENT' ? 'bg-emerald-600' : 'bg-amber-600'}`}></span>
-                            {emp.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย (> 08:00)'}
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                emp.status === 'PRESENT'
+                                  ? 'bg-emerald-600'
+                                  : emp.status === 'LATE'
+                                  ? 'bg-amber-600'
+                                  : 'bg-slate-400'
+                              }`}
+                            ></span>
+                            {emp.status === 'PRESENT'
+                              ? 'ตรงเวลา (+50฿)'
+                              : emp.status === 'LATE'
+                              ? 'มาสาย (> 08:00)'
+                              : '⏳ ยังไม่ลงเวลา'}
                           </span>
                         </td>
                         <td className="py-3 px-3">
