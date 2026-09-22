@@ -11,6 +11,17 @@ import { supabase, isSupabaseConfigured } from './supabase';
 // Mock in-memory state for immediate testing & zero-setup preview
 let mockEmployees: Employee[] = [
   {
+    id: '00000000-0000-0000-0000-000000000000',
+    employee_code: 'SI01',
+    full_name: 'ผู้บริหารสูงสุด (Executive Director)',
+    nickname: 'ท่านประธาน',
+    pin_hash: '5101',
+    role: 'ADMIN',
+    hwid: null,
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
     id: '11111111-1111-1111-1111-111111111111',
     employee_code: 'ADMIN01',
     full_name: 'ผู้จัดการ ภัทรพล (Admin)',

@@ -38,12 +38,10 @@ import {
   Download,
   Lock,
   Unlock,
-  Layers,
   FileSpreadsheet,
   Activity,
   FileCheck
 } from 'lucide-react';
-import ExecutiveDataFlow from '@/components/ExecutiveDataFlow';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   ssr: false,
@@ -55,16 +53,18 @@ export default function ColorfulAdminDashboard() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Executive Access Protection (Session & PIN)
-  const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(true);
+  // Executive Access Protection (SI01 / PIN 5101)
+  const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(false);
+  const [executiveCodeInput, setExecutiveCodeInput] = useState('SI01');
   const [executivePinInput, setExecutivePinInput] = useState('');
   const [executivePinError, setExecutivePinError] = useState('');
+  const [rememberSession, setRememberSession] = useState(true);
 
   // 3D Toggle
   const [is3DMode, setIs3DMode] = useState<boolean>(true);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'dataflow' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
 
   // Employee Check-in Filter Tab
   const [empStatusFilter, setEmpStatusFilter] = useState<'all' | 'present' | 'late'>('all');
@@ -86,8 +86,43 @@ export default function ColorfulAdminDashboard() {
   const [settingsMsg, setSettingsMsg] = useState('');
 
   useEffect(() => {
-    loadDashboardData();
-  }, [period]);
+    const savedToken = localStorage.getItem('executive_auth_token');
+    if (savedToken === 'true') {
+      setIsExecutiveUnlocked(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isExecutiveUnlocked) {
+      loadDashboardData();
+    }
+  }, [period, isExecutiveUnlocked]);
+
+  const handleExecutiveLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const code = executiveCodeInput.trim().toUpperCase();
+    const pin = executivePinInput.trim();
+
+    // Check against Executive credentials (SI01 / 5101) or ADMIN01 / 1234
+    if ((code === 'SI01' && pin === '5101') || (code === 'ADMIN01' && pin === '1234') || pin === '5101') {
+      setIsExecutiveUnlocked(true);
+      setExecutivePinError('');
+      if (rememberSession) {
+        localStorage.setItem('executive_auth_token', 'true');
+        localStorage.setItem('executive_user_code', code || 'SI01');
+      }
+    } else {
+      setExecutivePinError('รหัสผู้บริหารหรือรหัส PIN ไม่ถูกต้อง (รหัสผู้บริหาร: SI01 / PIN 5101)');
+      setExecutivePinInput('');
+    }
+  };
+
+  const handleLockDashboard = () => {
+    localStorage.removeItem('executive_auth_token');
+    setIsExecutiveUnlocked(false);
+    setExecutivePinInput('');
+    setExecutivePinError('');
+  };
 
   const loadDashboardData = async () => {
     setIsLoading(true);
@@ -283,6 +318,153 @@ export default function ColorfulAdminDashboard() {
     document.body.removeChild(link);
   };
 
+  // -------------------------------------------------------------
+  // EXECUTIVE ACCESS GATE (LOCK SCREEN - SI01 / PIN 5101)
+  // -------------------------------------------------------------
+  if (!isExecutiveUnlocked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center p-4 font-sans select-none text-slate-100">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900/90 border border-indigo-800/50 shadow-2xl backdrop-blur-xl space-y-6 relative overflow-hidden">
+          {/* Ambient Glow */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          {/* Lock Icon & Header */}
+          <div className="text-center space-y-2 relative z-10">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-amber-400 p-0.5 shadow-lg shadow-indigo-500/30 flex items-center justify-center">
+              <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center text-amber-400">
+                <Lock className="w-8 h-8 stroke-[2.5]" />
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              👑 EXECUTIVE ACCESS ONLY
+            </div>
+
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              แดชบอร์ดผู้บริหาร
+            </h2>
+            <p className="text-xs text-slate-400">
+              กรุณาระบุรหัสผู้บริหารและ PIN 4 หลักเพื่อเข้าสู่ระบบ
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {executivePinError && (
+            <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-bold text-center animate-shake">
+              {executivePinError}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleExecutiveLogin} className="space-y-4 relative z-10">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                รหัสผู้บริหาร (Executive Code):
+              </label>
+              <input
+                type="text"
+                value={executiveCodeInput}
+                onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
+                placeholder="SI01"
+                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-white font-mono text-center font-bold tracking-wider focus:outline-none focus:border-indigo-500 transition-colors text-sm"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                รหัส PIN ผู้บริหาร (4 หลัก):
+              </label>
+              <input
+                type="password"
+                maxLength={6}
+                value={executivePinInput}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  setExecutivePinInput(val);
+                }}
+                placeholder="••••"
+                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-amber-400 font-mono text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-indigo-500 transition-colors"
+                required
+                autoFocus
+              />
+            </div>
+
+            {/* Numeric Keypad */}
+            <div className="grid grid-cols-3 gap-2 pt-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  type="button"
+                  key={num}
+                  onClick={() => {
+                    if (executivePinInput.length < 6) {
+                      setExecutivePinInput((prev) => prev + num);
+                    }
+                  }}
+                  className="py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-mono text-lg font-bold border border-slate-700/60 active:scale-95 transition-all shadow-xs"
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setExecutivePinInput('')}
+                className="py-3 rounded-2xl bg-slate-800/50 hover:bg-slate-800 text-rose-400 text-xs font-bold border border-slate-700/60 active:scale-95 transition-all"
+              >
+                ล้าง (C)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (executivePinInput.length < 6) {
+                    setExecutivePinInput((prev) => prev + '0');
+                  }
+                }}
+                className="py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-mono text-lg font-bold border border-slate-700/60 active:scale-95 transition-all shadow-xs"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                onClick={() => setExecutivePinInput((prev) => prev.slice(0, -1))}
+                className="py-3 rounded-2xl bg-slate-800/50 hover:bg-slate-800 text-slate-300 text-sm font-bold border border-slate-700/60 active:scale-95 transition-all"
+              >
+                ⌫
+              </button>
+            </div>
+
+            {/* Remember Session Checkbox */}
+            <div className="flex items-center justify-between pt-2 text-xs">
+              <label className="flex items-center gap-2 text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberSession}
+                  onChange={(e) => setRememberSession(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-0"
+                />
+                <span>จำการเข้าสู่ระบบบนอุปกรณ์นี้</span>
+              </label>
+            </div>
+
+            {/* Unlock Button */}
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 hover:from-indigo-500 hover:to-blue-500 text-white font-black text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-98"
+            >
+              ปลดล็อกแดชบอร์ด (Unlock)
+            </button>
+          </form>
+
+          {/* Quick Credential Hint */}
+          <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 text-center text-[11px] text-slate-400 space-y-0.5">
+            <div>รหัสเข้าใช้งานผู้บริหาร: <strong className="text-amber-400 font-mono">SI01</strong></div>
+            <div>รหัส PIN: <strong className="text-amber-400 font-mono">5101</strong></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans select-none">
       
@@ -302,7 +484,7 @@ export default function ColorfulAdminDashboard() {
                 <span>YOKOHAMA • NAYA • COSMIS</span>
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-xs flex items-center gap-1">
                   <Lock className="w-2.5 h-2.5" />
-                  EXECUTIVE ONLY
+                  SI01: EXECUTIVE
                 </span>
               </div>
               <div className="text-[11px] text-slate-500 font-medium">แดชบอร์ดผู้บริหารระดับสูง (Executive Management System)</div>
@@ -333,15 +515,15 @@ export default function ColorfulAdminDashboard() {
               <span>{is3DMode ? 'กราฟ 3D' : 'กราฟ 2D'}</span>
             </button>
 
-            <Link
-              href="/employee"
-              target="_blank"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors border border-blue-200"
+            {/* Lock Screen Button */}
+            <button
+              onClick={handleLockDashboard}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 border border-slate-200 transition-colors"
+              title="ล็อคหน้าจอผู้บริหาร"
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>หน้า PWA พนักงาน</span>
-              <ExternalLink className="w-3 h-3 text-blue-500" />
-            </Link>
+              <Lock className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline">ล็อคหน้าจอ</span>
+            </button>
 
             <button
               onClick={loadDashboardData}
@@ -369,7 +551,7 @@ export default function ColorfulAdminDashboard() {
             <div className="space-y-1.5 max-w-xl">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] tracking-wider uppercase shadow-xs">
-                  ★ Executive Portal
+                  ★ Executive Master Portal
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px]">
                   50฿ เบี้ยเลี้ยงตรงเวลา
@@ -382,7 +564,7 @@ export default function ColorfulAdminDashboard() {
                 ศูนย์บัญชาการผู้บริหาร • YOKOHAMA NAYA COSMIS
               </h2>
               <p className="text-xs text-indigo-100 font-medium drop-shadow-sm">
-                วิเคราะห์สถิติกำลังพล, ตรวจสอบการทุจริตแบบเรียลไทม์, ควบคุมงบประมาณเบี้ยขยัน และดูสถาปัตยกรรมการไหลของข้อมูล
+                วิเคราะห์สถิติกำลังพล, ตรวจสอบการทุจริตแบบเรียลไทม์ และควบคุมงบประมาณเบี้ยขยันพนักงาน
               </p>
             </div>
           </div>
@@ -399,7 +581,6 @@ export default function ColorfulAdminDashboard() {
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
             {[
               { id: 'overview', label: '📊 ภาพรวม & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
-              { id: 'dataflow', label: '🔄 การไหลของข้อมูล (Data Flow)', icon: Layers, color: 'bg-indigo-600' },
               { id: 'employees', label: '👥 จัดการพนักงาน', icon: Users, color: 'bg-sky-500' },
               { id: 'leaves', label: '📝 อนุมัติใบลา', icon: Calendar, badge: overview?.pendingLeavesCount, color: 'bg-amber-500' },
               { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: overview?.unresolvedViolationsCount, color: 'bg-red-500' },
@@ -460,43 +641,11 @@ export default function ColorfulAdminDashboard() {
         </div>
 
         {/* ------------------------------------------------------------- */}
-        {/* VIEW: INTERACTIVE SYSTEM DATA FLOW (7 STAGES)                 */}
-        {/* ------------------------------------------------------------- */}
-        {activeTab === 'dataflow' && (
-          <ExecutiveDataFlow />
-        )}
-
-        {/* ------------------------------------------------------------- */}
         {/* VIEW 1: VIBRANT EXECUTIVE DASHBOARD                           */}
         {/* ------------------------------------------------------------- */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             
-            {/* Data Flow Quick Access Banner */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs sm:text-sm text-white flex items-center gap-2">
-                    <span>แผนผังสถาปัตยกรรมการไหลของข้อมูล (System Data Flow)</span>
-                    <span className="text-[10px] px-2 py-0.2 rounded-full bg-indigo-500 text-white font-black">7 ขั้นตอน</span>
-                  </div>
-                  <div className="text-[11px] text-indigo-200">
-                    ติดตามเส้นทางข้อมูลตั้งแต่ Admin Provisioning, HWID Bind, GPS Geofencing จนถึง 3D Analytics
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveTab('dataflow')}
-                className="px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0 shadow-sm"
-              >
-                <span>ดูการไหลของข้อมูล</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
             {/* --------------------------------------------------------- */}
             {/* STEP 1: TOP 3-COLUMN HERO (CENTERED BIG HEADCOUNT)        */}
             {/* --------------------------------------------------------- */}
