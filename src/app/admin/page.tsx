@@ -54,6 +54,15 @@ const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   loading: () => <div className="w-full h-72 rounded-2xl bg-slate-50 animate-pulse flex items-center justify-center text-xs text-slate-400">กำลังเรนเดอร์กราฟ 3D...</div>,
 });
 
+const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-80 rounded-2xl bg-slate-100 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+      กำลังโหลดแผนที่ดาวเทียมและระบบพิกัด...
+    </div>
+  ),
+});
+
 export default function ColorfulAdminDashboard() {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -1325,84 +1334,153 @@ interface EmployeeListItem {
         {/* VIEW 5: SETTINGS                                              */}
         {/* ------------------------------------------------------------- */}
         {activeTab === 'settings' && (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-2xl">
-            <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-              <Settings className="w-4 h-4 text-blue-600" />
-              <span>การตั้งค่าพิกัดร้าน & กฎเวลาเข้างาน</span>
-            </h3>
+          <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6 max-w-4xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-blue-600" />
+                  <span>การตั้งค่าพิกัดร้าน & แผนที่ Geofencing (Interactive Map)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  คลิกบนแผนที่, ลากหมุด หรือกดปุ่มพิกัดปัจจุบัน เพื่อกำหนดตำแหน่งร้านสำหรับตรวจจับการเช็คอินของพนักงาน
+                </p>
+              </div>
+              <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full w-fit flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                <span>ระบบแผนที่ดาวเทียมพร้อมใช้งาน</span>
+              </span>
+            </div>
 
             {settingsMsg && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+              <div className={`p-3.5 rounded-2xl text-xs font-bold ${
+                settingsMsg.includes('สำเร็จ')
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border border-rose-200 text-rose-800'
+              }`}>
                 {settingsMsg}
               </div>
             )}
 
-            <form onSubmit={handleSaveSettings} className="space-y-4 text-xs font-bold">
+            {/* Interactive Map Picker Component */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black text-slate-800 flex items-center justify-between">
+                <span>🗺️ เลือกพิกัดร้านบนแผนที่ (Interactive Map):</span>
+                <span className="text-slate-400 font-normal text-[11px]">คลิกเพื่อปักหมุด หรือลากหมุดไปยังตำแหน่งจริง</span>
+              </label>
+
+              <StoreMapPicker
+                lat={parseFloat(storeSettingsForm.store_lat) || 13.7563}
+                lng={parseFloat(storeSettingsForm.store_lng) || 100.5018}
+                radius={parseInt(storeSettingsForm.radius_meters) || 50}
+                storeName={storeSettingsForm.store_name || 'สาขา YOKOHAMA NAYA COSMIS'}
+                onChange={(newLat, newLng) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    store_lat: newLat,
+                    store_lng: newLng,
+                  }));
+                }}
+              />
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="space-y-4 text-xs font-bold pt-2 border-t border-slate-100">
               <div>
                 <label className="block text-slate-700 mb-1">ชื่อร้าน / สาขา:</label>
                 <input
                   type="text"
                   value={storeSettingsForm.store_name || ''}
                   onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_name: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500"
+                  placeholder="เช่น สาขาหลัก YOKOHAMA NAYA COSMIS"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 font-medium"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 mb-1">ละติจูด (Lat):</label>
+                  <label className="block text-slate-700 mb-1 flex items-center justify-between">
+                    <span>ละติจูด (Lat):</span>
+                    <span className="text-[10px] text-slate-400 font-normal">อัปเดตอัตโนมัติตามแผนที่</span>
+                  </label>
                   <input
                     type="number"
                     step="any"
-                    value={storeSettingsForm.store_lat || ''}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_lat: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
+                    value={storeSettingsForm.store_lat ?? ''}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_lat: parseFloat(e.target.value) || 0 })}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 mb-1">ลองจิจูด (Lng):</label>
+                  <label className="block text-slate-700 mb-1 flex items-center justify-between">
+                    <span>ลองจิจูด (Lng):</span>
+                    <span className="text-[10px] text-slate-400 font-normal">อัปเดตอัตโนมัติตามแผนที่</span>
+                  </label>
                   <input
                     type="number"
                     step="any"
-                    value={storeSettingsForm.store_lng || ''}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_lng: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
+                    value={storeSettingsForm.store_lng ?? ''}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_lng: parseFloat(e.target.value) || 0 })}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-700 mb-1">รัศมีที่อนุญาต (เมตร):</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-slate-700">รัศมีที่อนุญาตให้เช็คอิน (เมตร):</label>
+                    <span className="text-blue-600 font-mono font-black">{storeSettingsForm.radius_meters || 50} เมตร</span>
+                  </div>
                   <input
                     type="number"
+                    min={10}
+                    max={2000}
                     value={storeSettingsForm.radius_meters || 50}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: Number(e.target.value) })}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                     required
                   />
+                  <p className="text-[10px] text-slate-400 font-medium mt-1">
+                    แนะนำ 50-100 เมตร เพื่อรองรับความคลาดเคลื่อน GPS ของมือถือพนักงาน
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-slate-700 mb-1">เบี้ยเลี้ยงต่อวัน (บาท):</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-slate-700">เบี้ยเลี้ยงตรงเวลาต่อวัน (บาท):</label>
+                    <span className="text-amber-600 font-mono font-black">{storeSettingsForm.allowance_amount || 50} ฿</span>
+                  </div>
                   <input
                     type="number"
+                    min={0}
                     value={storeSettingsForm.allowance_amount || 50}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
                     required
                   />
+                  <p className="text-[10px] text-slate-400 font-medium mt-1">
+                    จ่ายอัตโนมัติเมื่อเช็คอินตรงเวลาภายในเส้นตาย 08:00 น.
+                  </p>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={settingsLoading}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-xs transition-colors"
+                className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-black text-sm shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
               >
-                {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+                {settingsLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>กำลังบันทึกข้อมูลพิกัดลงฐานข้อมูล...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>บันทึกการตั้งค่าพิกัดร้าน & กฎเวลาเข้างาน</span>
+                  </>
+                )}
               </button>
             </form>
           </div>
