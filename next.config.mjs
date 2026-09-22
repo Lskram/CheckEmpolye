@@ -7,6 +7,15 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/employee',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
