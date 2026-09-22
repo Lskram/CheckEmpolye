@@ -96,8 +96,16 @@ export default function ColorfulAdminDashboard() {
   const [empModalLoading, setEmpModalLoading] = useState(false);
   const [empModalMsg, setEmpModalMsg] = useState('');
 
-  // Store Settings
-  const [storeSettingsForm, setStoreSettingsForm] = useState<any>({});
+  // Store Settings (Default: Sisaeng Yangyont Sisaket, Shift: 07:40, Cutoff: 08:00, Allowance: 50)
+  const [storeSettingsForm, setStoreSettingsForm] = useState<any>({
+    store_name: 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS',
+    store_lat: 15.110412,
+    store_lng: 104.358434,
+    radius_meters: 50,
+    standard_time: '07:40',
+    late_deadline: '08:00',
+    allowance_amount: 50,
+  });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState('');
 
@@ -596,15 +604,21 @@ interface EmployeeListItem {
           {/* Vibrant Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/90 via-slate-900/70 to-transparent flex items-center p-6 text-white">
             <div className="space-y-1.5 max-w-xl">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] tracking-wider uppercase shadow-xs">
                   ★ Executive Master Portal
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px]">
-                  50฿ เบี้ยเลี้ยงตรงเวลา
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1">
+                  ⏰ เข้างาน: {storeSettingsForm.standard_time || '07:40'} น.
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] flex items-center gap-1">
+                  ⏳ เลทได้ถึง: {storeSettingsForm.late_deadline || '08:00'} น.
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/80 text-white font-bold text-[10px]">
-                  Geofence 50m
+                  50฿ เบี้ยเลี้ยง
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-white font-bold text-[10px]">
+                  Geofence {storeSettingsForm.radius_meters || 50}m
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black tracking-tight drop-shadow-md">
@@ -1433,6 +1447,67 @@ interface EmployeeListItem {
                 </div>
               </div>
 
+              {/* Working Hours & Cutoff Rules */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-indigo-600" />
+                    <span>⏰ กำหนดเวลาเข้างานและเส้นตายมาสาย (Work Shift & Late Rules)</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md w-fit">
+                    จ่ายเบี้ยเลี้ยง {storeSettingsForm.allowance_amount || 50}฿ เมื่อตรงเวลา
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 mb-1 flex items-center justify-between">
+                      <span>เวลาเข้างานมาตรฐาน:</span>
+                      <span className="text-emerald-600 font-mono font-bold">เริ่ม {storeSettingsForm.standard_time?.substring(0, 5) || '07:40'} น.</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={storeSettingsForm.standard_time?.substring(0, 5) || '07:40'}
+                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
+                      className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 font-bold"
+                      required
+                    />
+                    <p className="text-[10px] text-slate-500 font-medium mt-1">
+                      เวลาเริ่มกะทำงานปกติของพนักงาน (เช่น 07:40 น.)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 mb-1 flex items-center justify-between">
+                      <span>เส้นตายตัดสิทธิ์เบี้ยเลี้ยง (เลทได้ไม่เกิน):</span>
+                      <span className="text-amber-600 font-mono font-bold">ไม่เกิน {storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'} น.</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'}
+                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
+                      className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 font-bold"
+                      required
+                    />
+                    <p className="text-[10px] text-slate-500 font-medium mt-1">
+                      เช็คอินหลังเวลานี้ = มาสาย (หัก/ไม่ได้รับเบี้ยเลี้ยง {storeSettingsForm.allowance_amount || 50} บาท)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Timeline visual explanation */}
+                <div className="p-3 bg-white rounded-xl border border-slate-200 text-[11px] font-medium text-slate-700 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span><strong>{storeSettingsForm.standard_time?.substring(0, 5) || '07:40'} น. - {storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'} น.</strong> = ตรงเวลา (ได้รับเบี้ยเลี้ยงประจำวัน <strong>{storeSettingsForm.allowance_amount || 50} ฿</strong>)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    <span><strong>หลัง {storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'}:01 น.</strong> = เช็คอินสาย (ตัดสิทธิ์เบี้ยเลี้ยง <strong>0 ฿</strong>)</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -1466,7 +1541,7 @@ interface EmployeeListItem {
                     required
                   />
                   <p className="text-[10px] text-slate-400 font-medium mt-1">
-                    จ่ายอัตโนมัติเมื่อเช็คอินตรงเวลาภายในเส้นตาย 08:00 น.
+                    จ่ายอัตโนมัติเมื่อเช็คอินตรงเวลาภายในเส้นตาย {storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'} น.
                   </p>
                 </div>
               </div>

@@ -299,6 +299,13 @@ export default function ExactEmployeeApp() {
             <p className="text-[11px] font-medium text-blue-100 tracking-tight">
               {time.dateThai}
             </p>
+
+            {/* Shift Rules Badge */}
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/40 border border-white/20 text-[10px] font-bold text-white shadow-xs">
+              <span>⏰ กะปกติ {storeSettings?.standard_time?.substring(0, 5) || '07:40'} น.</span>
+              <span>•</span>
+              <span className="text-amber-300">เลทได้ถึง {storeSettings?.late_deadline?.substring(0, 5) || '08:00'} น. (รับ 50฿)</span>
+            </div>
           </div>
 
           {/* Overlapping Circular Check-In Button */}
