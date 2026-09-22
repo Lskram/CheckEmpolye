@@ -15,7 +15,6 @@ import {
   Building2,
   Map as MapIcon
 } from 'lucide-react';
-import 'leaflet/dist/leaflet.css';
 
 interface StoreMapPickerProps {
   lat: number;

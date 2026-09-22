@@ -32,6 +32,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-touch-fullscreen" content="yes" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       </head>
       <body className="min-h-screen bg-[#090d16] text-slate-100 antialiased overflow-x-hidden">
         {children}
