@@ -96,6 +96,54 @@ export async function GET(request: Request) {
     // Sanitized all accounts list for Employee Directory
     const allEmployeesList = employees.map(({ pin_hash, ...rest }) => rest);
 
+    // Calculate Day-by-Day Stats for the Chart from Real Supabase Attendance Logs
+    // Last 7 days in order (from 6 days ago to today)
+    const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์'];
+    const past7Days = [];
+    let totalWeeklyOntime = 0;
+    let totalWeeklyLate = 0;
+    let totalWeeklyAllowance = 0;
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      const dayName = dayNames[d.getDay()];
+
+      // Filter logs for this specific day
+      const dayLogs = attendanceLogs.filter((log) => {
+        if (!log.check_in_time) return false;
+        const logDateStr = new Date(log.check_in_time).toISOString().slice(0, 10);
+        return logDateStr === dateStr;
+      });
+
+      const dayOntime = dayLogs.filter((l) => l.status === 'PRESENT').length;
+      const dayLate = dayLogs.filter((l) => l.status === 'LATE').length;
+      const dayTotal = dayOntime + dayLate;
+      const dayAllowance = dayLogs.reduce((sum, l) => sum + (Number(l.allowance) || 0), 0);
+      const dayPercent = dayTotal > 0 ? Math.round((dayOntime / dayTotal) * 100) : 0;
+
+      totalWeeklyOntime += dayOntime;
+      totalWeeklyLate += dayLate;
+      totalWeeklyAllowance += dayAllowance;
+
+      past7Days.push({
+        date: dateStr,
+        day: dayName,
+        ontime: dayOntime,
+        late: dayLate,
+        total: dayTotal,
+        allowance: dayAllowance,
+        percent: dayPercent,
+      });
+    }
+
+    const totalWeeklyCheckIns = totalWeeklyOntime + totalWeeklyLate;
+    const weeklyPunctualityRate = totalWeeklyCheckIns > 0 ? Math.round((totalWeeklyOntime / totalWeeklyCheckIns) * 100) : 0;
+
     // Security & Violations
     const unresolvedViolations = violationLogs.filter((v) => !v.is_resolved);
     const criticalViolations = violationLogs.filter((v) => v.severity === 'CRITICAL' && !v.is_resolved);
@@ -123,6 +171,14 @@ export async function GET(request: Request) {
           pendingLeavesCount: pendingLeaves.length,
           unresolvedViolationsCount: unresolvedViolations.length,
           criticalAlertActive: hasCriticalHWIDOverlap,
+        },
+        weeklyStats: {
+          data: past7Days,
+          totalOntime: totalWeeklyOntime,
+          totalLate: totalWeeklyLate,
+          totalAllowance: totalWeeklyAllowance,
+          totalCheckIns: totalWeeklyCheckIns,
+          punctualityRate: weeklyPunctualityRate,
         },
         allowanceReports,
         allEmployees: allEmployeesList,

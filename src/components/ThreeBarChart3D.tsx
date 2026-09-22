@@ -74,34 +74,44 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
     const barMeshes: THREE.Mesh[] = [];
     const spacing = 1.8;
     const startX = -((data.length - 1) * spacing) / 2;
+    const maxOntime = Math.max(...data.map((d) => d.ontime), 1);
+    const hasAnyData = data.some((d) => d.total > 0 || d.ontime > 0);
 
     data.forEach((item, index) => {
-      const barHeight = Math.max(0.4, (item.ontime / 18) * 5.5);
+      // Dynamic height based on actual ontime count (flat resting pad if 0)
+      const isActive = item.ontime > 0;
+      const barHeight = isActive ? Math.max(0.6, (item.ontime / maxOntime) * 4.5) : 0.08;
       const barGeometry = new THREE.BoxGeometry(1.0, barHeight, 1.0);
       
-      // Material: Shiny Sky Blue
+      // Material: Shiny Sky Blue if active, clean neutral slate pad if 0
+      const barColor = isActive
+        ? (index === hoveredIndex ? 0x0284c7 : 0x0ea5e9)
+        : 0xe2e8f0;
+
       const barMaterial = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(index === hoveredIndex ? 0x0284c7 : 0x0ea5e9),
-        roughness: 0.2,
-        metalness: 0.15,
+        color: new THREE.Color(barColor),
+        roughness: isActive ? 0.2 : 0.5,
+        metalness: isActive ? 0.2 : 0.05,
       });
 
       const barMesh = new THREE.Mesh(barGeometry, barMaterial);
       barMesh.position.set(startX + index * spacing, barHeight / 2, 0);
-      barMesh.castShadow = true;
+      barMesh.castShadow = isActive;
       barMesh.receiveShadow = true;
-      barMesh.userData = { index, data: item };
+      barMesh.userData = { index, data: item, isActive };
 
-      // Add small top cap for extra 3D aesthetics
-      const capGeo = new THREE.BoxGeometry(1.05, 0.1, 1.05);
-      const capMat = new THREE.MeshStandardMaterial({
-        color: 0x38bdf8,
-        roughness: 0.1,
-        metalness: 0.4,
-      });
-      const capMesh = new THREE.Mesh(capGeo, capMat);
-      capMesh.position.set(0, barHeight / 2 + 0.05, 0);
-      barMesh.add(capMesh);
+      if (isActive) {
+        // Add small glowing top cap for active days
+        const capGeo = new THREE.BoxGeometry(1.05, 0.08, 1.05);
+        const capMat = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          roughness: 0.1,
+          metalness: 0.4,
+        });
+        const capMesh = new THREE.Mesh(capGeo, capMat);
+        capMesh.position.set(0, barHeight / 2 + 0.04, 0);
+        barMesh.add(capMesh);
+      }
 
       barsGroup.add(barMesh);
       barMeshes.push(barMesh);
@@ -173,15 +183,18 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
         setHoveredIndex(idx);
         setHoveredData(hit.userData.data);
 
-        // Highlight selected bar & lift it up slightly
+        // Highlight selected bar
         barMeshes.forEach((mesh, i) => {
+          const isMeshActive = mesh.userData.isActive;
           if (i === idx) {
-            (mesh.material as THREE.MeshStandardMaterial).color.set(0x0284c7);
-            (mesh.material as THREE.MeshStandardMaterial).emissive.set(0x0ea5e9);
-            (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.35;
+            (mesh.material as THREE.MeshStandardMaterial).color.set(isMeshActive ? 0x0284c7 : 0xcbd5e1);
+            if (isMeshActive) {
+              (mesh.material as THREE.MeshStandardMaterial).emissive.set(0x0ea5e9);
+              (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.35;
+            }
             mesh.scale.set(1.1, 1.05, 1.1);
           } else {
-            (mesh.material as THREE.MeshStandardMaterial).color.set(0x0ea5e9);
+            (mesh.material as THREE.MeshStandardMaterial).color.set(isMeshActive ? 0x0ea5e9 : 0xe2e8f0);
             (mesh.material as THREE.MeshStandardMaterial).emissive.set(0x000000);
             (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0;
             mesh.scale.set(1.0, 1.0, 1.0);
@@ -192,7 +205,8 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
           setHoveredIndex(null);
           setHoveredData(null);
           barMeshes.forEach((mesh) => {
-            (mesh.material as THREE.MeshStandardMaterial).color.set(0x0ea5e9);
+            const isMeshActive = mesh.userData.isActive;
+            (mesh.material as THREE.MeshStandardMaterial).color.set(isMeshActive ? 0x0ea5e9 : 0xe2e8f0);
             (mesh.material as THREE.MeshStandardMaterial).emissive.set(0x000000);
             (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0;
             mesh.scale.set(1.0, 1.0, 1.0);

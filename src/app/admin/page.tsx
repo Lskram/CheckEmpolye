@@ -309,15 +309,26 @@ interface EmployeeListItem {
     return true;
   });
 
-  const weeklyData = [
-    { day: 'จันทร์', ontime: 14, late: 2, total: 16, allowance: 700, percent: 88 },
-    { day: 'อังคาร', ontime: 15, late: 1, total: 16, allowance: 750, percent: 94 },
-    { day: 'พุธ', ontime: 16, late: 0, total: 16, allowance: 800, percent: 100 },
-    { day: 'พฤหัสฯ', ontime: 13, late: 3, total: 16, allowance: 650, percent: 81 },
-    { day: 'ศุกร์', ontime: 15, late: 1, total: 16, allowance: 750, percent: 94 },
-    { day: 'เสาร์', ontime: 16, late: 0, total: 16, allowance: 800, percent: 100 },
-    { day: 'อาทิตย์', ontime: 12, late: 2, total: 14, allowance: 600, percent: 86 },
-  ];
+  const defaultDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์'];
+  const defaultEmptyWeek = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return {
+      day: defaultDayNames[d.getDay()],
+      ontime: 0,
+      late: 0,
+      total: 0,
+      allowance: 0,
+      percent: 0,
+    };
+  });
+
+  const weeklyData = analyticsData?.weeklyStats?.data?.length
+    ? analyticsData.weeklyStats.data
+    : defaultEmptyWeek;
+
+  const weeklyOntimeTotal = analyticsData?.weeklyStats?.totalOntime || 0;
+  const weeklyPunctualityRate = analyticsData?.weeklyStats?.punctualityRate || 0;
 
   const handleExportCSV = () => {
     const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'ตำแหน่ง', 'เวลาเข้างาน', 'สถานะ', 'เบี้ยขยัน (บาท)', 'ระยะห่างจากร้าน'];
@@ -944,8 +955,9 @@ interface EmployeeListItem {
                 <ThreeBarChart3D data={weeklyData} />
               ) : (
                 <div className="h-64 w-full pt-4 flex items-end justify-between gap-3 sm:gap-6 border-b border-slate-100 pb-2">
-                  {weeklyData.map((item, idx) => {
-                    const barHeight = (item.ontime / 18) * 100;
+                  {weeklyData.map((item: any, idx: number) => {
+                    const maxWeekOntime = Math.max(...weeklyData.map((w: any) => w.ontime), 1);
+                    const barHeight = item.ontime > 0 ? (item.ontime / maxWeekOntime) * 100 : 0;
                     return (
                       <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative h-full justify-end">
                         <div className="w-full max-w-[32px] bg-slate-100 rounded-xl overflow-hidden h-full flex flex-col justify-end">
@@ -953,7 +965,7 @@ interface EmployeeListItem {
                             initial={{ height: 0 }}
                             animate={{ height: `${barHeight}%` }}
                             transition={{ duration: 0.6, delay: idx * 0.04 }}
-                            className="w-full bg-blue-600 rounded-xl"
+                            className={`w-full rounded-xl ${item.ontime > 0 ? 'bg-blue-600' : 'bg-transparent'}`}
                           />
                         </div>
                         <span className="text-[11px] font-bold text-slate-600">{item.day}</span>
@@ -964,8 +976,10 @@ interface EmployeeListItem {
               )}
 
               <div className="flex items-center justify-between text-xs text-slate-500 font-medium pt-1">
-                <span>สรุปยอดคนตรงเวลาสัปดาห์นี้: <strong>104 ครั้ง</strong></span>
-                <span className="text-blue-600 font-black">ผลงานสัปดาห์นี้: 93.4% 🎯</span>
+                <span>สรุปยอดคนตรงเวลาสัปดาห์นี้: <strong className="text-slate-900 font-bold">{weeklyOntimeTotal} ครั้ง</strong></span>
+                <span className={weeklyPunctualityRate > 0 ? "text-blue-600 font-black" : "text-slate-400 font-medium"}>
+                  {weeklyPunctualityRate > 0 ? `ผลงานสัปดาห์นี้: ${weeklyPunctualityRate}% 🎯` : 'คำนวณจากฐานข้อมูลจริง (ยังไม่มีประวัติตอกบัตร)'}
+                </span>
               </div>
             </div>
 
