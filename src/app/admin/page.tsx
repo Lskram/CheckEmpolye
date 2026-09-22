@@ -34,8 +34,16 @@ import {
   Search,
   MapPin,
   Flame,
-  Award
+  Award,
+  Download,
+  Lock,
+  Unlock,
+  Layers,
+  FileSpreadsheet,
+  Activity,
+  FileCheck
 } from 'lucide-react';
+import ExecutiveDataFlow from '@/components/ExecutiveDataFlow';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   ssr: false,
@@ -47,11 +55,16 @@ export default function ColorfulAdminDashboard() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Executive Access Protection (Session & PIN)
+  const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(true);
+  const [executivePinInput, setExecutivePinInput] = useState('');
+  const [executivePinError, setExecutivePinError] = useState('');
+
   // 3D Toggle
   const [is3DMode, setIs3DMode] = useState<boolean>(true);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'dataflow' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
 
   // Employee Check-in Filter Tab
   const [empStatusFilter, setEmpStatusFilter] = useState<'all' | 'present' | 'late'>('all');
@@ -248,6 +261,28 @@ export default function ColorfulAdminDashboard() {
     { day: 'อาทิตย์', ontime: 12, late: 2, total: 14, allowance: 600, percent: 86 },
   ];
 
+  const handleExportCSV = () => {
+    const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'ตำแหน่ง', 'เวลาเข้างาน', 'สถานะ', 'เบี้ยขยัน (บาท)', 'ระยะห่างจากร้าน'];
+    const rows = filteredEmployees.map((e) => [
+      e.code,
+      `"${e.name}"`,
+      `"${e.nickname}"`,
+      `"${e.role}"`,
+      e.checkInTime,
+      e.status === 'PRESENT' ? 'ตรงเวลา (ON-TIME)' : 'สาย (LATE)',
+      e.allowance,
+      `"${e.distance}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Executive_Attendance_Payroll_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans select-none">
       
@@ -257,26 +292,27 @@ export default function ColorfulAdminDashboard() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
-          {/* Store Logo with Brand Badges */}
+          {/* Store Logo with Brand Badges & Executive Title */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-blue-500/30 font-black">
-              ⚡
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/30 font-black">
+              👑
             </div>
             <div>
               <div className="font-black text-slate-900 text-sm leading-tight flex items-center gap-2">
                 <span>YOKOHAMA • NAYA • COSMIS</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-600 text-white shadow-xs">
-                  MAIN STORE
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-xs flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  EXECUTIVE ONLY
                 </span>
               </div>
-              <div className="text-[11px] text-slate-500 font-medium">ระบบบริหารเวลาทำงาน & เบี้ยเลี้ยงพนักงาน</div>
+              <div className="text-[11px] text-slate-500 font-medium">แดชบอร์ดผู้บริหารระดับสูง (Executive Management System)</div>
             </div>
           </div>
 
           {/* Action Tools */}
           <div className="flex items-center gap-2.5">
             {/* Colorful Brand Tags */}
-            <div className="hidden md:flex items-center gap-1.5 text-[10px] font-bold">
+            <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold">
               <span className="px-2 py-0.5 rounded bg-red-600 text-white">YOKOHAMA</span>
               <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-black">NAYA</span>
               <span className="px-2 py-0.5 rounded bg-orange-600 text-white">COSMIS</span>
@@ -303,7 +339,7 @@ export default function ColorfulAdminDashboard() {
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors border border-blue-200"
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span>หน้า PWA</span>
+              <span>หน้า PWA พนักงาน</span>
               <ExternalLink className="w-3 h-3 text-blue-500" />
             </Link>
 
@@ -329,21 +365,24 @@ export default function ColorfulAdminDashboard() {
             className="w-full h-full object-cover object-center"
           />
           {/* Vibrant Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-slate-900/60 to-transparent flex items-center p-6 text-white">
-            <div className="space-y-1 max-w-lg">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/90 via-slate-900/70 to-transparent flex items-center p-6 text-white">
+            <div className="space-y-1.5 max-w-xl">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] tracking-wider uppercase shadow-xs">
-                  ★ ศูนย์บริการยาง & ล้อแม็กมาตรฐาน
+                  ★ Executive Portal
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px]">
                   50฿ เบี้ยเลี้ยงตรงเวลา
                 </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/80 text-white font-bold text-[10px]">
+                  Geofence 50m
+                </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black tracking-tight drop-shadow-md">
-                สาขาหลัก YOKOHAMA • NAYA • COSMIS • LENSO
+                ศูนย์บัญชาการผู้บริหาร • YOKOHAMA NAYA COSMIS
               </h2>
-              <p className="text-xs text-blue-100 font-medium drop-shadow-sm">
-                ระบบลงเวลาด้วย Geofencing รัศมี 50 เมตร & ระบบคำนวณเบี้ยเลี้ยงอัตโนมัติ
+              <p className="text-xs text-indigo-100 font-medium drop-shadow-sm">
+                วิเคราะห์สถิติกำลังพล, ตรวจสอบการทุจริตแบบเรียลไทม์, ควบคุมงบประมาณเบี้ยขยัน และดูสถาปัตยกรรมการไหลของข้อมูล
               </p>
             </div>
           </div>
@@ -356,10 +395,11 @@ export default function ColorfulAdminDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-6 flex-1">
         
         {/* Navigation Tabs & Period Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0">
             {[
-              { id: 'overview', label: '📊 สถิติ & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
+              { id: 'overview', label: '📊 ภาพรวม & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
+              { id: 'dataflow', label: '🔄 การไหลของข้อมูล (Data Flow)', icon: Layers, color: 'bg-indigo-600' },
               { id: 'employees', label: '👥 จัดการพนักงาน', icon: Users, color: 'bg-sky-500' },
               { id: 'leaves', label: '📝 อนุมัติใบลา', icon: Calendar, badge: overview?.pendingLeavesCount, color: 'bg-amber-500' },
               { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: overview?.unresolvedViolationsCount, color: 'bg-red-500' },
@@ -388,22 +428,43 @@ export default function ColorfulAdminDashboard() {
             })}
           </div>
 
-          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 self-start sm:self-auto shadow-2xs">
-            {(['daily', 'weekly', 'monthly'] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  period === p
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                {p === 'daily' ? 'รายวัน' : p === 'weekly' ? 'รายสัปดาห์' : 'รายเดือน'}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 self-start lg:self-auto">
+            {/* Export CSV for Payroll */}
+            <button
+              onClick={handleExportCSV}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+              title="ดาวน์โหลดรายงานทำจ่ายเงินเดือน Excel/CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Export รายงาน (CSV)</span>
+              <span className="sm:hidden">CSV</span>
+            </button>
+
+            {/* Period Selector */}
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+              {(['daily', 'weekly', 'monthly'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    period === p
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {p === 'daily' ? 'รายวัน' : p === 'weekly' ? 'รายสัปดาห์' : 'รายเดือน'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* ------------------------------------------------------------- */}
+        {/* VIEW: INTERACTIVE SYSTEM DATA FLOW (7 STAGES)                 */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'dataflow' && (
+          <ExecutiveDataFlow />
+        )}
 
         {/* ------------------------------------------------------------- */}
         {/* VIEW 1: VIBRANT EXECUTIVE DASHBOARD                           */}
@@ -411,6 +472,31 @@ export default function ColorfulAdminDashboard() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             
+            {/* Data Flow Quick Access Banner */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs sm:text-sm text-white flex items-center gap-2">
+                    <span>แผนผังสถาปัตยกรรมการไหลของข้อมูล (System Data Flow)</span>
+                    <span className="text-[10px] px-2 py-0.2 rounded-full bg-indigo-500 text-white font-black">7 ขั้นตอน</span>
+                  </div>
+                  <div className="text-[11px] text-indigo-200">
+                    ติดตามเส้นทางข้อมูลตั้งแต่ Admin Provisioning, HWID Bind, GPS Geofencing จนถึง 3D Analytics
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('dataflow')}
+                className="px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0 shadow-sm"
+              >
+                <span>ดูการไหลของข้อมูล</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             {/* --------------------------------------------------------- */}
             {/* STEP 1: TOP 3-COLUMN HERO (CENTERED BIG HEADCOUNT)        */}
             {/* --------------------------------------------------------- */}
