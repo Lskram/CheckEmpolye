@@ -362,7 +362,7 @@ interface EmployeeListItem {
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-        {/* Top Navbar Brand */}
+        {/* Top Navbar Brand (Production-grade clean header) */}
         <header className="max-w-6xl mx-auto w-full flex items-center justify-between py-2 z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-black">
@@ -379,13 +379,12 @@ interface EmployeeListItem {
             </div>
           </div>
 
-          <Link
-            href="/"
-            className="text-xs font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-            <span>หน้าพนักงาน (Mobile PWA)</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-slate-900 text-slate-400 border border-slate-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Secure Production Node
+            </span>
+          </div>
         </header>
 
         {/* Main Login Card */}
@@ -434,7 +433,7 @@ interface EmployeeListItem {
                     type="text"
                     value={executiveCodeInput}
                     onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
-                    placeholder="เช่น SI01"
+                    placeholder="รหัสผู้บริหาร (เช่น SI01)"
                     className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono font-bold tracking-wider text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-600"
                     required
                     autoFocus
@@ -493,17 +492,6 @@ interface EmployeeListItem {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
-
-            {/* Quick Helper Credentials Note */}
-            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
-              <div>
-                <span className="text-slate-500">บัญชีผู้บริหาร:</span> <strong className="text-amber-400 font-mono">SI01</strong>
-              </div>
-              <div className="w-px h-4 bg-slate-800"></div>
-              <div>
-                <span className="text-slate-500">รหัส PIN:</span> <strong className="text-amber-400 font-mono">5101</strong>
-              </div>
-            </div>
           </div>
         </main>
 
