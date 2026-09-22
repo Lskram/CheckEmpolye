@@ -25,9 +25,9 @@ let mockEmployees: Employee[] = [
 
 let mockStoreSettings: StoreSettings = {
   id: '00000000-0000-0000-0000-000000000001',
-  store_name: 'สาขาหลัก YOKOHAMA NAYA COSMIS',
-  store_lat: 13.7563000,
-  store_lng: 100.5018000,
+  store_name: 'สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)',
+  store_lat: 15.110412,
+  store_lng: 104.358434,
   radius_meters: 50.00,
   standard_time: '07:40:00',
   late_deadline: '08:00:00',

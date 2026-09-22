@@ -1369,15 +1369,21 @@ interface EmployeeListItem {
               </label>
 
               <StoreMapPicker
-                lat={parseFloat(storeSettingsForm.store_lat) || 13.7563}
-                lng={parseFloat(storeSettingsForm.store_lng) || 100.5018}
+                lat={parseFloat(storeSettingsForm.store_lat) || 15.110412}
+                lng={parseFloat(storeSettingsForm.store_lng) || 104.358434}
                 radius={parseInt(storeSettingsForm.radius_meters) || 50}
-                storeName={storeSettingsForm.store_name || 'สาขา YOKOHAMA NAYA COSMIS'}
+                storeName={storeSettingsForm.store_name || 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS'}
                 onChange={(newLat, newLng) => {
                   setStoreSettingsForm((prev: any) => ({
                     ...prev,
                     store_lat: newLat,
                     store_lng: newLng,
+                  }));
+                }}
+                onRadiusChange={(newRad) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    radius_meters: newRad,
                   }));
                 }}
               />
