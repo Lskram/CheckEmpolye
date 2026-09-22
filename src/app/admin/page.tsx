@@ -68,9 +68,9 @@ export default function ColorfulAdminDashboard() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Executive Web Login Portal State (SI01 / PIN 5101)
+  // Executive Web Login Portal State
   const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(false);
-  const [executiveCodeInput, setExecutiveCodeInput] = useState('SI01');
+  const [executiveCodeInput, setExecutiveCodeInput] = useState('');
   const [executivePinInput, setExecutivePinInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [executivePinError, setExecutivePinError] = useState('');
@@ -127,16 +127,16 @@ export default function ColorfulAdminDashboard() {
     const code = executiveCodeInput.trim().toUpperCase();
     const pin = executivePinInput.trim();
 
-    // Check against Executive credentials (SI01 / 5101) or ADMIN01 / 1234
-    if ((code === 'SI01' && pin === '5101') || (code === 'ADMIN01' && pin === '1234') || pin === '5101') {
+    // Check against Executive credentials strictly
+    if (code === 'SI01' && pin === '5101') {
       setIsExecutiveUnlocked(true);
       setExecutivePinError('');
       if (rememberSession) {
         localStorage.setItem('executive_auth_token', 'true');
-        localStorage.setItem('executive_user_code', code || 'SI01');
+        localStorage.setItem('executive_user_code', code);
       }
     } else {
-      setExecutivePinError('รหัสผู้บริหารหรือรหัส PIN ไม่ถูกต้อง (รหัสผู้บริหาร: SI01 / PIN 5101)');
+      setExecutivePinError('รหัสผู้บริหารหรือรหัสผ่าน PIN ไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง');
       setExecutivePinInput('');
     }
   };
@@ -450,7 +450,7 @@ interface EmployeeListItem {
                     type="text"
                     value={executiveCodeInput}
                     onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
-                    placeholder="รหัสผู้บริหาร (เช่น SI01)"
+                    placeholder="ระบุรหัสผู้บริหาร"
                     className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono font-bold tracking-wider text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-600"
                     required
                     autoFocus
