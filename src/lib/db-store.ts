@@ -20,58 +20,14 @@ let mockEmployees: Employee[] = [
     hwid: null,
     is_active: true,
     created_at: new Date().toISOString(),
-  },
-  {
-    id: '11111111-1111-1111-1111-111111111111',
-    employee_code: 'ADMIN01',
-    full_name: 'ผู้จัดการ ภัทรพล (Admin)',
-    nickname: 'แอดมิน',
-    pin_hash: '1234',
-    role: 'ADMIN',
-    hwid: null,
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    employee_code: 'EMP001',
-    full_name: 'สมชาย สายตรง (Somchai)',
-    nickname: 'ชาย',
-    pin_hash: '1234',
-    role: 'STAFF',
-    hwid: 'HWID_SAMPLE_DEVICE_01',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333333',
-    employee_code: 'EMP002',
-    full_name: 'วิภาดา ขยันยิ่ง (Wiphada)',
-    nickname: 'ภา',
-    pin_hash: '1234',
-    role: 'STAFF',
-    hwid: 'HWID_SAMPLE_DEVICE_02',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '44444444-4444-4444-4444-444444444444',
-    employee_code: 'EMP003',
-    full_name: 'กิตติพงษ์ ตรงเวลา (Kittiphong)',
-    nickname: 'กิต',
-    pin_hash: '1234',
-    role: 'STAFF',
-    hwid: null,
-    is_active: true,
-    created_at: new Date().toISOString(),
   }
 ];
 
 let mockStoreSettings: StoreSettings = {
   id: '00000000-0000-0000-0000-000000000001',
-  store_name: 'สาขาหลัก สยามสแควร์ (Main Store)',
-  store_lat: 13.7460000,
-  store_lng: 100.5340000,
+  store_name: 'สาขาหลัก YOKOHAMA NAYA COSMIS',
+  store_lat: 13.7563000,
+  store_lng: 100.5018000,
   radius_meters: 50.00,
   standard_time: '07:40:00',
   late_deadline: '08:00:00',
@@ -79,64 +35,9 @@ let mockStoreSettings: StoreSettings = {
   updated_at: new Date().toISOString(),
 };
 
-let mockAttendanceLogs: AttendanceLog[] = [
-  {
-    id: 'att-1',
-    employee_id: '22222222-2222-2222-2222-222222222222',
-    check_in_time: new Date(Date.now() - 3600000 * 24 * 2 + 3600000 * 7.5).toISOString(),
-    latitude: 13.74601,
-    longitude: 100.53402,
-    accuracy: 5.0,
-    distance_from_store: 2.5,
-    hwid: 'HWID_SAMPLE_DEVICE_01',
-    status: 'PRESENT',
-    allowance: 50.00,
-    notes: 'เช็คอินตรงเวลา',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'att-2',
-    employee_id: '33333333-3333-3333-3333-333333333333',
-    check_in_time: new Date(Date.now() - 3600000 * 24 * 1 + 3600000 * 8.2).toISOString(),
-    latitude: 13.74605,
-    longitude: 100.53408,
-    accuracy: 8.0,
-    distance_from_store: 12.0,
-    hwid: 'HWID_SAMPLE_DEVICE_02',
-    status: 'LATE',
-    allowance: 0.00,
-    notes: 'เช็คอินสายเกิน 08:00 น.',
-    created_at: new Date().toISOString(),
-  }
-];
-
-let mockLeaveRequests: LeaveRequest[] = [
-  {
-    id: 'leave-1',
-    employee_id: '33333333-3333-3333-3333-333333333333',
-    leave_type: 'SICK',
-    start_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    end_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    days_count: 1,
-    reason: 'มีไข้สูง ไปพบแพทย์ตามนัด',
-    status: 'PENDING',
-    created_at: new Date().toISOString(),
-  }
-];
-
-let mockViolationLogs: ViolationLog[] = [
-  {
-    id: 'viol-1',
-    employee_id: '44444444-4444-4444-4444-444444444444',
-    violation_type: 'HWID_OVERLAP',
-    severity: 'CRITICAL',
-    description: 'ตรวจพบการใช้อุปกรณ์ HWID_SAMPLE_DEVICE_01 ซ้ำซ้อนกับพนักงาน สมชาย สายตรง (EMP001)',
-    hwid: 'HWID_SAMPLE_DEVICE_01',
-    other_employee_id: '22222222-2222-2222-2222-222222222222',
-    is_resolved: false,
-    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-  }
-];
+let mockAttendanceLogs: AttendanceLog[] = [];
+let mockLeaveRequests: LeaveRequest[] = [];
+let mockViolationLogs: ViolationLog[] = [];
 
 // Helper to generate IDs
 const generateId = () => 'id_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);

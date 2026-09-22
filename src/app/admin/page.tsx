@@ -218,65 +218,40 @@ export default function ColorfulAdminDashboard() {
     }
   };
 
+interface EmployeeListItem {
+  id: string;
+  code: string;
+  name: string;
+  nickname: string;
+  role: string;
+  checkInTime: string;
+  status: string;
+  allowance: number;
+  distance: string;
+  badgeColor: string;
+}
+
   const overview = analyticsData?.overview;
-  const onTimePercent = overview?.onTimeRate || 92;
-  const totalStaffCount = overview?.totalEmployees || 4;
-  const presentCount = overview?.totalPresent || 14;
-  const lateCount = overview?.totalLate || 2;
+  const onTimePercent = overview?.onTimeRate || 0;
+  const totalStaffCount = overview?.totalEmployees || 0;
+  const presentCount = overview?.totalPresent || 0;
+  const lateCount = overview?.totalLate || 0;
   const leaveCount = overview?.pendingLeavesCount || 0;
 
-  const employeesList = [
-    {
-      id: '22222222-2222-2222-2222-222222222222',
-      code: 'EMP001',
-      name: 'สมชาย สายตรง (Somchai)',
-      nickname: 'ชาย',
-      role: 'ช่างเทคนิคยาง (YOKOHAMA)',
-      checkInTime: '07:45:12 น.',
-      status: 'PRESENT',
-      allowance: 50,
-      distance: '2.5 ม.',
-      badgeColor: 'bg-red-500 text-white',
-    },
-    {
-      id: '33333333-3333-3333-3333-333333333333',
-      code: 'EMP002',
-      name: 'วิภาดา ขยันยิ่ง (Wiphada)',
-      nickname: 'ภา',
-      role: 'ที่ปรึกษาการขาย (NAYA WHEELS)',
-      checkInTime: '08:12:45 น.',
-      status: 'LATE',
-      allowance: 0,
-      distance: '12.0 ม.',
-      badgeColor: 'bg-amber-500 text-white',
-    },
-    {
-      id: '44444444-4444-4444-4444-444444444444',
-      code: 'EMP003',
-      name: 'กิตติพงษ์ ตรงเวลา (Kittiphong)',
-      nickname: 'กิต',
-      role: 'ช่างติดตั้งล้อแม็ก (COSMIS RACING)',
-      checkInTime: '07:38:20 น.',
-      status: 'PRESENT',
-      allowance: 50,
-      distance: '4.8 ม.',
-      badgeColor: 'bg-blue-600 text-white',
-    },
-    {
-      id: '11111111-1111-1111-1111-111111111111',
-      code: 'ADMIN01',
-      name: 'ผู้จัดการ ภัทรพล (Admin)',
-      nickname: 'แอดมิน',
-      role: 'ผู้จัดการสาขาหลัก (BRIDGESTONE)',
-      checkInTime: '07:30:00 น.',
-      status: 'PRESENT',
-      allowance: 50,
-      distance: '1.2 ม.',
-      badgeColor: 'bg-slate-900 text-white',
-    },
-  ];
+  const employeesList: EmployeeListItem[] = (analyticsData?.allowanceReports || []).map((emp: any) => ({
+    id: emp.employeeId,
+    code: emp.employeeCode,
+    name: emp.fullName,
+    nickname: emp.nickname || '-',
+    role: emp.role === 'ADMIN' ? 'ผู้บริหารสูงสุด (Executive)' : 'พนักงาน (Staff)',
+    checkInTime: emp.presentCount > 0 ? 'ตอกบัตรตรงเวลา' : emp.lateCount > 0 ? 'ตอกบัตรสาย' : 'ยังไม่ลงเวลาวันนี้',
+    status: emp.lateCount > 0 ? 'LATE' : emp.presentCount > 0 ? 'PRESENT' : 'PENDING',
+    allowance: emp.totalAllowance || 0,
+    distance: 'พิกัดร้าน',
+    badgeColor: emp.role === 'ADMIN' ? 'bg-indigo-600 text-white' : 'bg-blue-600 text-white',
+  }));
 
-  const filteredEmployees = employeesList.filter((emp) => {
+  const filteredEmployees: EmployeeListItem[] = employeesList.filter((emp: EmployeeListItem) => {
     if (empStatusFilter === 'present' && emp.status !== 'PRESENT') return false;
     if (empStatusFilter === 'late' && emp.status !== 'LATE') return false;
     if (searchQuery) {
@@ -298,7 +273,7 @@ export default function ColorfulAdminDashboard() {
 
   const handleExportCSV = () => {
     const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'ตำแหน่ง', 'เวลาเข้างาน', 'สถานะ', 'เบี้ยขยัน (บาท)', 'ระยะห่างจากร้าน'];
-    const rows = filteredEmployees.map((e) => [
+    const rows = filteredEmployees.map((e: any) => [
       e.code,
       `"${e.name}"`,
       `"${e.nickname}"`,
@@ -308,7 +283,7 @@ export default function ColorfulAdminDashboard() {
       e.allowance,
       `"${e.distance}"`,
     ]);
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);

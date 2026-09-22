@@ -125,11 +125,13 @@ VALUES (
     50.00
 ) ON CONFLICT (id) DO NOTHING;
 
--- Insert Admin and Demo Employees (PINs default to '1234' with simple demo hash)
+-- Insert Admin and Demo Employees (PINs default to demo hash)
 INSERT INTO employees (id, employee_code, full_name, nickname, pin_hash, role, hwid)
 VALUES 
+    ('00000000-0000-0000-0000-000000000000', 'SI01', 'ผู้บริหารสูงสุด (Executive Director)', 'ท่านประธาน', '5101', 'ADMIN', NULL),
     ('11111111-1111-1111-1111-111111111111', 'ADMIN01', 'ผู้จัดการ ระบบ (Admin)', 'แอดมิน', '1234', 'ADMIN', NULL),
     ('22222222-2222-2222-2222-222222222222', 'EMP001', 'สมชาย สายตรง (Somchai)', 'ชาย', '1234', 'STAFF', NULL),
     ('33333333-3333-3333-3333-333333333333', 'EMP002', 'วิภาดา ขยันยิ่ง (Wiphada)', 'ภา', '1234', 'STAFF', NULL),
     ('44444444-4444-4444-4444-444444444444', 'EMP003', 'กิตติพงษ์ ตรงเวลา (Kittiphong)', 'กิต', '1234', 'STAFF', NULL)
 ON CONFLICT (employee_code) DO NOTHING;
+
