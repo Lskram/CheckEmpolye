@@ -28,6 +28,10 @@ export async function GET(request: Request) {
       filterStartDate.setDate(now.getDate() - 30);
     }
 
+    // Split staff vs executives (Executives have special privileges and are not tracked for attendance)
+    const staffEmployees = employees.filter((e) => e.role !== 'ADMIN');
+    const executiveEmployees = employees.filter((e) => e.role === 'ADMIN');
+
     // Filter attendance logs by selected period
     const filteredLogs = attendanceLogs.filter((log) => {
       const logDate = new Date(log.check_in_time);
@@ -51,11 +55,11 @@ export async function GET(request: Request) {
     // Allowance Aggregation
     const totalAllowancePaid = filteredLogs.reduce((sum, l) => sum + (Number(l.allowance) || 0), 0);
 
-    // Per Employee Allowance Summary
+    // Per Employee Allowance Summary (For Staff ONLY)
     const employeeAllowanceMap = new Map<string, { count: number; totalAmount: number; lateCount: number; presentCount: number }>();
     
-    // Initialize map with all active employees
-    employees.forEach((emp) => {
+    // Initialize map with staff only
+    staffEmployees.forEach((emp) => {
       employeeAllowanceMap.set(emp.id, { count: 0, totalAmount: 0, lateCount: 0, presentCount: 0 });
     });
 
@@ -71,7 +75,8 @@ export async function GET(request: Request) {
       employeeAllowanceMap.set(log.employee_id, current);
     });
 
-    const allowanceReports = employees.map((emp) => {
+    // Allowance reports for staff only
+    const allowanceReports = staffEmployees.map((emp) => {
       const stats = employeeAllowanceMap.get(emp.id) || { count: 0, totalAmount: 0, lateCount: 0, presentCount: 0 };
       return {
         employeeId: emp.id,
@@ -86,6 +91,9 @@ export async function GET(request: Request) {
       };
     });
 
+    // Sanitized all accounts list for Employee Directory
+    const allEmployeesList = employees.map(({ pin_hash, ...rest }) => rest);
+
     // Security & Violations
     const unresolvedViolations = violationLogs.filter((v) => !v.is_resolved);
     const criticalViolations = violationLogs.filter((v) => v.severity === 'CRITICAL' && !v.is_resolved);
@@ -99,7 +107,10 @@ export async function GET(request: Request) {
       data: {
         period,
         overview: {
-          totalEmployees: employees.length,
+          totalEmployees: staffEmployees.length, // Only count staff for attendance metrics
+          totalStaff: staffEmployees.length,
+          totalExecutives: executiveEmployees.length,
+          totalAllAccounts: employees.length,
           totalCheckIns,
           totalPresent,
           totalLate,
@@ -112,6 +123,7 @@ export async function GET(request: Request) {
           criticalAlertActive: hasCriticalHWIDOverlap,
         },
         allowanceReports,
+        allEmployees: allEmployeesList,
         violations: violationLogs,
         criticalViolations,
         recentAttendance: filteredLogs.slice(0, 50),

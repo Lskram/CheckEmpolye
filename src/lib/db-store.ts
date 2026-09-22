@@ -39,8 +39,17 @@ let mockAttendanceLogs: AttendanceLog[] = [];
 let mockLeaveRequests: LeaveRequest[] = [];
 let mockViolationLogs: ViolationLog[] = [];
 
-// Helper to generate IDs
-const generateId = () => 'id_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+// Helper to generate RFC4122 compliant UUIDs
+const generateUUID = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
 
 export const db = {
   // -------------------------------------------------------------
@@ -89,7 +98,7 @@ export const db = {
 
   async createEmployee(employee: Partial<Employee>): Promise<Employee> {
     const newEmp: Employee = {
-      id: employee.id || generateId(),
+      id: employee.id || generateUUID(),
       employee_code: employee.employee_code || '',
       full_name: employee.full_name || '',
       nickname: employee.nickname || '',
@@ -169,7 +178,7 @@ export const db = {
   // -------------------------------------------------------------
   async createAttendanceLog(log: Omit<AttendanceLog, 'id'>): Promise<AttendanceLog> {
     const newLog: AttendanceLog = {
-      id: generateId(),
+      id: generateUUID(),
       ...log,
       created_at: new Date().toISOString(),
     };
@@ -205,7 +214,7 @@ export const db = {
   // -------------------------------------------------------------
   async createLeaveRequest(req: Omit<LeaveRequest, 'id' | 'status'>): Promise<LeaveRequest> {
     const newReq: LeaveRequest = {
-      id: generateId(),
+      id: generateUUID(),
       ...req,
       status: 'PENDING',
       created_at: new Date().toISOString(),
@@ -275,7 +284,7 @@ export const db = {
   // -------------------------------------------------------------
   async createViolationLog(log: Omit<ViolationLog, 'id' | 'is_resolved'>): Promise<ViolationLog> {
     const newLog: ViolationLog = {
-      id: generateId(),
+      id: generateUUID(),
       ...log,
       is_resolved: false,
       created_at: new Date().toISOString(),

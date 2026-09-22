@@ -40,7 +40,12 @@ import {
   Unlock,
   FileSpreadsheet,
   Activity,
-  FileCheck
+  FileCheck,
+  LogOut,
+  User,
+  Eye,
+  EyeOff,
+  ArrowRight
 } from 'lucide-react';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
@@ -53,10 +58,11 @@ export default function ColorfulAdminDashboard() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Executive Access Protection (SI01 / PIN 5101)
+  // Executive Web Login Portal State (SI01 / PIN 5101)
   const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(false);
   const [executiveCodeInput, setExecutiveCodeInput] = useState('SI01');
   const [executivePinInput, setExecutivePinInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [executivePinError, setExecutivePinError] = useState('');
   const [rememberSession, setRememberSession] = useState(true);
 
@@ -238,18 +244,20 @@ interface EmployeeListItem {
   const lateCount = overview?.totalLate || 0;
   const leaveCount = overview?.pendingLeavesCount || 0;
 
-  const employeesList: EmployeeListItem[] = (analyticsData?.allowanceReports || []).map((emp: any) => ({
-    id: emp.employeeId,
-    code: emp.employeeCode,
-    name: emp.fullName,
-    nickname: emp.nickname || '-',
-    role: emp.role === 'ADMIN' ? 'ผู้บริหารสูงสุด (Executive)' : 'พนักงาน (Staff)',
-    checkInTime: emp.presentCount > 0 ? 'ตอกบัตรตรงเวลา' : emp.lateCount > 0 ? 'ตอกบัตรสาย' : 'ยังไม่ลงเวลาวันนี้',
-    status: emp.lateCount > 0 ? 'LATE' : emp.presentCount > 0 ? 'PRESENT' : 'PENDING',
-    allowance: emp.totalAllowance || 0,
-    distance: 'พิกัดร้าน',
-    badgeColor: emp.role === 'ADMIN' ? 'bg-indigo-600 text-white' : 'bg-blue-600 text-white',
-  }));
+  const employeesList: EmployeeListItem[] = (analyticsData?.allowanceReports || [])
+    .filter((emp: any) => emp.role !== 'ADMIN')
+    .map((emp: any) => ({
+      id: emp.employeeId,
+      code: emp.employeeCode,
+      name: emp.fullName,
+      nickname: emp.nickname || '-',
+      role: 'พนักงาน (Staff)',
+      checkInTime: emp.presentCount > 0 ? 'ตอกบัตรตรงเวลา' : emp.lateCount > 0 ? 'ตอกบัตรสาย' : 'ยังไม่ลงเวลาวันนี้',
+      status: emp.lateCount > 0 ? 'LATE' : emp.presentCount > 0 ? 'PRESENT' : 'PENDING',
+      allowance: emp.totalAllowance || 0,
+      distance: 'พิกัดร้าน',
+      badgeColor: 'bg-blue-600 text-white',
+    }));
 
   const filteredEmployees: EmployeeListItem[] = employeesList.filter((emp: EmployeeListItem) => {
     if (empStatusFilter === 'present' && emp.status !== 'PRESENT') return false;
@@ -294,148 +302,164 @@ interface EmployeeListItem {
   };
 
   // -------------------------------------------------------------
-  // EXECUTIVE ACCESS GATE (LOCK SCREEN - SI01 / PIN 5101)
+  // EXECUTIVE WEB LOGIN PORTAL (SI01 / PIN 5101)
   // -------------------------------------------------------------
   if (!isExecutiveUnlocked) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center p-4 font-sans select-none text-slate-100">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900/90 border border-indigo-800/50 shadow-2xl backdrop-blur-xl space-y-6 relative overflow-hidden">
-          {/* Ambient Glow */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 sm:p-8 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+        {/* Subtle Background Glows */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-          {/* Lock Icon & Header */}
-          <div className="text-center space-y-2 relative z-10">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-600 via-blue-600 to-amber-400 p-0.5 shadow-lg shadow-indigo-500/30 flex items-center justify-center">
-              <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center text-amber-400">
-                <Lock className="w-8 h-8 stroke-[2.5]" />
+        {/* Top Navbar Brand */}
+        <header className="max-w-6xl mx-auto w-full flex items-center justify-between py-2 z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-black">
+              👑
+            </div>
+            <div>
+              <div className="font-black text-white text-sm tracking-tight leading-none flex items-center gap-2">
+                <span>YOKOHAMA • NAYA • COSMIS</span>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  EXECUTIVE PORTAL
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">ระบบบริหารจัดการเวลาทำงานและวิเคราะห์กำลังพล</p>
+            </div>
+          </div>
+
+          <Link
+            href="/"
+            className="text-xs font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700"
+          >
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+            <span>หน้าพนักงาน (Mobile PWA)</span>
+          </Link>
+        </header>
+
+        {/* Main Login Card */}
+        <main className="max-w-md w-full mx-auto my-auto py-8 z-10">
+          <div className="bg-slate-900/95 border border-slate-800 shadow-2xl rounded-3xl p-6 sm:p-8 backdrop-blur-xl space-y-6">
+            
+            {/* Header / Title */}
+            <div className="space-y-1.5 text-center">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Executive Authentication</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                เข้าสู่ระบบผู้บริหาร
+              </h1>
+              <p className="text-xs text-slate-400">
+                กรุณาระบุรหัสผู้บริหารและรหัสผ่านเพื่อเข้าสู่แดชบอร์ด
+              </p>
+            </div>
+
+            {/* Error Alert */}
+            {executivePinError && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-2"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{executivePinError}</span>
+              </motion.div>
+            )}
+
+            {/* Web Form */}
+            <form onSubmit={handleExecutiveLogin} className="space-y-4">
+              
+              {/* Username / Code Field */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-300">
+                  รหัสผู้บริหาร (Executive Code / Username)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={executiveCodeInput}
+                    onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
+                    placeholder="เช่น SI01"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono font-bold tracking-wider text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-600"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Password / PIN Field */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-300">
+                    รหัสผ่าน / PIN ผู้บริหาร
+                  </label>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={executivePinInput}
+                    onChange={(e) => setExecutivePinInput(e.target.value)}
+                    placeholder="กรอกรหัสผ่าน / PIN"
+                    className="w-full pl-10 pr-11 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono font-bold text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-600"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me */}
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <label className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={rememberSession}
+                    onChange={(e) => setRememberSession(e.target.checked)}
+                    className="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>จดจำการเข้าสู่ระบบบนเบราว์เซอร์นี้</span>
+                </label>
+              </div>
+
+              {/* Submit Sign In Button */}
+              <button
+                type="submit"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <span>เข้าสู่ระบบ (Sign In)</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+
+            {/* Quick Helper Credentials Note */}
+            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+              <div>
+                <span className="text-slate-500">บัญชีผู้บริหาร:</span> <strong className="text-amber-400 font-mono">SI01</strong>
+              </div>
+              <div className="w-px h-4 bg-slate-800"></div>
+              <div>
+                <span className="text-slate-500">รหัส PIN:</span> <strong className="text-amber-400 font-mono">5101</strong>
               </div>
             </div>
-
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              👑 EXECUTIVE ACCESS ONLY
-            </div>
-
-            <h2 className="text-2xl font-black text-white tracking-tight">
-              แดชบอร์ดผู้บริหาร
-            </h2>
-            <p className="text-xs text-slate-400">
-              กรุณาระบุรหัสผู้บริหารและ PIN 4 หลักเพื่อเข้าสู่ระบบ
-            </p>
           </div>
+        </main>
 
-          {/* Error Message */}
-          {executivePinError && (
-            <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-bold text-center animate-shake">
-              {executivePinError}
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleExecutiveLogin} className="space-y-4 relative z-10">
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                รหัสผู้บริหาร (Executive Code):
-              </label>
-              <input
-                type="text"
-                value={executiveCodeInput}
-                onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
-                placeholder="SI01"
-                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-white font-mono text-center font-bold tracking-wider focus:outline-none focus:border-indigo-500 transition-colors text-sm"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                รหัส PIN ผู้บริหาร (4 หลัก):
-              </label>
-              <input
-                type="password"
-                maxLength={6}
-                value={executivePinInput}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '');
-                  setExecutivePinInput(val);
-                }}
-                placeholder="••••"
-                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-700 rounded-2xl text-amber-400 font-mono text-center text-2xl tracking-[0.5em] focus:outline-none focus:border-indigo-500 transition-colors"
-                required
-                autoFocus
-              />
-            </div>
-
-            {/* Numeric Keypad */}
-            <div className="grid grid-cols-3 gap-2 pt-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                <button
-                  type="button"
-                  key={num}
-                  onClick={() => {
-                    if (executivePinInput.length < 6) {
-                      setExecutivePinInput((prev) => prev + num);
-                    }
-                  }}
-                  className="py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-mono text-lg font-bold border border-slate-700/60 active:scale-95 transition-all shadow-xs"
-                >
-                  {num}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setExecutivePinInput('')}
-                className="py-3 rounded-2xl bg-slate-800/50 hover:bg-slate-800 text-rose-400 text-xs font-bold border border-slate-700/60 active:scale-95 transition-all"
-              >
-                ล้าง (C)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (executivePinInput.length < 6) {
-                    setExecutivePinInput((prev) => prev + '0');
-                  }
-                }}
-                className="py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-mono text-lg font-bold border border-slate-700/60 active:scale-95 transition-all shadow-xs"
-              >
-                0
-              </button>
-              <button
-                type="button"
-                onClick={() => setExecutivePinInput((prev) => prev.slice(0, -1))}
-                className="py-3 rounded-2xl bg-slate-800/50 hover:bg-slate-800 text-slate-300 text-sm font-bold border border-slate-700/60 active:scale-95 transition-all"
-              >
-                ⌫
-              </button>
-            </div>
-
-            {/* Remember Session Checkbox */}
-            <div className="flex items-center justify-between pt-2 text-xs">
-              <label className="flex items-center gap-2 text-slate-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberSession}
-                  onChange={(e) => setRememberSession(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-0"
-                />
-                <span>จำการเข้าสู่ระบบบนอุปกรณ์นี้</span>
-              </label>
-            </div>
-
-            {/* Unlock Button */}
-            <button
-              type="submit"
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 hover:from-indigo-500 hover:to-blue-500 text-white font-black text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-98"
-            >
-              ปลดล็อกแดชบอร์ด (Unlock)
-            </button>
-          </form>
-
-          {/* Quick Credential Hint */}
-          <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 text-center text-[11px] text-slate-400 space-y-0.5">
-            <div>รหัสเข้าใช้งานผู้บริหาร: <strong className="text-amber-400 font-mono">SI01</strong></div>
-            <div>รหัส PIN: <strong className="text-amber-400 font-mono">5101</strong></div>
-          </div>
-        </div>
+        {/* Footer */}
+        <footer className="max-w-6xl mx-auto w-full text-center py-2 text-xs text-slate-500 z-10">
+          © YOKOHAMA • NAYA • COSMIS WHEELS & TIRES — Executive Workforce Suite
+        </footer>
       </div>
     );
   }
@@ -490,14 +514,14 @@ interface EmployeeListItem {
               <span>{is3DMode ? 'กราฟ 3D' : 'กราฟ 2D'}</span>
             </button>
 
-            {/* Lock Screen Button */}
+            {/* Sign Out / Logout Button */}
             <button
               onClick={handleLockDashboard}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1 border border-slate-200 transition-colors"
-              title="ล็อคหน้าจอผู้บริหาร"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 hover:border-rose-200 transition-colors"
+              title="ออกจากระบบผู้บริหาร"
             >
-              <Lock className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline">ล็อคหน้าจอ</span>
+              <LogOut className="w-3.5 h-3.5 text-slate-500 hover:text-rose-600" />
+              <span className="hidden sm:inline">ออกจากระบบ</span>
             </button>
 
             <button
@@ -754,78 +778,102 @@ interface EmployeeListItem {
                 </div>
               </div>
 
-              {/* Attendance Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                      <th className="py-2.5 px-3">พนักงาน</th>
-                      <th className="py-2.5 px-3">รหัสพนักงาน</th>
-                      <th className="py-2.5 px-3">ตำแหน่ง / แผนก</th>
-                      <th className="py-2.5 px-3">เวลาเช็คอิน</th>
-                      <th className="py-2.5 px-3">สถานะ</th>
-                      <th className="py-2.5 px-3">เบี้ยเลี้ยงวันนี้</th>
-                      <th className="py-2.5 px-3 text-right">ระยะห่างร้าน</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredEmployees.map((emp) => (
-                      <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black flex items-center justify-center text-xs border border-blue-200">
-                              {emp.nickname[0]}
-                            </div>
-                            <div>
-                              <div className="font-bold text-slate-900">{emp.name}</div>
-                              <div className="text-[10px] text-slate-500">ชื่อเล่น: {emp.nickname}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${emp.badgeColor}`}>
-                            {emp.role}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkInTime}</td>
-                        <td className="py-3 px-3">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
-                              emp.status === 'PRESENT'
-                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                : emp.status === 'LATE'
-                                ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                                : 'bg-slate-100 text-slate-600 border border-slate-200'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                emp.status === 'PRESENT'
-                                  ? 'bg-emerald-600'
-                                  : emp.status === 'LATE'
-                                  ? 'bg-amber-600'
-                                  : 'bg-slate-400'
-                              }`}
-                            ></span>
-                            {emp.status === 'PRESENT'
-                              ? 'ตรงเวลา (+50฿)'
-                              : emp.status === 'LATE'
-                              ? 'มาสาย (> 08:00)'
-                              : '⏳ ยังไม่ลงเวลา'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className={`font-mono font-black text-xs ${emp.allowance > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                            {emp.allowance > 0 ? `+${emp.allowance} บาท` : '0 บาท'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-right text-slate-700 font-mono font-bold text-[11px]">{emp.distance}</td>
+              {/* Attendance Table or Empty State */}
+              {filteredEmployees.length === 0 ? (
+                <div className="py-12 px-4 text-center space-y-3 bg-slate-50/70 rounded-2xl border border-dashed border-slate-200">
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div className="max-w-md mx-auto space-y-1">
+                    <h4 className="font-bold text-slate-800 text-sm">ยังไม่มีรายชื่อพนักงานปฏิบัติการในระบบ</h4>
+                    <p className="text-xs text-slate-500">
+                      ผู้บริหารระดับสูง (SI01) ได้รับสิทธิ์พิเศษไม่ต้องลงเวลาทำงาน คุณสามารถเพิ่มรายชื่อพนักงานใหม่เพื่อเริ่มบันทึกเวลาและคำนวณเบี้ยขยัน 50฿ ได้ทันที
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setActiveTab('employees');
+                      setShowAddEmpModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ เพิ่มพนักงานใหม่</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold">
+                        <th className="py-2.5 px-3">พนักงาน</th>
+                        <th className="py-2.5 px-3">รหัสพนักงาน</th>
+                        <th className="py-2.5 px-3">ตำแหน่ง / แผนก</th>
+                        <th className="py-2.5 px-3">เวลาเช็คอิน</th>
+                        <th className="py-2.5 px-3">สถานะ</th>
+                        <th className="py-2.5 px-3">เบี้ยเลี้ยงวันนี้</th>
+                        <th className="py-2.5 px-3 text-right">ระยะห่างร้าน</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredEmployees.map((emp) => (
+                        <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black flex items-center justify-center text-xs border border-blue-200">
+                                {emp.nickname[0]}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-900">{emp.name}</div>
+                                <div className="text-[10px] text-slate-500">ชื่อเล่น: {emp.nickname}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${emp.badgeColor}`}>
+                              {emp.role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkInTime}</td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                                emp.status === 'PRESENT'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                  : emp.status === 'LATE'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  emp.status === 'PRESENT'
+                                    ? 'bg-emerald-600'
+                                    : emp.status === 'LATE'
+                                    ? 'bg-amber-600'
+                                    : 'bg-slate-400'
+                                }`}
+                              ></span>
+                              {emp.status === 'PRESENT'
+                                ? 'ตรงเวลา (+50฿)'
+                                : emp.status === 'LATE'
+                                ? 'มาสาย (> 08:00)'
+                                : '⏳ ยังไม่ลงเวลา'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`font-mono font-black text-xs ${emp.allowance > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                              {emp.allowance > 0 ? `+${emp.allowance} บาท` : '0 บาท'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right text-slate-700 font-mono font-bold text-[11px]">{emp.distance}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             {/* --------------------------------------------------------- */}
@@ -963,37 +1011,43 @@ interface EmployeeListItem {
                 </div>
 
                 <div className="space-y-3 pt-1">
-                  {analyticsData?.allowanceReports?.map((emp: any) => {
-                    const max = 1500;
-                    const percent = Math.min(100, Math.round((emp.totalAllowance / max) * 100));
+                  {(analyticsData?.allowanceReports || []).length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400 bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
+                      ยังไม่มีรายการเบี้ยเลี้ยงของพนักงานปฏิบัติการ
+                    </div>
+                  ) : (
+                    analyticsData.allowanceReports.map((emp: any) => {
+                      const max = 1500;
+                      const percent = Math.min(100, Math.round((emp.totalAllowance / max) * 100));
 
-                    return (
-                      <div key={emp.employeeId} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
-                              {emp.nickname?.[0] || 'U'}
-                            </span>
-                            <span className="font-bold text-slate-900">{emp.fullName}</span>
-                            <span className="text-[10px] font-mono text-slate-500">({emp.employeeCode})</span>
+                      return (
+                        <div key={emp.employeeId} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                                {emp.nickname?.[0] || 'U'}
+                              </span>
+                              <span className="font-bold text-slate-900">{emp.fullName}</span>
+                              <span className="text-[10px] font-mono text-slate-500">({emp.employeeCode})</span>
+                            </div>
+                            <div className="text-right font-mono">
+                              <strong className="text-amber-600 font-black text-sm">{emp.totalAllowance} ฿</strong>
+                              <span className="text-[10px] text-slate-400 ml-1">({emp.allowanceCount} ครั้ง)</span>
+                            </div>
                           </div>
-                          <div className="text-right font-mono">
-                            <strong className="text-amber-600 font-black text-sm">{emp.totalAllowance} ฿</strong>
-                            <span className="text-[10px] text-slate-400 ml-1">({emp.allowanceCount} ครั้ง)</span>
+
+                          <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${percent}%` }}
+                              transition={{ duration: 0.6 }}
+                              className="h-full bg-gradient-to-r from-amber-400 via-yellow-400 to-emerald-400 rounded-full"
+                            />
                           </div>
                         </div>
-
-                        <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${percent}%` }}
-                            transition={{ duration: 0.6 }}
-                            className="h-full bg-gradient-to-r from-amber-400 via-yellow-400 to-emerald-400 rounded-full"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
@@ -1009,9 +1063,11 @@ interface EmployeeListItem {
               <div>
                 <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
                   <Users className="w-4 h-4 text-blue-600" />
-                  <span>รายชื่อพนักงานทั้งหมด</span>
+                  <span>รายชื่อและบัญชีผู้ใช้งานในระบบ</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">เพิ่มพนักงานใหม่ และดูรหัสประจำเครื่อง (HWID)</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  เพิ่มพนักงานใหม่, แยกสิทธิ์ผู้บริหาร และดูสถานะการผูกอุปกรณ์ (HWID)
+                </p>
               </div>
 
               <button
@@ -1030,26 +1086,70 @@ interface EmployeeListItem {
                     <th className="py-2.5 px-3">รหัส</th>
                     <th className="py-2.5 px-3">ชื่อ-นามสกุล</th>
                     <th className="py-2.5 px-3">ชื่อเล่น</th>
-                    <th className="py-2.5 px-3">สิทธิ์</th>
+                    <th className="py-2.5 px-3">ระดับสิทธิ์ / บทบาท</th>
                     <th className="py-2.5 px-3">เบี้ยเลี้ยงสะสม</th>
                     <th className="py-2.5 px-3">สถานะ HWID</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {analyticsData?.allowanceReports?.map((emp: any) => (
-                    <tr key={emp.employeeId} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.employeeCode}</td>
-                      <td className="py-3 px-3 font-bold text-slate-800">{emp.fullName}</td>
-                      <td className="py-3 px-3 text-slate-500">{emp.nickname || '-'}</td>
-                      <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
-                          {emp.role}
-                        </span>
+                  {(analyticsData?.allEmployees || []).length > 0 ? (
+                    analyticsData.allEmployees.map((emp: any) => {
+                      const isExecutive = emp.role === 'ADMIN' || emp.employee_code === 'SI01';
+                      const allowanceStats = analyticsData?.allowanceReports?.find((r: any) => r.employeeId === emp.id);
+
+                      return (
+                        <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.employee_code}</td>
+                          <td className="py-3 px-3 font-bold text-slate-800">
+                            <div className="flex items-center gap-2">
+                              <span>{emp.full_name}</span>
+                              {isExecutive && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                  👑 สิทธิ์พิเศษ (ไม่ต้องลงเวลา)
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-slate-500">{emp.nickname || '-'}</td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold ${
+                                isExecutive
+                                  ? 'bg-indigo-600 text-white shadow-xs'
+                                  : 'bg-slate-100 text-slate-700 border border-slate-200'
+                              }`}
+                            >
+                              {isExecutive ? 'EXECUTIVE' : emp.role || 'STAFF'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-bold font-mono">
+                            {isExecutive ? (
+                              <span className="text-slate-400 font-normal italic">-</span>
+                            ) : (
+                              <span className="text-amber-600">+{allowanceStats?.totalAllowance || 0} ฿</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 font-mono text-[11px]">
+                            {isExecutive ? (
+                              <span className="text-slate-400">เข้าใช้งานได้ทุกอุปกรณ์</span>
+                            ) : emp.hwid ? (
+                              <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> ผูกติดเครื่องแล้ว
+                              </span>
+                            ) : (
+                              <span className="text-amber-600 font-semibold">ยังไม่ผูกเครื่อง</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-slate-400">
+                        ไม่พบข้อมูลพนักงานในระบบ
                       </td>
-                      <td className="py-3 px-3 font-bold text-amber-600 font-mono">{emp.totalAllowance} ฿</td>
-                      <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">ผูกติดเครื่องแล้ว</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
