@@ -61,7 +61,12 @@ export const db = {
         .from('employees')
         .select('*')
         .order('created_at', { ascending: true });
-      if (!error && data) return data as Employee[];
+      if (error) {
+        console.error('[Supabase getEmployees Error]:', error);
+      }
+      if (!error && data) {
+        return data as Employee[];
+      }
     }
     return [...mockEmployees];
   },
