@@ -281,8 +281,19 @@ export default function ExactEmployeeApp() {
           </div>
         </div>
 
-        {/* Top Right Badges (Security Shield, Notification Bell, Logout) */}
+        {/* Top Right Badges (Executive Switcher, Security Shield, Logout) */}
         <div className="flex items-center gap-2">
+          {/* Executive Portal Switcher for ADMIN */}
+          {employee?.role === 'ADMIN' && (
+            <Link
+              href="/admin"
+              className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-indigo-600 text-white text-xs font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+              title="สลับไปยังแดชบอร์ดผู้บริหาร"
+            >
+              <span>👑 ผู้บริหาร</span>
+            </Link>
+          )}
+
           {/* HWID Device Security Badge */}
           <div 
             title={`HWID: ${hwid || 'ผูกเครื่องแล้ว'}`}

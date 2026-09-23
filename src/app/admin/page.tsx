@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
@@ -64,6 +65,7 @@ const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
 });
 
 export default function ColorfulAdminDashboard() {
+  const router = useRouter();
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +113,16 @@ export default function ColorfulAdminDashboard() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem('executive_auth_token');
+    const savedProfile = localStorage.getItem('attendance_employee_profile');
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed && (parsed.role === 'ADMIN' || parsed.employee_code === 'SI01')) {
+          setIsExecutiveUnlocked(true);
+          return;
+        }
+      } catch (e) {}
+    }
     if (savedToken === 'true') {
       setIsExecutiveUnlocked(true);
     }
@@ -143,9 +155,11 @@ export default function ColorfulAdminDashboard() {
 
   const handleLockDashboard = () => {
     localStorage.removeItem('executive_auth_token');
+    localStorage.removeItem('attendance_employee_profile');
     setIsExecutiveUnlocked(false);
     setExecutivePinInput('');
     setExecutivePinError('');
+    router.push('/employee/login');
   };
 
   const loadDashboardData = async () => {
@@ -557,6 +571,16 @@ interface EmployeeListItem {
               <span className="px-2 py-0.5 rounded bg-black text-white">BRIDGESTONE</span>
             </div>
 
+            {/* Switch to Employee Check-in Mode */}
+            <Link
+              href="/employee"
+              className="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 border border-blue-200 transition-colors shadow-2xs"
+              title="สลับไปหน้าลงเวลาเข้างานของตนเอง"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">หน้าลงเวลา</span>
+            </Link>
+
             {/* 3D Switcher */}
             <button
               onClick={() => setIs3DMode(!is3DMode)}
@@ -567,7 +591,7 @@ interface EmployeeListItem {
               }`}
             >
               <Box className="w-3.5 h-3.5" />
-              <span>{is3DMode ? 'กราฟ 3D' : 'กราฟ 2D'}</span>
+              <span>{is3DMode ? '3D' : '2D'}</span>
             </button>
 
             {/* Sign Out / Logout Button */}

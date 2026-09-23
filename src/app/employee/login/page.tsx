@@ -101,13 +101,19 @@ export default function EmployeeLoginPage() {
 
       localStorage.setItem('attendance_employee_profile', JSON.stringify(data.data));
 
+      const targetPath = data.data.role === 'ADMIN' ? '/admin' : '/employee';
+      if (data.data.role === 'ADMIN') {
+        localStorage.setItem('executive_auth_token', 'true');
+        localStorage.setItem('executive_user_code', data.data.employee_code);
+      }
+
       if (data.warning) {
         setWarningMsg(data.warning);
         setTimeout(() => {
-          router.push('/employee');
+          router.push(targetPath);
         }, 1200);
       } else {
-        router.push('/employee');
+        router.push(targetPath);
       }
     } catch (err: any) {
       setErrorMsg('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: ' + err.message);
@@ -144,7 +150,12 @@ export default function EmployeeLoginPage() {
       }
 
       localStorage.setItem('attendance_employee_profile', JSON.stringify(data.data));
-      router.push('/employee');
+      const targetPath = data.data.role === 'ADMIN' ? '/admin' : '/employee';
+      if (data.data.role === 'ADMIN') {
+        localStorage.setItem('executive_auth_token', 'true');
+        localStorage.setItem('executive_user_code', data.data.employee_code);
+      }
+      router.push(targetPath);
     } catch (err: any) {
       setErrorMsg('เกิดข้อผิดพลาดในการตรวจสอบ PIN');
       setPinCode('');
