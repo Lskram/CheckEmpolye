@@ -12,7 +12,6 @@ import {
   User, 
   Lock, 
   Delete,
-  Sparkles,
   Info
 } from 'lucide-react';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -329,68 +328,21 @@ export default function EmployeeLoginPage() {
                 </div>
               </div>
 
-              {/* HWID Device Tag */}
-              <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100 text-xs text-slate-600">
-                <div className="flex items-center justify-between font-bold text-slate-800 mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-blue-600" />
-                    HWID รหัสประจำเครื่อง:
-                  </span>
-                  <span className="font-mono text-blue-600 text-[11px] truncate max-w-[140px]">
-                    {hwid || 'กำลังสร้างรหัส...'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  ระบบจะทำการผูกรหัสเครื่องนี้เข้ากับบัญชีพนักงานในฐานข้อมูล (1 คน 1 เครื่อง)
-                </p>
-              </div>
-
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-all disabled:opacity-50"
+                className="w-full py-4 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-all disabled:opacity-50 mt-2"
               >
                 {isLoading ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <span>เข้าสู่ระบบและผูกเครื่อง</span>
+                    <span>เข้าสู่ระบบ</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
-
-            {/* Quick Demo Credentials */}
-            <div className="mt-5 pt-4 border-t border-slate-100">
-              <div className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                แตะเลือกรหัสพนักงานเพื่อทดสอบ:
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { code: 'EMP001', name: 'สมศักดิ์' },
-                  { code: 'EMP002', name: 'วิชัย' },
-                  { code: 'EMP003', name: 'อนุชา' }
-                ].map((item) => (
-                  <button
-                    key={item.code}
-                    type="button"
-                    onClick={() => {
-                      setEmployeeCode(item.code);
-                      setPinCode('1234');
-                    }}
-                    className="py-2.5 px-2 rounded-xl bg-slate-50 hover:bg-blue-50 active:bg-blue-100 text-slate-700 hover:text-blue-600 border border-slate-200 transition-colors text-center flex flex-col items-center"
-                  >
-                    <span className="font-mono font-bold text-xs">{item.code}</span>
-                    <span className="text-[10px] text-slate-400">{item.name}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-slate-400 text-center mt-2 font-medium">
-                รหัส PIN เริ่มต้น: <span className="font-mono font-bold text-slate-600">1234</span>
-              </p>
-            </div>
           </div>
         )}
       </div>

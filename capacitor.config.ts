@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Attendance Check-In',
   webDir: 'out',
   server: {
-    url: 'https://check-empolye.vercel.app/employee',
+    url: 'https://check-empolye.vercel.app/employee/login',
     cleartext: true,
     androidScheme: 'https',
   },

@@ -532,64 +532,6 @@ export default function ExactEmployeeApp() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Simulator Quick Toggle Button */}
-          <div className="pt-2 text-center border-t border-slate-100">
-            <button
-              onClick={() => setShowSimPanel(!showSimPanel)}
-              className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold"
-            >
-              {showSimPanel ? '▲ ปิดโหมดจำลองทดสอบ' : '▼ เปิดโหมดจำลองทดสอบ (ใน/นอกร้าน, ตรงเวลา/สาย)'}
-            </button>
-          </div>
-
-          {showSimPanel && (
-            <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 text-xs space-y-2 animate-fadeIn">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-bold">ตำแหน่ง GPS:</span>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setSimMode('inside')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      simMode === 'inside' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 border'
-                    }`}
-                  >
-                    ในร้าน 5ม.
-                  </button>
-                  <button
-                    onClick={() => setSimMode('outside')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      simMode === 'outside' ? 'bg-rose-500 text-white shadow-xs' : 'bg-white text-slate-600 border'
-                    }`}
-                  >
-                    นอกร้าน 120ม.
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-bold">เวลาเช็คอิน:</span>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setSimTimeMode('ontime')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      simTimeMode === 'ontime' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white text-slate-600 border'
-                    }`}
-                  >
-                    07:45 (ทันกะ)
-                  </button>
-                  <button
-                    onClick={() => setSimTimeMode('late')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      simTimeMode === 'late' ? 'bg-amber-500 text-white shadow-xs' : 'bg-white text-slate-600 border'
-                    }`}
-                  >
-                    08:15 (สาย)
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
