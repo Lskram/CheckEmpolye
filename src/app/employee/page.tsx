@@ -206,144 +206,117 @@ export default function ExactEmployeeApp() {
   const isInsideRadius = distance !== null && distance <= (storeSettings?.radius_meters || 50);
 
   return (
-    <div className="min-h-screen bg-[#1c4885] flex flex-col items-center justify-start py-4 sm:py-8 px-2 select-none font-sans text-slate-800">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-20">
       {/* ------------------------------------------------------------- */}
-      {/* TOP PROMO TEXT (EXACTLY MATCHING USER SCREENSHOT HEADER)      */}
+      {/* 1. TOP NATIVE HEADER & PROFILE                                */}
       {/* ------------------------------------------------------------- */}
-      <div className="text-center text-white mb-5">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-          ลงเวลาเข้างาน
-        </h1>
-        <p className="text-xs sm:text-sm text-blue-100/90 font-light mt-0.5">
-          เพื่อลดเวลาการทำงานของคุณ
-        </p>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* SMARTPHONE FRAME CONTAINER (EXACT MATCH)                      */}
-      {/* ------------------------------------------------------------- */}
-      <div className="w-full max-w-[370px] bg-white rounded-[44px] shadow-2xl ring-[10px] ring-slate-900/90 overflow-hidden relative flex flex-col border-[4px] border-slate-950">
-        
-        {/* Top Status Bar with Dynamic Island */}
-        <div className="pt-2.5 px-6 flex items-center justify-between text-xs text-slate-900 bg-white font-semibold z-30">
-          <span className="text-[12px] font-bold tracking-tight">9:41</span>
-          
-          {/* Dynamic Island */}
-          <div className="w-24 h-5 bg-black rounded-full mx-auto -mt-0.5 flex items-center justify-end px-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-900/40"></span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-[11px]">
-            <span className="text-[10px]">5G</span>
-            <Wifi className="w-3.5 h-3.5 stroke-[2.5]" />
-            <Battery className="w-4 h-4 stroke-[2.5]" />
-          </div>
-        </div>
-
-        {/* ----------------------------------------------------------- */}
-        {/* PROFILE ROW HEADER                                          */}
-        {/* ----------------------------------------------------------- */}
-        <div className="px-5 pt-3 pb-2 flex items-center justify-between bg-white">
-          {/* Staff Avatar + Name */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center relative shadow-xs">
-              {/* Profile Illustration */}
-              <div className="w-full h-full bg-gradient-to-tr from-slate-200 to-slate-100 flex items-center justify-center">
-                <span className="font-bold text-slate-700 text-xs">
-                  {employee?.nickname?.[0] || 'ส'}
-                </span>
-              </div>
+      <div className="bg-white px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between shadow-xs sticky top-0 z-30">
+        {/* Staff Avatar + Name */}
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-sm">
+            <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+              <span className="font-extrabold text-blue-600 text-sm">
+                {employee?.nickname?.[0] || employee?.fullName?.[0] || 'ส'}
+              </span>
             </div>
-            <div className="font-bold text-slate-900 text-sm tracking-tight">
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold text-slate-400">ยินดีต้อนรับ</div>
+            <div className="font-bold text-slate-900 text-base tracking-tight leading-tight">
               {employee?.fullName || 'สมศักดิ์ คงศรี'}
             </div>
           </div>
-
-          {/* Top Right Badges (Lock & Bell) */}
-          <div className="flex items-center gap-2.5">
-            {/* HWID Device Security Badge */}
-            <div className="relative w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500">
-              <Shield className="w-4 h-4 text-slate-600" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                1
-              </span>
-            </div>
-
-            {/* Notification Bell Badge */}
-            <div className="relative w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500">
-              <Bell className="w-4 h-4 text-slate-600" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                1
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* ----------------------------------------------------------- */}
-        {/* BLUE GRADIENT HERO CARD + EMBEDDED BUTTON                   */}
-        {/* ----------------------------------------------------------- */}
-        <div className="px-4 pt-1 pb-10 relative bg-white">
-          {/* Main Blue Card */}
-          <div className="bg-gradient-to-b from-[#3b82f6] via-[#2f77eb] to-[#2563eb] rounded-3xl pt-6 pb-12 px-4 text-center text-white relative shadow-md">
+        {/* Top Right Badges (Security Shield & Notification Bell) */}
+        <div className="flex items-center gap-2">
+          {/* HWID Device Security Badge */}
+          <div className="relative w-9 h-9 rounded-xl bg-slate-100/80 border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
+            <Shield className="w-4 h-4 text-blue-600" />
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[8px] font-bold flex items-center justify-center ring-2 ring-white">
+              ✓
+            </span>
+          </div>
+
+          {/* Notification Bell Badge */}
+          <div className="relative w-9 h-9 rounded-xl bg-slate-100/80 border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
+            <Bell className="w-4 h-4 text-slate-600" />
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
+              1
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. MAIN SCROLLABLE CONTENT BODY                               */}
+      {/* ------------------------------------------------------------- */}
+      <div className="flex-1 px-4 pt-4 space-y-4 max-w-lg mx-auto w-full">
+        {/* Blue Gradient Hero Card */}
+        <div className="relative pt-1 pb-12">
+          <div className="bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#1e40af] rounded-3xl pt-7 pb-14 px-4 text-center text-white relative shadow-xl shadow-blue-500/20 overflow-hidden">
+            {/* Background ambient lighting */}
+            <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            
             {/* Digital Clock */}
-            <div className="flex items-baseline justify-center gap-0.5 mb-2">
-              <span className="text-4xl font-extrabold tracking-tight font-mono">
+            <div className="flex items-baseline justify-center gap-1 mb-1.5">
+              <span className="text-5xl font-black tracking-tight font-mono drop-shadow-sm">
                 {time.hhmm}
               </span>
-              <span className="text-sm font-semibold font-mono text-blue-200">
+              <span className="text-lg font-bold font-mono text-blue-200">
                 {time.ss}
               </span>
             </div>
 
             {/* Thai Date */}
-            <p className="text-[11px] font-medium text-blue-100 tracking-tight">
+            <p className="text-xs font-medium text-blue-100/90 tracking-wide">
               {time.dateThai}
             </p>
 
             {/* Shift Rules Badge */}
-            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/40 border border-white/20 text-[10px] font-bold text-white shadow-xs">
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/25 backdrop-blur-md border border-white/15 text-[11px] font-bold text-white shadow-inner">
               <span>⏰ กะปกติ {storeSettings?.standard_time?.substring(0, 5) || '07:40'} น.</span>
-              <span>•</span>
-              <span className="text-amber-300">เลทได้ถึง {storeSettings?.late_deadline?.substring(0, 5) || '08:00'} น. (รับ 50฿)</span>
+              <span className="text-blue-200">•</span>
+              <span className="text-amber-300">เลทได้ถึง {storeSettings?.late_deadline?.substring(0, 5) || '08:00'} น. (รับ {storeSettings?.allowance_amount || 50}฿)</span>
             </div>
           </div>
 
           {/* Overlapping Circular Check-In Button */}
-          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-20">
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
             {/* Pulsing Ripple Effect */}
             {isInsideRadius && !checkInResult && (
               <motion.div
-                className="absolute -top-2 -left-2 w-28 h-28 rounded-full bg-blue-400/30"
-                animate={{ scale: [1, 1.35, 1.6], opacity: [0.7, 0.2, 0] }}
+                className="absolute -top-3 -left-3 w-30 h-30 rounded-full bg-blue-500/25"
+                animate={{ scale: [1, 1.4, 1.7], opacity: [0.8, 0.25, 0] }}
                 transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
               />
             )}
 
             <motion.button
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.94 }}
+              whileTap={{ scale: 0.92 }}
               onClick={handleCheckIn}
               disabled={isCheckingIn || !!checkInResult}
-              className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center text-white ring-4 ring-white shadow-xl transition-all ${
+              className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center text-white ring-4 ring-white shadow-2xl transition-all ${
                 checkInResult
                   ? checkInResult.status === 'PRESENT'
-                    ? 'bg-gradient-to-b from-emerald-500 to-teal-600'
-                    : 'bg-gradient-to-b from-amber-500 to-orange-600'
-                  : 'bg-gradient-to-b from-[#4fa2f6] via-[#3b82f6] to-[#2563eb]'
+                    ? 'bg-gradient-to-b from-emerald-500 to-teal-600 shadow-emerald-500/40'
+                    : 'bg-gradient-to-b from-amber-500 to-orange-600 shadow-amber-500/40'
+                  : 'bg-gradient-to-b from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] shadow-blue-600/50'
               }`}
             >
               {isCheckingIn ? (
-                <RefreshCw className="w-6 h-6 animate-spin text-white" />
+                <RefreshCw className="w-7 h-7 animate-spin text-white" />
               ) : checkInResult ? (
                 <div className="flex flex-col items-center">
-                  <CheckCircle2 className="w-6 h-6 text-white mb-0.5" />
-                  <span className="text-[10px] font-bold">เช็คอินแล้ว</span>
+                  <CheckCircle2 className="w-7 h-7 text-white mb-0.5" />
+                  <span className="text-[11px] font-bold">เช็คอินแล้ว</span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center">
-                  {/* Fingerprint / Touch Pointer Icon matching reference */}
+                  {/* Fingerprint / Touch Pointer Icon */}
                   <svg
-                    className="w-7 h-7 text-white mb-0.5"
+                    className="w-8 h-8 text-white mb-0.5"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -363,87 +336,101 @@ export default function ExactEmployeeApp() {
           </div>
         </div>
 
-        {/* ----------------------------------------------------------- */}
-        {/* 3 STATS COLUMNS (เข้างาน, ออกงาน, เวลาทำงาน)                 */}
-        {/* ----------------------------------------------------------- */}
-        <div className="px-5 pt-1 pb-3 grid grid-cols-3 gap-2 text-center bg-white">
-          {/* Col 1: เข้างาน */}
-          <div className="flex flex-col items-center space-y-1">
-            <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
+        {/* 3 Summary Stat Cards */}
+        <div className="grid grid-cols-3 gap-3 pt-2">
+          {/* Card 1: เข้างาน */}
+          <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+              <Clock className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold font-mono text-slate-800 tracking-tight">
+            <span className="text-sm font-bold font-mono text-slate-800">
               {checkInResult ? checkInResult.checkInTime : '--:--'}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">เข้างาน</span>
+            <span className="text-[11px] text-slate-400 font-medium">เข้างาน</span>
           </div>
 
-          {/* Col 2: ออกงาน */}
-          <div className="flex flex-col items-center space-y-1">
-            <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
+          {/* Card 2: ออกงาน */}
+          <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center mb-1">
+              <Clock className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold font-mono text-slate-400 tracking-tight">
+            <span className="text-sm font-bold font-mono text-slate-400">
               --:--
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">ออกงาน</span>
+            <span className="text-[11px] text-slate-400 font-medium">ออกงาน</span>
           </div>
 
-          {/* Col 3: เวลาทำงาน */}
-          <div className="flex flex-col items-center space-y-1">
-            <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
+          {/* Card 3: เบี้ยขยัน */}
+          <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1">
+              <CreditCard className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold font-mono text-slate-800 tracking-tight">
-              {checkInResult ? `+${checkInResult.allowance}฿` : '--:--'}
+            <span className="text-sm font-bold font-mono text-emerald-600">
+              {checkInResult ? `+${checkInResult.allowance}฿` : '0฿'}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">เวลาทำงาน</span>
+            <span className="text-[11px] text-slate-400 font-medium">เบี้ยขยันวันนี้</span>
           </div>
         </div>
 
-        {/* ----------------------------------------------------------- */}
-        {/* SECTION: ประวัติการลงเวลาการทำงาน                          */}
-        {/* ----------------------------------------------------------- */}
-        <div className="px-5 pt-2 pb-24 space-y-2 bg-white flex-1">
-          <div className="text-xs font-bold text-slate-900 tracking-tight">
+        {/* Geofence Status Banner */}
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isInsideRadius ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-bold text-slate-800">ศิริแสงยางยนต์ ศรีสะเกษ</div>
+              <div className="text-[11px] text-slate-400">ระยะห่าง: {distance !== null ? `${distance.toFixed(0)} เมตร` : 'กำลังคำนวณ...'}</div>
+            </div>
+          </div>
+          <span className={`px-2.5 py-1 rounded-full font-bold text-[11px] ${
+            isInsideRadius ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+          }`}>
+            {isInsideRadius ? '● ในพื้นที่ 50ม.' : '● นอกรัศมีร้าน'}
+          </span>
+        </div>
+
+        {/* History Tabs Section */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3">
+          <div className="text-sm font-bold text-slate-900 tracking-tight">
             ประวัติการลงเวลาการทำงาน
           </div>
 
-          {/* 3 Pill Buttons (เข้างาน / ออกงาน / ลางาน) */}
-          <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+          {/* 3 Pill Buttons */}
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => setActiveHistoryTab('in')}
-              className={`py-1.5 px-2 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1 transition-all border ${
+              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
                 activeHistoryTab === 'in'
                   ? 'bg-blue-50 text-blue-600 border-blue-200'
-                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'
+                  : 'bg-slate-50 text-slate-500 border-slate-100'
               }`}
             >
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3.5 h-3.5" />
               <span>เข้างาน</span>
             </button>
 
             <button
               onClick={() => setActiveHistoryTab('out')}
-              className={`py-1.5 px-2 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1 transition-all border ${
+              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
                 activeHistoryTab === 'out'
                   ? 'bg-blue-50 text-blue-600 border-blue-200'
-                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'
+                  : 'bg-slate-50 text-slate-500 border-slate-100'
               }`}
             >
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3.5 h-3.5" />
               <span>ออกงาน</span>
             </button>
 
             <button
               onClick={() => setActiveHistoryTab('leave')}
-              className={`py-1.5 px-2 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1 transition-all border ${
+              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
                 activeHistoryTab === 'leave'
                   ? 'bg-blue-50 text-blue-600 border-blue-200'
-                  : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'
+                  : 'bg-slate-50 text-slate-500 border-slate-100'
               }`}
             >
-              <FileText className="w-3 h-3" />
+              <FileText className="w-3.5 h-3.5" />
               <span>ลางาน</span>
             </button>
           </div>
@@ -455,12 +442,12 @@ export default function ExactEmployeeApp() {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] flex items-start gap-2"
+                className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5"
               >
-                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold">การเช็คอินถูกปฏิเสธ</div>
-                  <div>{errorMessage}</div>
+                  <div className="font-bold">ไม่สามารถเช็คอินได้</div>
+                  <div className="text-[11px] mt-0.5">{errorMessage}</div>
                 </div>
               </motion.div>
             )}
@@ -469,64 +456,53 @@ export default function ExactEmployeeApp() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`p-3 rounded-xl border text-[11px] ${
+                className={`p-3.5 rounded-xl border text-xs ${
                   checkInResult.status === 'PRESENT'
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                     : 'bg-amber-50 border-amber-200 text-amber-800'
                 }`}
               >
-                <div className="flex items-center justify-between font-bold">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <div className="flex items-center justify-between font-bold text-sm">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     {checkInResult.status === 'PRESENT' ? 'เช็คอินตรงเวลาสำเร็จ' : 'เช็คอินสำเร็จ (มาสาย)'}
                   </span>
-                  <span className="font-mono text-[10px]">{checkInResult.checkInTime} น.</span>
+                  <span className="font-mono">{checkInResult.checkInTime} น.</span>
                 </div>
-                <div className="text-[10px] text-slate-600 mt-0.5">
-                  เบี้ยเลี้ยงที่ได้รับ: <strong className="text-emerald-600 font-bold">+{checkInResult.allowance} บาท</strong>
+                <div className="text-[11px] text-slate-600 mt-1">
+                  เบี้ยขยันที่ได้รับวันนี้: <strong className="text-emerald-600 font-bold">+{checkInResult.allowance} บาท</strong>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Geofence Distance Indicator */}
-          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] text-slate-500 flex items-center justify-between">
-            <span className="flex items-center gap-1 font-medium text-slate-600">
-              <MapPin className="w-3 h-3 text-blue-500" />
-              <span>พิกัดร้าน YOKOHAMA & NAYA:</span>
-            </span>
-            <span className={`font-bold ${isInsideRadius ? 'text-emerald-600' : 'text-rose-500'}`}>
-              {distance?.toFixed(0)} ม. ({isInsideRadius ? 'ในพื้นที่' : 'นอกร้าน'})
-            </span>
-          </div>
-
           {/* Simulator Quick Toggle Button */}
-          <div className="pt-1 text-center">
+          <div className="pt-2 text-center border-t border-slate-100">
             <button
               onClick={() => setShowSimPanel(!showSimPanel)}
-              className="text-[10px] text-blue-600 hover:text-blue-700 font-semibold"
+              className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold"
             >
               {showSimPanel ? '▲ ปิดโหมดจำลองทดสอบ' : '▼ เปิดโหมดจำลองทดสอบ (ใน/นอกร้าน, ตรงเวลา/สาย)'}
             </button>
           </div>
 
           {showSimPanel && (
-            <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 text-[10px] space-y-1.5 animate-fadeIn">
+            <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 text-xs space-y-2 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <span className="text-slate-600 font-bold">ตำแหน่ง GPS:</span>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   <button
                     onClick={() => setSimMode('inside')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      simMode === 'inside' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border'
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      simMode === 'inside' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 border'
                     }`}
                   >
                     ในร้าน 5ม.
                   </button>
                   <button
                     onClick={() => setSimMode('outside')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      simMode === 'outside' ? 'bg-rose-500 text-white' : 'bg-white text-slate-600 border'
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      simMode === 'outside' ? 'bg-rose-500 text-white shadow-xs' : 'bg-white text-slate-600 border'
                     }`}
                   >
                     นอกร้าน 120ม.
@@ -535,20 +511,20 @@ export default function ExactEmployeeApp() {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-bold">เวลาเข้างาน:</span>
-                <div className="flex gap-1">
+                <span className="text-slate-600 font-bold">เวลาเช็คอิน:</span>
+                <div className="flex gap-1.5">
                   <button
                     onClick={() => setSimTimeMode('ontime')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      simTimeMode === 'ontime' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-600 border'
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      simTimeMode === 'ontime' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white text-slate-600 border'
                     }`}
                   >
-                    07:45 (ตรง)
+                    07:45 (ทันกะ)
                   </button>
                   <button
                     onClick={() => setSimTimeMode('late')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      simTimeMode === 'late' ? 'bg-amber-500 text-white' : 'bg-white text-slate-600 border'
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      simTimeMode === 'late' ? 'bg-amber-500 text-white shadow-xs' : 'bg-white text-slate-600 border'
                     }`}
                   >
                     08:15 (สาย)
@@ -558,66 +534,55 @@ export default function ExactEmployeeApp() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* ----------------------------------------------------------- */}
-        {/* BOTTOM NAVIGATION BAR (5 ITEMS EXACT MATCH)                 */}
-        {/* ----------------------------------------------------------- */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-2 py-2 flex items-center justify-around z-30">
-          {/* Tab 1: เช็คเวลาทำงาน (Active) */}
-          <button 
-            onClick={() => setActiveNavTab('clock')}
-            className="flex flex-col items-center gap-0.5 text-blue-600 font-bold text-[9px] min-w-[50px]"
-          >
-            <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs">
-              <Clock className="w-3 h-3" />
-            </div>
-            <span>เช็คเวลาทำงาน</span>
-          </button>
+      {/* ------------------------------------------------------------- */}
+      {/* 3. FIXED BOTTOM NAVIGATION BAR                                */}
+      {/* ------------------------------------------------------------- */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 flex items-center justify-around z-30 shadow-lg">
+        {/* Tab 1: เช็คเวลาทำงาน */}
+        <button 
+          onClick={() => setActiveNavTab('clock')}
+          className="flex flex-col items-center gap-1 text-blue-600 font-bold text-[10px]"
+        >
+          <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs">
+            <Clock className="w-3.5 h-3.5" />
+          </div>
+          <span>เช็คเวลา</span>
+        </button>
 
-          {/* Tab 2: ปฏิทิน */}
-          <Link
-            href="/employee/stats"
-            className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[9px] min-w-[50px]"
-          >
-            <div className="w-5 h-5 flex items-center justify-center">
-              <Calendar className="w-3.5 h-3.5" />
-            </div>
-            <span>ปฏิทิน</span>
-          </Link>
+        {/* Tab 2: ปฏิทิน */}
+        <Link
+          href="/employee/stats"
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 text-[10px]"
+        >
+          <div className="w-6 h-6 flex items-center justify-center">
+            <Calendar className="w-4 h-4" />
+          </div>
+          <span>ปฏิทิน</span>
+        </Link>
 
-          {/* Tab 3: เช็คสถานะ / บันทึก */}
-          <Link
-            href="/employee/stats"
-            className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[9px] min-w-[50px]"
-          >
-            <div className="w-5 h-5 flex items-center justify-center">
-              <CreditCard className="w-3.5 h-3.5" />
-            </div>
-            <span>เช็คสถานะ</span>
-          </Link>
+        {/* Tab 3: เบี้ยขยัน */}
+        <Link
+          href="/employee/stats"
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 text-[10px]"
+        >
+          <div className="w-6 h-6 flex items-center justify-center">
+            <CreditCard className="w-4 h-4" />
+          </div>
+          <span>เบี้ยขยัน</span>
+        </Link>
 
-          {/* Tab 4: สถานะคำขอ */}
-          <Link
-            href="/employee/leave"
-            className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[9px] min-w-[50px]"
-          >
-            <div className="w-5 h-5 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-            <span>สถานะคำขอ</span>
-          </Link>
-
-          {/* Tab 5: เมนู */}
-          <Link
-            href="/admin"
-            className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[9px] min-w-[50px]"
-          >
-            <div className="w-5 h-5 flex items-center justify-center">
-              <Menu className="w-3.5 h-3.5" />
-            </div>
-            <span>เมนู</span>
-          </Link>
-        </div>
+        {/* Tab 4: ลางาน */}
+        <Link
+          href="/employee/leave"
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 text-[10px]"
+        >
+          <div className="w-6 h-6 flex items-center justify-center">
+            <FileText className="w-4 h-4" />
+          </div>
+          <span>ลางาน</span>
+        </Link>
       </div>
     </div>
   );
