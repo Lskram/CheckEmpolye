@@ -134,15 +134,22 @@ export default function CleanExecutiveDashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Load Data
+  // 3. Load Data & Realtime Background Auto-Polling
   useEffect(() => {
     if (isExecutiveUnlocked) {
-      loadData();
+      loadData(true); // Initial load with indicator
+
+      // Realtime auto-refresh every 4 seconds (silent, responsive, no UI blocking)
+      const interval = setInterval(() => {
+        loadData(false);
+      }, 4000);
+
+      return () => clearInterval(interval);
     }
   }, [period, isExecutiveUnlocked]);
 
-  const loadData = async () => {
-    setIsLoading(true);
+  const loadData = async (showSpinner = false) => {
+    if (showSpinner) setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/analytics?period=${period}`);
       const data = await res.json();
@@ -155,7 +162,7 @@ export default function CleanExecutiveDashboard() {
     } catch (err) {
       console.error('Error loading analytics:', err);
     } finally {
-      setIsLoading(false);
+      if (showSpinner) setIsLoading(false);
     }
   };
 
@@ -437,57 +444,15 @@ export default function CleanExecutiveDashboard() {
   }
 
   // -------------------------------------------------------------
-  // MAIN CLEAN EXECUTIVE MOBILE APP VIEW
+  // MAIN CLEAN EXECUTIVE MOBILE APP VIEW (No top header bar)
   // -------------------------------------------------------------
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-24">
       
       {/* ------------------------------------------------------------- */}
-      {/* 1. TOP NATIVE HEADER & EXECUTIVE PROFILE                      */}
+      {/* MAIN SCROLLABLE CONTENT                                       */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between shadow-xs sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-amber-500 via-indigo-600 to-blue-600 p-0.5 shadow-sm">
-            <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-              <span className="text-base">👑</span>
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-black px-2 py-0.2 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
-                SI01: ผู้บริหาร
-              </span>
-            </div>
-            <div className="font-bold text-slate-900 text-base tracking-tight leading-tight mt-0.5">
-              ศูนย์บัญชาการผู้บริหาร
-            </div>
-          </div>
-        </div>
-
-        {/* Top Right Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={loadData}
-            title="รีเฟรชข้อมูล"
-            className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors shadow-2xs"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-
-          <button
-            onClick={handleLogout}
-            title="ออกจากระบบ"
-            className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 hover:bg-rose-100 transition-colors shadow-2xs"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* 2. MAIN SCROLLABLE CONTENT                                    */}
-      {/* ------------------------------------------------------------- */}
-      <div className="flex-1 px-4 pt-4 space-y-4 max-w-lg mx-auto w-full">
+      <div className="flex-1 px-4 pt-4 sm:pt-6 space-y-4 max-w-lg mx-auto w-full">
         
         {/* Blue Gradient Hero Card (Clean Style matching Employee App) */}
         <div className="bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#1e40af] rounded-3xl p-5 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden">
@@ -495,8 +460,11 @@ export default function CleanExecutiveDashboard() {
           <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           
           <div className="flex items-center justify-between text-xs text-blue-100 font-medium mb-2">
-            <span>{timeStr.dateThai}</span>
-            <span className="font-mono font-bold bg-blue-900/40 px-2 py-0.5 rounded-lg border border-blue-400/20">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block shadow-xs shadow-emerald-400/50" />
+              <span>{timeStr.dateThai}</span>
+            </div>
+            <span className="font-mono font-bold bg-blue-900/40 px-2.5 py-0.5 rounded-lg border border-blue-400/20">
               {timeStr.time} น.
             </span>
           </div>
@@ -851,6 +819,31 @@ export default function CleanExecutiveDashboard() {
         {activeTab === 'settings' && (
           <div className="space-y-4">
             
+            {/* Executive Profile Card */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-blue-600 p-0.5 shadow-sm">
+                  <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+                    <span className="text-xl">👑</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                      SI01 • ผู้บริหารสูงสุด
+                    </span>
+                  </div>
+                  <div className="font-bold text-slate-900 text-sm tracking-tight leading-tight mt-1">
+                    ศูนย์บัญชาการผู้บริหาร
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
+                    <span>ระบบเชื่อมต่อเรียลไทม์ (Live Sync)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Store & Geofencing Settings */}
             <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-2xs space-y-3">
               <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
@@ -961,6 +954,17 @@ export default function CleanExecutiveDashboard() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Logout Button */}
+            <div className="pt-2">
+              <button
+                onClick={handleLogout}
+                className="w-full py-3.5 px-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 font-bold text-xs flex items-center justify-center gap-2 shadow-xs active:scale-98 transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>ออกจากระบบผู้บริหาร (Logout)</span>
+              </button>
             </div>
           </div>
         )}
