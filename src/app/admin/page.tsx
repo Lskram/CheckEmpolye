@@ -535,7 +535,7 @@ interface EmployeeListItem {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-sans">
       
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP STORE BRAND BANNER & NAVBAR                            */}
