@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Yokohama Check-In</string>
+    <string name="title_activity_main">Yokohama Check-In</string>
+    <string name="package_name">com.yokohama.attendance</string>
+    <string name="custom_url_scheme">com.yokohama.attendance</string>
+</resources>

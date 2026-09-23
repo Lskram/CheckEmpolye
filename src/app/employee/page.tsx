@@ -15,12 +15,11 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Sliders, 
-  RefreshCw,
-  FileText,
-  MapPin,
-  ChevronRight,
-  Wifi,
-  Battery
+  RefreshCw, 
+  FileText, 
+  MapPin, 
+  ChevronRight, 
+  LogOut 
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -29,12 +28,9 @@ export default function ExactEmployeeApp() {
   const router = useRouter();
 
   // Employee Profile & HWID
-  const [employee, setEmployee] = useState<any>({
-    fullName: 'สมศักดิ์ คงศรี',
-    employeeCode: 'EMP001',
-    nickname: 'ศักดิ์',
-  });
+  const [employee, setEmployee] = useState<any>(null);
   const [hwid, setHwid] = useState('');
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   // Live Real-Time Clock
   const [time, setTime] = useState({
@@ -46,24 +42,27 @@ export default function ExactEmployeeApp() {
 
   // Store Settings & Geofence
   const [storeSettings, setStoreSettings] = useState<any>({
-    store_name: 'สาขาหลัก YOKOHAMA & NAYA WHEELS',
-    store_lat: 13.7460000,
-    store_lng: 100.5340000,
+    store_name: 'สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)',
+    store_lat: 15.110412,
+    store_lng: 104.358434,
     radius_meters: 50,
     standard_time: '07:40',
     late_deadline: '08:00',
     allowance_amount: 50,
   });
 
-  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [distance, setDistance] = useState<number | null>(null);
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>({
+    lat: 15.110412,
+    lng: 104.358434,
+  });
+  const [distance, setDistance] = useState<number | null>(5);
 
   // Check-in State & Results
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [checkInResult, setCheckInResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [activeHistoryTab, setActiveHistoryTab] = useState<'in' | 'out' | 'leave'>('in');
-  const [activeNavTab, setActiveNavTab] = useState<'clock' | 'calendar' | 'allowance' | 'requests' | 'menu'>('clock');
+  const [activeNavTab, setActiveNavTab] = useState<'clock' | 'calendar' | 'allowance' | 'requests'>('clock');
 
   // Simulation Controls
   const [simMode, setSimMode] = useState<'inside' | 'outside'>('inside');
@@ -71,16 +70,26 @@ export default function ExactEmployeeApp() {
   const [showSimPanel, setShowSimPanel] = useState(false);
 
   useEffect(() => {
-    // 1. Logged in profile
+    // 1. Auth Guard - Check saved profile
     const saved = localStorage.getItem('attendance_employee_profile');
-    if (saved) {
-      try {
-        setEmployee(JSON.parse(saved));
-      } catch (e) {}
+    if (!saved) {
+      router.replace('/employee/login');
+      return;
     }
 
-    // 2. HWID
-    setHwid(getDeviceHWID());
+    let parsedEmp: any = null;
+    try {
+      parsedEmp = JSON.parse(saved);
+      setEmployee(parsedEmp);
+      setIsAuthChecking(false);
+    } catch (e) {
+      router.replace('/employee/login');
+      return;
+    }
+
+    // 2. Fetch HWID
+    const deviceHwid = getDeviceHWID();
+    setHwid(deviceHwid);
 
     // 3. Store Settings
     fetch('/api/admin/settings')
@@ -92,7 +101,36 @@ export default function ExactEmployeeApp() {
       })
       .catch((e) => console.error(e));
 
-    // 4. Clock Ticker
+    // 4. Fetch today's check-in status for this employee
+    if (parsedEmp?.id) {
+      fetch(`/api/employee/stats?id=${parsedEmp.id}`)
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success && resData.data?.logs) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayLog = resData.data.logs.find((l: any) => l.check_in_time?.startsWith(todayStr));
+            if (todayLog) {
+              const timeStr = new Date(todayLog.check_in_time).toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Asia/Bangkok',
+              });
+              setCheckInResult({
+                id: todayLog.id,
+                status: todayLog.status,
+                checkInTime: timeStr,
+                allowance: todayLog.allowance || 0,
+                distance: todayLog.distance_from_store || 0,
+                isLate: todayLog.status === 'LATE',
+                employeeName: parsedEmp.full_name || parsedEmp.fullName,
+              });
+            }
+          }
+        })
+        .catch((err) => console.error('Error fetching today status:', err));
+    }
+
+    // 5. Clock Ticker
     const updateClock = () => {
       const now = new Date();
       const hh = String(now.getHours()).padStart(2, '0');
@@ -121,14 +159,14 @@ export default function ExactEmployeeApp() {
     updateClock();
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [router]);
 
-  // Distance calculation
+  // Distance calculation & GPS Tracking
   useEffect(() => {
     if (!storeSettings) return;
 
-    let targetLat = storeSettings.store_lat;
-    let targetLng = storeSettings.store_lng;
+    let targetLat = Number(storeSettings.store_lat) || 15.110412;
+    let targetLng = Number(storeSettings.store_lng) || 104.358434;
 
     if (simMode === 'inside') {
       targetLat += 0.00003;
@@ -143,17 +181,24 @@ export default function ExactEmployeeApp() {
     if (targetLat && targetLng) {
       const dist = calculateHaversineDistance(
         { latitude: targetLat, longitude: targetLng },
-        { latitude: storeSettings.store_lat, longitude: storeSettings.store_lng }
+        { latitude: Number(storeSettings.store_lat) || 15.110412, longitude: Number(storeSettings.store_lng) || 104.358434 }
       );
       setDistance(dist);
     }
   }, [simMode, storeSettings]);
 
+  // Logout Handler
+  const handleLogout = () => {
+    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
+      localStorage.removeItem('attendance_employee_profile');
+      router.replace('/employee/login');
+    }
+  };
+
   const handleCheckIn = async () => {
-    if (!employee?.id && !employee?.employeeCode) return;
+    if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setIsCheckingIn(true);
     setErrorMessage('');
-    setCheckInResult(null);
 
     let simulatedTimestamp = null;
     const todayStr = new Date().toISOString().split('T')[0];
@@ -164,14 +209,14 @@ export default function ExactEmployeeApp() {
     }
 
     try {
-      const empId = employee.id || '22222222-2222-2222-2222-222222222222';
+      const empId = employee.id || '11111111-1111-1111-1111-111111111111';
       const res = await fetch('/api/check-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId: empId,
-          latitude: currentCoords?.lat || 13.74603,
-          longitude: currentCoords?.lng || 100.53403,
+          latitude: currentCoords?.lat || 15.110412,
+          longitude: currentCoords?.lng || 104.358434,
           accuracy: 5,
           hwid,
           simulatedTime: simulatedTimestamp,
@@ -190,18 +235,26 @@ export default function ExactEmployeeApp() {
 
       if (data.data.status === 'PRESENT') {
         confetti({
-          particleCount: 85,
-          spread: 70,
+          particleCount: 90,
+          spread: 75,
           origin: { y: 0.5 },
-          colors: ['#38bdf8', '#2563eb', '#fbbf24', '#ffffff'],
+          colors: ['#38bdf8', '#2563eb', '#10b981', '#fbbf24', '#ffffff'],
         });
       }
     } catch (err: any) {
-      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
     } finally {
       setIsCheckingIn(false);
     }
   };
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   const isInsideRadius = distance !== null && distance <= (storeSettings?.radius_meters || 50);
 
@@ -216,35 +269,39 @@ export default function ExactEmployeeApp() {
           <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-sm">
             <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
               <span className="font-extrabold text-blue-600 text-sm">
-                {employee?.nickname?.[0] || employee?.fullName?.[0] || 'ส'}
+                {employee?.nickname?.[0] || employee?.full_name?.[0] || employee?.fullName?.[0] || 'ส'}
               </span>
             </div>
           </div>
           <div>
             <div className="text-[11px] font-semibold text-slate-400">ยินดีต้อนรับ</div>
             <div className="font-bold text-slate-900 text-base tracking-tight leading-tight">
-              {employee?.fullName || 'สมศักดิ์ คงศรี'}
+              {employee?.full_name || employee?.fullName || 'สมศักดิ์ คงศรี'}
             </div>
           </div>
         </div>
 
-        {/* Top Right Badges (Security Shield & Notification Bell) */}
+        {/* Top Right Badges (Security Shield, Notification Bell, Logout) */}
         <div className="flex items-center gap-2">
           {/* HWID Device Security Badge */}
-          <div className="relative w-9 h-9 rounded-xl bg-slate-100/80 border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
+          <div 
+            title={`HWID: ${hwid || 'ผูกเครื่องแล้ว'}`}
+            className="relative w-9 h-9 rounded-xl bg-slate-100/80 border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs"
+          >
             <Shield className="w-4 h-4 text-blue-600" />
             <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[8px] font-bold flex items-center justify-center ring-2 ring-white">
               ✓
             </span>
           </div>
 
-          {/* Notification Bell Badge */}
-          <div className="relative w-9 h-9 rounded-xl bg-slate-100/80 border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs">
-            <Bell className="w-4 h-4 text-slate-600" />
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-              1
-            </span>
-          </div>
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            title="ออกจากระบบ"
+            className="relative w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 hover:bg-rose-100 transition-colors shadow-2xs"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
