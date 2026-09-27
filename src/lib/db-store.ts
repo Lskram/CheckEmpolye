@@ -199,10 +199,12 @@ export const db = {
 
   async updateStoreSettings(updates: Partial<StoreSettings>): Promise<StoreSettings> {
     if (isSupabaseConfigured && supabase) {
+      const current = await this.getStoreSettings();
+      const targetId = current?.id || '00000000-0000-0000-0000-000000000001';
       const { data, error } = await supabase
         .from('store_settings')
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', mockStoreSettings.id)
+        .eq('id', targetId)
         .select()
         .single();
       if (!error && data) return data as StoreSettings;
@@ -232,12 +234,27 @@ export const db = {
 
   async getAttendanceLogs(limit = 100): Promise<AttendanceLog[]> {
     if (isSupabaseConfigured && supabase) {
+      // 1. Try explicit Foreign Key join
       const { data, error } = await supabase
         .from('attendance_logs')
-        .select('*, employee:employees(*)')
+        .select('*, employee:employees!attendance_logs_employee_id_fkey(*)')
         .order('check_in_time', { ascending: false })
         .limit(limit);
       if (!error && data) return data as AttendanceLog[];
+
+      // 2. Resilient fallback: standard select + manual hydration
+      const { data: rawLogs, error: rawError } = await supabase
+        .from('attendance_logs')
+        .select('*')
+        .order('check_in_time', { ascending: false })
+        .limit(limit);
+      if (!rawError && rawLogs) {
+        const employees = await this.getEmployees();
+        return rawLogs.map((log: any) => ({
+          ...log,
+          employee: employees.find((e) => e.id === log.employee_id),
+        })) as AttendanceLog[];
+      }
     }
 
     // Populate employee details for mock
@@ -269,11 +286,25 @@ export const db = {
 
   async getLeaveRequests(): Promise<LeaveRequest[]> {
     if (isSupabaseConfigured && supabase) {
+      // 1. Try explicit Foreign Key join
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('*, employee:employees(*)')
+        .select('*, employee:employees!leave_requests_employee_id_fkey(*)')
         .order('created_at', { ascending: false });
       if (!error && data) return data as LeaveRequest[];
+
+      // 2. Resilient fallback: standard select + manual hydration
+      const { data: rawLeaves, error: rawError } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!rawError && rawLeaves) {
+        const employees = await this.getEmployees();
+        return rawLeaves.map((req: any) => ({
+          ...req,
+          employee: employees.find((e) => e.id === req.employee_id),
+        })) as LeaveRequest[];
+      }
     }
 
     return mockLeaveRequests.map((req) => ({
@@ -339,11 +370,26 @@ export const db = {
 
   async getViolationLogs(): Promise<ViolationLog[]> {
     if (isSupabaseConfigured && supabase) {
+      // 1. Try explicit Foreign Key join
       const { data, error } = await supabase
         .from('violation_logs')
-        .select('*, employee:employees(*)')
+        .select('*, employee:employees!violation_logs_employee_id_fkey(*), other_employee:employees!violation_logs_other_employee_id_fkey(*)')
         .order('created_at', { ascending: false });
       if (!error && data) return data as ViolationLog[];
+
+      // 2. Resilient fallback: standard select + manual hydration
+      const { data: rawViols, error: rawError } = await supabase
+        .from('violation_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!rawError && rawViols) {
+        const employees = await this.getEmployees();
+        return rawViols.map((log: any) => ({
+          ...log,
+          employee: employees.find((e) => e.id === log.employee_id),
+          other_employee: log.other_employee_id ? employees.find((e) => e.id === log.other_employee_id) : undefined,
+        })) as ViolationLog[];
+      }
     }
 
     return mockViolationLogs.map((log) => ({
