@@ -27,8 +27,31 @@ export async function POST(request: Request) {
     const getBangkokDateStr = (date: Date | string) =>
       new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(date));
 
-    const checkInDate = simulatedTime ? new Date(simulatedTime) : new Date();
+    // 0. Strict Server Clock (Disable simulated time manipulation in production)
+    const checkInDate = (process.env.NODE_ENV === 'development' && simulatedTime) 
+      ? new Date(simulatedTime) 
+      : new Date();
     const targetDateStr = getBangkokDateStr(checkInDate);
+
+    // 0.1 Strict Device Binding Validation (Prevent Buddy Punching)
+    if (employee.role !== 'ADMIN' && employee.hwid && hwid && employee.hwid !== hwid) {
+      await db.createViolationLog({
+        employee_id: employee.id,
+        violation_type: 'DEVICE_MISMATCH',
+        severity: 'HIGH',
+        description: `พยายามลงเวลาเข้างานจากอุปกรณ์อื่นที่ไม่ได้รับอนุญาต (เครื่องผูก: ${employee.hwid}, เครื่องยิงเข้างาน: ${hwid})`,
+        hwid,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'DEVICE_MISMATCH',
+          message: '🚫 คุณกำลังลงเวลาจากอุปกรณ์เครื่องอื่นที่ไม่ตรงกับเครื่องที่ผูกไว้ ไม่อนุญาตให้ลงเวลาแทนกัน กรุณาใช้โทรศัพท์ประจำตัวของคุณ หรือติดต่อผู้บริหารเพื่อปลดล็อกอุปกรณ์',
+        },
+        { status: 403 }
+      );
+    }
 
     // Format to Asia/Bangkok time
     const timeFormatter = new Intl.DateTimeFormat('th-TH', {

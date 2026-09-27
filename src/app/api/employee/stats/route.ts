@@ -77,6 +77,9 @@ export async function GET(request: Request) {
 
     empLogs.forEach((log) => {
       const dateKey = getBangkokDateStr(log.check_in_time);
+      const isPastDay = dateKey < todayBangkokDateStr;
+      const isMissingCheckout = isPastDay && !log.check_out_time;
+
       const timeStr = new Date(log.check_in_time).toLocaleTimeString('th-TH', {
         timeZone: 'Asia/Bangkok',
         hour: '2-digit',
@@ -89,16 +92,19 @@ export async function GET(request: Request) {
             hour: '2-digit',
             minute: '2-digit',
           }) + ' น.'
-        : null;
+        : isPastDay
+          ? 'ไม่ได้ลงเวลาออก (Missing)'
+          : null;
 
       calendarEvents[dateKey] = {
         type: 'ATTENDANCE',
-        status: log.status,
+        status: isMissingCheckout ? 'MISSING_CHECKOUT' : log.status,
         time: timeStr,
         checkInTime: timeStr,
         checkOutTime: checkOutStr,
         allowance: Number(log.allowance) || 0,
         distance: log.distance_from_store,
+        isMissingCheckout,
       };
     });
 

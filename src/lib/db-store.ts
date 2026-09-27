@@ -309,10 +309,16 @@ export const db = {
     return null;
   },
 
-  async checkOutAttendance(id: string, checkOutTime: string, notes?: string): Promise<AttendanceLog | null> {
+  async checkOutAttendance(
+    id: string, 
+    checkOutTime: string, 
+    notes?: string, 
+    extraUpdates?: Partial<AttendanceLog>
+  ): Promise<AttendanceLog | null> {
     const updates: Partial<AttendanceLog> = {
       check_out_time: checkOutTime,
       ...(notes ? { notes } : {}),
+      ...(extraUpdates || {}),
     };
     return this.updateAttendanceLog(id, updates);
   },

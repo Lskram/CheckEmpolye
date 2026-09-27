@@ -86,15 +86,28 @@ export async function POST(request: Request) {
       if (!employee.hwid) {
         await db.updateEmployee(employee.id, { hwid });
         employee.hwid = hwid;
-      } else if (employee.hwid !== hwid) {
-        // Device mismatch warning
+      } else if (employee.hwid !== hwid && employee.role !== 'ADMIN') {
+        // Strict Device Binding Enforcement: Block login from unauthorized devices
         await db.createViolationLog({
           employee_id: employee.id,
           violation_type: 'DEVICE_MISMATCH',
-          severity: 'MEDIUM',
-          description: `พนักงาน ${employee.full_name} เข้าสู่ระบบด้วยเครื่องใหม่ (เดิม: ${employee.hwid}, ปัจจุบัน: ${hwid})`,
+          severity: 'HIGH',
+          description: `พนักงาน ${employee.full_name} (${employee.employee_code}) พยายามเข้าสู่ระบบจากเครื่องอื่นที่ไม่ได้รับอนุญาต (เครื่องที่ผูกไว้: ${employee.hwid}, เครื่องที่พยายามเข้า: ${hwid})`,
           hwid,
         });
+
+        return NextResponse.json(
+          {
+            success: false,
+            code: 'DEVICE_BOUND_MISMATCH',
+            message: `🚫 บัญชีนี้ถูกผูกไว้กับมือถือเครื่องอื่นแล้ว (${employee.hwid.slice(0, 10)}...) ไม่อนุญาตให้เข้าสู่ระบบจากเครื่องนี้ เพื่อความปลอดภัยและป้องกันการลงเวลาแทนกัน\n\nหากท่านเปลี่ยนโทรศัพท์มือถือใหม่ กรุณาแจ้งผู้บริหารเพื่อกด "ปลดล็อกอุปกรณ์" ในระบบ`,
+            data: {
+              boundHwid: employee.hwid,
+              currentHwid: hwid,
+            }
+          },
+          { status: 403 }
+        );
       }
     }
 

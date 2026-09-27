@@ -13,7 +13,7 @@ export interface Employee {
   updated_at?: string;
 }
 
-export type AttendanceStatus = 'PRESENT' | 'LATE' | 'OUT_OF_GEOFENCE_BLOCKED';
+export type AttendanceStatus = 'PRESENT' | 'LATE' | 'MISSING_CHECKOUT' | 'EARLY_LEAVE' | 'OUT_OF_GEOFENCE_BLOCKED';
 
 export interface AttendanceLog {
   id: string;
@@ -36,7 +36,7 @@ export interface DailyAttendanceSummary {
   id: string;
   employee_id: string;
   date: string;
-  status: 'PRESENT' | 'LATE' | 'ABSENT' | 'LEAVE';
+  status: 'PRESENT' | 'LATE' | 'ABSENT' | 'LEAVE' | 'MISSING_CHECKOUT';
   first_check_in?: string;
   allowance_amount: number;
   created_at?: string;
@@ -61,7 +61,7 @@ export interface LeaveRequest {
   employee?: Employee;
 }
 
-export type ViolationType = 'HWID_OVERLAP' | 'DEVICE_MISMATCH' | 'OUT_OF_GEOFENCE_BLOCKED' | 'INVALID_PIN_ATTEMPTS';
+export type ViolationType = 'HWID_OVERLAP' | 'DEVICE_MISMATCH' | 'OUT_OF_GEOFENCE_BLOCKED' | 'INVALID_PIN_ATTEMPTS' | 'FAKE_GPS_DETECTED' | 'SUSPICIOUS_TIME_TAMPERING';
 export type SeverityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
 export interface ViolationLog {

@@ -29,8 +29,31 @@ export async function POST(request: Request) {
     const getBangkokDateStr = (date: Date | string) =>
       new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(date));
 
-    const checkOutDate = simulatedTime ? new Date(simulatedTime) : new Date();
+    // 0. Strict Server Clock (Disable simulated time manipulation in production)
+    const checkOutDate = (process.env.NODE_ENV === 'development' && simulatedTime) 
+      ? new Date(simulatedTime) 
+      : new Date();
     const targetDateStr = getBangkokDateStr(checkOutDate);
+
+    // 0.1 Strict Device Binding Validation
+    if (employee.role !== 'ADMIN' && employee.hwid && hwid && employee.hwid !== hwid) {
+      await db.createViolationLog({
+        employee_id: employee.id,
+        violation_type: 'DEVICE_MISMATCH',
+        severity: 'HIGH',
+        description: `พยายามลงเวลาออกงานจากอุปกรณ์อื่นที่ไม่ได้รับอนุญาต (เครื่องผูก: ${employee.hwid}, เครื่องยิงออกงาน: ${hwid})`,
+        hwid,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'DEVICE_MISMATCH',
+          message: '🚫 คุณกำลังลงเวลาออกงานจากอุปกรณ์เครื่องอื่นที่ไม่ตรงกับเครื่องประจำตัวของคุณ ไม่อนุญาตให้ลงเวลาแทนกัน',
+        },
+        { status: 403 }
+      );
+    }
 
     // Format check-out time in Bangkok timezone
     const timeFormatter = new Intl.DateTimeFormat('th-TH', {
@@ -133,15 +156,31 @@ export async function POST(request: Request) {
     // Calculate working duration
     const inTime = new Date(todayLog.check_in_time);
     const diffMs = checkOutDate.getTime() - inTime.getTime();
+    const diffTotalHours = diffMs / (1000 * 60 * 60);
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     const durationStr = `${diffHours} ชม. ${diffMinutes} นาที`;
 
-    // Save check-out timestamp
+    // Allowance Integrity: If worked less than 4 hours (e.g. hit & run), adjust allowance to 0
+    let finalAllowance = Number(todayLog.allowance) || 0;
+    let finalStatus = todayLog.status;
+    let extraNote = '';
+
+    if (diffTotalHours < 4.0 && finalAllowance > 0) {
+      finalAllowance = 0.00;
+      finalStatus = 'EARLY_LEAVE';
+      extraNote = ` [ออกงานก่อนเวลา ทำงาน ${durationStr} ไม่ถึง 4 ชม. ไม่อนุมัติเบี้ยขยัน]`;
+    }
+
+    // Save check-out timestamp & updated allowance
     const updatedLog = await db.checkOutAttendance(
       todayLog.id,
       checkOutDate.toISOString(),
-      `${todayLog.notes || ''} | ออกงานเวลา ${checkOutTimeStr} (ระยะเวลาทำงาน ${durationStr})`
+      `${todayLog.notes || ''} | ออกงานเวลา ${checkOutTimeStr} (ระยะเวลาทำงาน ${durationStr})${extraNote}`,
+      {
+        allowance: finalAllowance,
+        status: finalStatus,
+      }
     );
 
     // Dispatch LINE Check-Out notification with Log ID
@@ -171,8 +210,8 @@ export async function POST(request: Request) {
         }) + ' น.',
         checkOutTime: checkOutTimeStr,
         workingDuration: durationStr,
-        status: todayLog.status,
-        allowance: Number(todayLog.allowance) || 0,
+        status: finalStatus,
+        allowance: finalAllowance,
         distance,
       }
     });
