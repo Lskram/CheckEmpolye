@@ -216,11 +216,110 @@ export default function WebExecutiveDashboard() {
         const violations = d.violations || [];
 
         if (prevDataRef.current.isFirstLoad) {
-          // Initialize maps on first load without triggering alerts
-          logs.forEach((l: any) => prevDataRef.current.logMap.set(l.id, l));
-          advances.forEach((a: any) => prevDataRef.current.advanceMap.set(a.id, a));
-          leaves.forEach((lv: any) => prevDataRef.current.leaveMap.set(lv.id, lv));
-          violations.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
+          // Initialize maps and populate Notification Center timeline from today's logs & requests
+          const initialNotifs: WebNotification[] = [];
+
+          // Add check-ins & check-outs from logs
+          logs.forEach((log: any) => {
+            prevDataRef.current.logMap.set(log.id, log);
+            const emp = empMap.get(log.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+
+            if (log.check_in_time) {
+              const timeStr = new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+              const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
+              initialNotifs.push({
+                id: `init-in-${log.id}`,
+                type: 'checkin',
+                relatedId: log.id,
+                title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างาน`,
+                message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
+                time: timeStr,
+                timestamp: new Date(log.check_in_time).getTime(),
+                read: true,
+                targetTab: 'overview',
+              });
+            }
+
+            if (log.check_out_time) {
+              const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+              initialNotifs.push({
+                id: `init-out-${log.id}`,
+                type: 'checkout',
+                relatedId: log.id,
+                title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงาน`,
+                message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
+                time: timeStr,
+                timestamp: new Date(log.check_out_time).getTime(),
+                read: true,
+                targetTab: 'overview',
+              });
+            }
+          });
+
+          // Add advance requests
+          advances.forEach((adv: any) => {
+            prevDataRef.current.advanceMap.set(adv.id, adv);
+            const emp = empMap.get(adv.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+            const timeStr = adv.created_at ? new Date(adv.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+            initialNotifs.push({
+              id: `init-adv-${adv.id}`,
+              type: 'advance',
+              relatedId: adv.id,
+              status: adv.status,
+              title: `💵 คำขอเบิกเงิน (${adv.status === 'APPROVED' ? 'อนุมัติแล้ว' : adv.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'})`,
+              message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
+              time: timeStr,
+              timestamp: adv.created_at ? new Date(adv.created_at).getTime() : Date.now(),
+              read: adv.status !== 'PENDING',
+              targetTab: 'advances',
+            });
+          });
+
+          // Add leave requests
+          leaves.forEach((lv: any) => {
+            prevDataRef.current.leaveMap.set(lv.id, lv);
+            const emp = empMap.get(lv.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+            const timeStr = lv.created_at ? new Date(lv.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+            initialNotifs.push({
+              id: `init-lv-${lv.id}`,
+              type: 'leave',
+              relatedId: lv.id,
+              status: lv.status,
+              title: `📄 คำขอยื่นใบลา (${lv.status === 'APPROVED' ? 'อนุมัติแล้ว' : lv.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'})`,
+              message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
+              time: timeStr,
+              timestamp: lv.created_at ? new Date(lv.created_at).getTime() : Date.now(),
+              read: lv.status !== 'PENDING',
+              targetTab: 'leaves',
+            });
+          });
+
+          // Add security violations
+          violations.forEach((v: any) => {
+            prevDataRef.current.violationMap.set(v.id, v);
+            const timeStr = v.created_at ? new Date(v.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+            initialNotifs.push({
+              id: `init-v-${v.id}`,
+              type: 'violation',
+              relatedId: v.id,
+              title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
+              message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
+              time: timeStr,
+              timestamp: v.created_at ? new Date(v.created_at).getTime() : Date.now(),
+              read: !!v.is_resolved,
+              targetTab: 'violations',
+            });
+          });
+
+          // Sort newest first
+          initialNotifs.sort((a, b) => b.timestamp - a.timestamp);
+          setNotificationsList(initialNotifs.slice(0, 50));
           prevDataRef.current.isFirstLoad = false;
         } else {
           // 1. Detect New Advance Requests & Status Changes
