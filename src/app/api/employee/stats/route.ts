@@ -83,10 +83,20 @@ export async function GET(request: Request) {
         minute: '2-digit',
       }) + ' น.';
 
+      const checkOutStr = log.check_out_time
+        ? new Date(log.check_out_time).toLocaleTimeString('th-TH', {
+            timeZone: 'Asia/Bangkok',
+            hour: '2-digit',
+            minute: '2-digit',
+          }) + ' น.'
+        : null;
+
       calendarEvents[dateKey] = {
         type: 'ATTENDANCE',
         status: log.status,
         time: timeStr,
+        checkInTime: timeStr,
+        checkOutTime: checkOutStr,
         allowance: Number(log.allowance) || 0,
         distance: log.distance_from_store,
       };
@@ -122,6 +132,13 @@ export async function GET(request: Request) {
             hour: '2-digit',
             minute: '2-digit',
           }) + ' น.',
+          checkOutTime: todayLog.check_out_time
+            ? new Date(todayLog.check_out_time).toLocaleTimeString('th-TH', {
+                timeZone: 'Asia/Bangkok',
+                hour: '2-digit',
+                minute: '2-digit',
+              }) + ' น.'
+            : null,
           allowance: Number(todayLog.allowance) || 0,
           distance: todayLog.distance_from_store,
           isLate: todayLog.status === 'LATE',

@@ -64,7 +64,9 @@ interface StaffItem {
   hwid: string | null;
   statusLabel: string;
   checkInTimeStr: string;
+  checkOutTimeStr: string;
   rawCheckInTime?: string | null;
+  rawCheckOutTime?: string | null;
   distanceStr: string;
   badgeColor: string;
 }
@@ -388,7 +390,9 @@ export default function WebExecutiveDashboard() {
       hwid: emp.hwid || null,
       statusLabel: isPresent ? 'ตรงเวลา (+50฿)' : isLate ? 'มาสาย (>08:00)' : 'ยังไม่ลงเวลา',
       checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45:00 น.' : isLate ? '08:15:00 น.' : '-'),
+      checkOutTimeStr: emp.todayCheckOutTime && emp.todayCheckOutTime !== '-' ? emp.todayCheckOutTime : '-',
       rawCheckInTime: emp.todayRawCheckInTime || null,
+      rawCheckOutTime: emp.todayRawCheckOutTime || null,
       distanceStr: emp.todayDistance && emp.todayDistance !== '-' ? emp.todayDistance : (isPresent || isLate ? 'พิกัดในร้าน (5 ม.)' : '-'),
       badgeColor: isPresent ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : isLate ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200'
     };
@@ -441,16 +445,17 @@ export default function WebExecutiveDashboard() {
     ? analyticsData.weeklyStats.data
     : defaultEmptyWeek;
 
-  // Export CSV
+  // Export CSV (UTF-8 BOM for Microsoft Excel Thai compatibility)
   const handleExportCSV = () => {
-    const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'ตำแหน่ง', 'เวลาเช็คอิน', 'สถานะวันนี้', 'เบี้ยขยันสะสม (บาท)', 'ระยะห่างร้าน'];
+    const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'ตำแหน่ง', 'เวลาเข้างาน', 'เวลาออกงาน', 'สถานะวันนี้', 'เบี้ยขยันสะสม (บาท)', 'ระยะห่างร้าน'];
     const rows = formattedStaff.map((e: StaffItem) => [
       e.code,
       `"${e.name}"`,
       `"${e.nickname}"`,
       `"${e.role}"`,
-      e.checkInTimeStr,
-      e.statusLabel,
+      `"${e.checkInTimeStr}"`,
+      `"${e.checkOutTimeStr}"`,
+      `"${e.statusLabel}"`,
       e.allowance,
       `"${e.distanceStr}"`,
     ]);
@@ -458,7 +463,7 @@ export default function WebExecutiveDashboard() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Executive_Attendance_Payroll_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `รายงานลงเวลาและเบี้ยขยัน_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -870,8 +875,8 @@ export default function WebExecutiveDashboard() {
                   </p>
                 </div>
 
-                {/* Filter & Search */}
-                <div className="flex items-center gap-2">
+                {/* Filter, Search & Export */}
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -879,7 +884,7 @@ export default function WebExecutiveDashboard() {
                       placeholder="ค้นหาชื่อ / รหัส..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-blue-500 w-36 sm:w-48 font-medium"
+                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-blue-500 w-32 sm:w-44 font-medium"
                     />
                   </div>
 
@@ -898,6 +903,16 @@ export default function WebExecutiveDashboard() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Export CSV Button */}
+                  <button
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
+                    title="ดาวน์โหลดรายงานสรุปเบี้ยขยันและการลงเวลาเป็นไฟล์ Excel/CSV (ภาษาไทย)"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">ส่งออก</span> Excel/CSV
+                  </button>
                 </div>
               </div>
 
@@ -914,7 +929,8 @@ export default function WebExecutiveDashboard() {
                         <th className="py-2.5 px-3">พนักงาน</th>
                         <th className="py-2.5 px-3">รหัสพนักงาน</th>
                         <th className="py-2.5 px-3">ตำแหน่ง / แผนก</th>
-                        <th className="py-2.5 px-3">เวลาเช็คอิน</th>
+                        <th className="py-2.5 px-3">เวลาเข้างาน</th>
+                        <th className="py-2.5 px-3">เวลาออกงาน</th>
                         <th className="py-2.5 px-3">สถานะวันนี้</th>
                         <th className="py-2.5 px-3">เบี้ยขยันสะสม</th>
                         <th className="py-2.5 px-3 text-right">ระยะห่างร้าน</th>
@@ -941,6 +957,7 @@ export default function WebExecutiveDashboard() {
                             </span>
                           </td>
                           <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkInTimeStr}</td>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkOutTimeStr}</td>
                           <td className="py-3 px-3">
                             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${emp.badgeColor}`}>
                               {emp.statusLabel}

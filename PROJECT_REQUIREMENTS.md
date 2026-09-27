@@ -11,13 +11,13 @@
 ```mermaid
 flowchart TD
     subgraph Cloud["☁️ Central Database & Cloud Services"]
-        DB[(Supabase PostgreSQL)]
+        DB[(Supabase PostgreSQL\n- employees, attendance_logs\n- store_settings, leave_requests\n- violation_logs)]
         Vercel[Vercel Serverless Hosting]
         Line[LINE Messaging API]
     end
 
     subgraph Part1["💻 Part 1: Web Executive Dashboard"]
-        WebAdmin["Web Browser (/admin, /executive)\n- หน้าจอสำหรับผู้บริหารบนคอมพิวเตอร์\n- จัดการพนักงาน, อนุมัติใบลา, มอนิเตอร์แบบเรียลไทม์\n- ตรวจสอบ Red Alert Security Logs"]
+        WebAdmin["Web Browser (/admin, /executive)\n- หน้าจอสำหรับผู้บริหารบนคอมพิวเตอร์\n- จัดการพนักงาน, อนุมัติใบลา, มอนิเตอร์แบบเรียลไทม์\n- ตรวจสอบ Red Alert Security Logs\n- ส่งออกรายงาน Excel/CSV (UTF-8 BOM)"]
     end
 
     subgraph Part2["📱 Part 2: Executive Mobile App"]
@@ -25,7 +25,7 @@ flowchart TD
     end
 
     subgraph Part3["📲 Part 3: Staff Native Android Mobile App"]
-        NativeApp["Native Android APK (com.yokohama.attendance)\n- รันบนโทรศัพท์มือถือเครื่องจริงของพนักงาน (Realme)\n- 1-Device-1-Employee HWID Lock\n- Geofencing 50m ตรวจจับพิกัดร้าน\n- ลงเวลา เข้างาน-ออกงาน, ดูปฏิทิน, สะสมเบี้ยเลี้ยง, ยื่นใบลา"]
+        NativeApp["Native Android APK (com.yokohama.attendance)\n- รันบนโทรศัพท์มือถือเครื่องจริงของพนักงาน (Realme)\n- 1-Device-1-Employee HWID Lock\n- Geofencing 50m ตรวจจับพิกัดร้าน\n- ปุ่ม Dynamic เข้างาน -> ออกงาน -> สำเร็จ\n- ปฏิทินเบี้ยเลี้ยงสะสม, ยื่นคำขอลางาน"]
     end
 
     WebAdmin <--> DB
@@ -37,9 +37,9 @@ flowchart TD
 
 | ส่วนของระบบ | แพลตฟอร์ม / ช่องทาง | ผู้ใช้งาน | ฟังก์ชันหลัก |
 | :--- | :--- | :--- | :--- |
-| **Part 1: Web Executive Dashboard** | Web Browser (`https://check-empolye.vercel.app/admin`) | ผู้บริหาร / แอดมิน | จัดการบัญชีพนักงาน, อนุมัติใบลา, กราฟสถิติ, รายงานสรุปเบี้ยเลี้ยง, Red Alert ความปลอดภัย |
+| **Part 1: Web Executive Dashboard** | Web Browser (`https://check-empolye.vercel.app/admin`) | ผู้บริหาร / แอดมิน | จัดการบัญชีพนักงาน, อนุมัติใบลา, กราฟสถิติ 3D, ส่งออกรายงาน Excel/CSV, Red Alert ความปลอดภัย |
 | **Part 2: Executive Mobile App** | Mobile App / Mobile Web | ผู้บริหาร | สรุปยอดลงเวลารายวัน, อนุมัติคำขอลาเร่งด่วนผ่านมือถือ |
-| **Part 3: Staff Native Mobile App** | Native Android APK (`com.yokohama.attendance`) บนมือถือจริง | พนักงานร้าน | บันทึกเวลาเข้า-ออกงาน, ตรวจสอบพิกัด GPS ร้าน 50 ม., ปฏิทินเบี้ยเลี้ยงสะสม, ยื่นคำขอลา |
+| **Part 3: Staff Native Mobile App** | Native Android APK (`com.yokohama.attendance`) บนมือถือจริง | พนักงานร้าน | บันทึกเวลาเข้างาน-ออกงาน, ตรวจสอบพิกัด GPS ร้าน 50 ม., ปฏิทินเบี้ยเลี้ยงสะสม, ยื่นคำขอลา |
 
 ---
 
@@ -53,6 +53,11 @@ flowchart TD
 - **การคิดเบี้ยขยัน (Allowance)**:
   - มาถึง $\le$ 08:00 น. $\rightarrow$ สถานะ **ตรงเวลา (PRESENT)** รับเบี้ยขยัน **+50 บาท/วัน**
   - มาถึง $>$ 08:00 น. $\rightarrow$ สถานะ **มาสาย (LATE)** รับเบี้ยขยัน **0 บาท** และส่งแจ้งเตือนเข้า LINE กลุ่มผู้บริหาร
+- **การลงเวลาออกงาน (Check-Out Flow)**:
+  - เมื่อหมดเวลากะ พนักงานสามารถกดปุ่ม "ออกงาน" ผ่านแอปมือถือ
+  - บันทึกเวลาออกงาน (`check_out_time`) และคำนวณระยะเวลาทำงานสุทธิต่อวัน
+- **การป้องกันการลงเวลาซ้ำ (Daily Duplicate Prevention)**:
+  - บล็อกที่ระดับ Backend API ป้องกันไม่ให้เกิด Log เข้างานซ้ำซ้อนในวันเดียวกัน
 
 ### 2.2 ระบบความปลอดภัยและการป้องกันการทุจริต (Anti-Fraud & Security)
 - **1 คน 1 เครื่อง (1-Device-1-Employee HWID Lock)**:
@@ -68,6 +73,8 @@ flowchart TD
 
 ## 📊 3. ตารางสถานะฟีเจอร์และความต้องการ (Requirements & Task Backlog)
 
+### 3.1 ฟีเจอร์ที่พัฒนาแล้วเสร็จ (Completed Features)
+
 | รหัส Ticket | หมวดหมู่ | รายละเอียดความต้องการ | สถานะ | เครื่องมือ / แพลตฟอร์ม |
 | :--- | :--- | :--- | :---: | :--- |
 | **REQ-001** | Architecture | แยก 3 โปรเจกต์: Web Dashboard, Executive Mobile, Staff Native App | ✅ เสร็จสิ้น | Vercel / Capacitor / Next.js |
@@ -79,7 +86,21 @@ flowchart TD
 | **REQ-007** | Leave System | ระบบยื่นคำขอลาบนมือถือพนักงาน และปุ่มอนุมัติบนหน้าผู้บริหาร | ✅ เสร็จสิ้น | Mobile UI / Admin Flow |
 | **REQ-008** | Living Spec | จัดทำเอกสาร `.MD` บันทึกความต้องการและคอยอัปเดตต่อเนื่อง | ✅ เสร็จสิ้น | `PROJECT_REQUIREMENTS.md` |
 | **REQ-009** | Realtime Flow | เชื่อมต่อข้อมูลมือถือ ↔ เว็บ ↔ Supabase แบบ Real-time ทันที (<100ms) และเรียงลำดับการลงเวลาล่าสุดไว้บนสุด | ✅ เสร็จสิ้น | Supabase Realtime / WebSocket |
+| **REQ-010** | Attendance | ระบบลงเวลา "ออกงาน" (Check-Out Flow) บันทึกเวลาเลิกงานและระยะเวลาทำงาน | ✅ เสร็จสิ้น | API `/api/check-out` / Mobile UI |
+| **REQ-011** | Reporting | ปุ่มส่งออกรายงาน Excel / CSV (Export Report UTF-8 with BOM สำหรับภาษาไทย) | ✅ เสร็จสิ้น | Admin Web Dashboard (`/admin`) |
+| **REQ-012** | Attendance | ระบบป้องกันการกดเช็คอินซ้ำในวันเดียวกัน (Daily Check-in Duplicate Prevention) | ✅ เสร็จสิ้น | API `/api/check-in` Backend Guard |
 
+---
+
+### 3.2 คลังความต้องการในอนาคต (Future Feature Backlog)
+
+| รหัส Ticket | หมวดหมู่ | รายละเอียดความต้องการ | ระดับความสำคัญ | แพลตฟอร์ม |
+| :--- | :--- | :--- | :---: | :--- |
+| **REQ-013** | Notifications | แจ้งเตือน LINE Notify เมื่อมีพนักงานยื่นใบลาใหม่ และแจ้งเตือนผลการอนุมัติ/ปฏิเสธ | ปานกลาง | LINE Messaging API |
+| **REQ-014** | Security & Profile | ระบบให้พนักงานเปลี่ยนรหัสผ่าน PIN 4 หลัก ด้วยตนเองผ่านแอปมือถือ | ปานกลาง | Mobile Staff App |
+| **REQ-015** | Notifications | Push Notification บนโทรศัพท์ แจ้งเตือนพนักงานก่อน 07:40 น. ไม่ให้ลืมเข้างาน | แนะนำ | Native Push / Capacitor |
+| **REQ-016** | Reporting | ตัวเลือกเลือกช่วงวันที่รายงานแบบกำหนดเองอิสระ (Custom Date Range Filter) | แนะนำ | Web Admin Dashboard |
+| **REQ-017** | Reliability | แถบแสดงสถานะเตือนเมื่อเน็ตมือถือหลุดชั่วขณะ (Offline Indicator Banner) | แนะนำ | Mobile Staff App |
 
 ---
 
@@ -94,12 +115,17 @@ flowchart TD
 
 ---
 
-## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog & Future Additions)
+## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
 
-*พื้นที่สำหรับบันทึกและปรับปรุงความต้องการใหม่ๆ ที่ผู้ใช้งานแจ้งเข้ามาอย่างต่อเนื่อง:*
+### 📌 [2026-09-27] - Check-Out Flow, CSV Export & Duplicate Prevention (Version 2.2)
+- ✅ **เพิ่มคอลัมน์ `check_out_time`** ในฐานข้อมูล Supabase PostgreSQL ตาราง `attendance_logs`
+- ✅ **สร้าง API Endpoint `/api/check-out`** รองรับการลงเวลาออกงาน ตรวจสอบ Geofence และคำนวณระยะเวลาทำงาน
+- ✅ **ปรับปรุงปุ่ม Dynamic Button บนมือถือ** สลับสถานะระหว่าง "เข้างาน" $\rightarrow$ "ออกงาน" $\rightarrow$ "เสร็จสิ้น" พร้อมการ์ดสรุปเวลาออกงาน
+- ✅ **เพิ่มระบบบล็อกการกดเช็คอินซ้ำในวันเดียวกัน (Daily Duplicate Prevention)** ใน `/api/check-in`
+- ✅ **เพิ่มปุ่ม "📥 ส่งออก Excel / CSV"** บนหน้าเว็บผู้บริหาร รองรับภาษาไทยสมบูรณ์แบบ (`UTF-8 with BOM`)
+- ✅ **บันทึก Backlog Ticket REQ-013 ถึง REQ-017** เข้าสู่คลังความต้องการของระบบ
 
-### 📌 [2026-09-27] - Initial Living Requirements Release
+### 📌 [2026-09-27] - Initial Living Requirements Release (Version 2.0)
 - ✅ รวบรวมสถาปัตยกรรมระบบทั้ง 3 ส่วนลงในเอกสาร
 - ✅ บันทึกรายละเอียดการเชื่อมต่อ Native Android บนอุปกรณ์จริง
 - ✅ สรุปกฎทางธุรกิจ Geofencing, Shift, เบี้ยเลี้ยง 50 บาท และ HWID
-- 🔄 พร้อมรับและปรับปรุงความต้องการเพิ่มเติมตามคำสั่งของผู้ใช้งาน

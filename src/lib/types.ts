@@ -19,6 +19,7 @@ export interface AttendanceLog {
   id: string;
   employee_id: string;
   check_in_time: string;
+  check_out_time?: string | null;
   latitude: number;
   longitude: number;
   accuracy?: number;

@@ -23,15 +23,70 @@ export async function POST(request: Request) {
       );
     }
 
+    // Thailand Timezone (Asia/Bangkok) Date Formatter
+    const getBangkokDateStr = (date: Date | string) =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(date));
+
+    const checkInDate = simulatedTime ? new Date(simulatedTime) : new Date();
+    const targetDateStr = getBangkokDateStr(checkInDate);
+
+    // -------------------------------------------------------------
+    // CHECKPOINT 0: DUPLICATE CHECK-IN PREVENTION
+    // -------------------------------------------------------------
+    const existingLogs = await db.getAttendanceLogs(200);
+    const todayExistingLog = existingLogs.find(
+      (l) => l.employee_id === employee.id &&
+             l.check_in_time &&
+             getBangkokDateStr(l.check_in_time) === targetDateStr &&
+             (l.status === 'PRESENT' || l.status === 'LATE')
+    );
+
+    if (todayExistingLog) {
+      const timeStr = new Date(todayExistingLog.check_in_time).toLocaleTimeString('th-TH', {
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }) + ' น.';
+
+      const checkOutTimeStr = todayExistingLog.check_out_time
+        ? new Date(todayExistingLog.check_out_time).toLocaleTimeString('th-TH', {
+            timeZone: 'Asia/Bangkok',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          }) + ' น.'
+        : null;
+
+      return NextResponse.json({
+        success: true,
+        alreadyCheckedIn: true,
+        code: 'ALREADY_CHECKED_IN',
+        message: `คุณได้ลงเวลาเข้างานของวันนี้ไปแล้ว (${timeStr})`,
+        data: {
+          id: todayExistingLog.id,
+          status: todayExistingLog.status,
+          checkInTime: timeStr,
+          checkOutTime: checkOutTimeStr,
+          allowance: Number(todayExistingLog.allowance) || 0,
+          distance: todayExistingLog.distance_from_store,
+          isLate: todayExistingLog.status === 'LATE',
+          employeeName: employee.full_name,
+        },
+      });
+    }
+
+    // -------------------------------------------------------------
+    // CHECKPOINT 1: GEOFENCING VALIDATION (Haversine Formula)
+    // -------------------------------------------------------------
     // Fetch store settings for coordinates & time rules
     const settings = await db.getStoreSettings();
     const storeCoord = { latitude: Number(settings.store_lat), longitude: Number(settings.store_lng) };
     const userCoord = { latitude: Number(latitude), longitude: Number(longitude) };
     const radiusMeters = Number(settings.radius_meters) || 50;
 
-    // -------------------------------------------------------------
-    // CHECKPOINT 1: GEOFENCING VALIDATION (Haversine Formula)
-    // -------------------------------------------------------------
     const { isInside, distance } = isWithinGeofence(userCoord, storeCoord, radiusMeters);
 
     if (!isInside) {
@@ -72,9 +127,6 @@ export async function POST(request: Request) {
     // -------------------------------------------------------------
     // CHECKPOINT 2: TIME CHECK & ALLOWANCE CALCULATION
     // -------------------------------------------------------------
-    // Allow custom simulated timestamp for testing or use current server time
-    const checkInDate = simulatedTime ? new Date(simulatedTime) : new Date();
-    
     // Format to Asia/Bangkok time
     const timeFormatter = new Intl.DateTimeFormat('th-TH', {
       timeZone: 'Asia/Bangkok',

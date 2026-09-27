@@ -37,7 +37,9 @@ export async function GET(request: Request) {
     const todayStaffMap = new Map<string, {
       status: 'PRESENT' | 'LATE';
       checkInTimeStr: string;
+      checkOutTimeStr?: string | null;
       rawCheckInTime?: string | null;
+      rawCheckOutTime?: string | null;
       distanceStr: string;
       allowance: number;
     }>();
@@ -59,13 +61,25 @@ export async function GET(request: Request) {
           hour12: false,
         }) + ' น.';
 
+        const checkOutTimeStr = log.check_out_time
+          ? new Date(log.check_out_time).toLocaleTimeString('th-TH', {
+              timeZone: 'Asia/Bangkok',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false,
+            }) + ' น.'
+          : null;
+
         const distM = (log as any).distance_meters ?? (log as any).distance_from_store;
         const distanceStr = distM != null ? `พิกัดในร้าน (${Math.round(distM)} ม.)` : 'พิกัดในร้าน (5 ม.)';
 
         todayStaffMap.set(log.employee_id, {
           status: isPresent ? 'PRESENT' : 'LATE',
           checkInTimeStr: timeStr,
+          checkOutTimeStr,
           rawCheckInTime: log.check_in_time,
+          rawCheckOutTime: log.check_out_time || null,
           distanceStr,
           allowance: Number(log.allowance) || 0,
         });
@@ -150,6 +164,8 @@ export async function GET(request: Request) {
         todayStatus: todayInfo ? todayInfo.status : 'PENDING',
         todayCheckInTime: todayInfo ? todayInfo.checkInTimeStr : '-',
         todayRawCheckInTime: todayInfo ? todayInfo.rawCheckInTime : null,
+        todayCheckOutTime: todayInfo ? todayInfo.checkOutTimeStr : '-',
+        todayRawCheckOutTime: todayInfo ? todayInfo.rawCheckOutTime : null,
         todayDistance: todayInfo ? todayInfo.distanceStr : '-',
         todayAllowance: todayInfo ? todayInfo.allowance : 0,
       };

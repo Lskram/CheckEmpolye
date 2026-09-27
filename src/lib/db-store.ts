@@ -264,6 +264,40 @@ export const db = {
     }));
   },
 
+  async updateAttendanceLog(id: string, updates: Partial<AttendanceLog>): Promise<AttendanceLog | null> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('attendance_logs')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+        if (!error && data) return data as AttendanceLog;
+        if (error) {
+          console.warn('[Supabase updateAttendanceLog]:', error.message);
+        }
+      } catch (err: any) {
+        console.warn('[Supabase updateAttendanceLog catch]:', err.message);
+      }
+    }
+
+    const index = mockAttendanceLogs.findIndex((l) => l.id === id);
+    if (index !== -1) {
+      mockAttendanceLogs[index] = { ...mockAttendanceLogs[index], ...updates };
+      return mockAttendanceLogs[index];
+    }
+    return null;
+  },
+
+  async checkOutAttendance(id: string, checkOutTime: string, notes?: string): Promise<AttendanceLog | null> {
+    const updates: Partial<AttendanceLog> = {
+      check_out_time: checkOutTime,
+      ...(notes ? { notes } : {}),
+    };
+    return this.updateAttendanceLog(id, updates);
+  },
+
   // -------------------------------------------------------------
   // LEAVE REQUESTS
   // -------------------------------------------------------------

@@ -58,8 +58,9 @@ export default function ExactEmployeeApp() {
   });
   const [distance, setDistance] = useState<number | null>(5);
 
-  // Check-in State & Results
+  // Check-in & Check-out State & Results
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkInResult, setCheckInResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [activeHistoryTab, setActiveHistoryTab] = useState<'in' | 'out' | 'leave'>('in');
@@ -80,6 +81,7 @@ export default function ExactEmployeeApp() {
             id: todayLog.id,
             status: todayLog.status,
             checkInTime: todayLog.checkInTime,
+            checkOutTime: todayLog.checkOutTime || null,
             allowance: todayLog.allowance || 0,
             distance: todayLog.distance || 0,
             isLate: todayLog.status === 'LATE',
@@ -305,6 +307,59 @@ export default function ExactEmployeeApp() {
     }
   };
 
+  const handleCheckOut = async () => {
+    if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
+    setIsCheckingOut(true);
+    setErrorMessage('');
+
+    let simulatedTimestamp = null;
+    if (showSimPanel) {
+      const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
+      simulatedTimestamp = `${todayStr}T17:05:00+07:00`;
+    }
+
+    try {
+      const empId = employee.id || employee.employeeId;
+      const res = await fetch('/api/check-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeId: empId,
+          latitude: currentCoords?.lat || 15.110412,
+          longitude: currentCoords?.lng || 104.358434,
+          accuracy: 5,
+          hwid,
+          simulatedTime: simulatedTimestamp,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setErrorMessage(data.message || 'การลงเวลาออกงานถูกปฏิเสธ');
+        setIsCheckingOut(false);
+        return;
+      }
+
+      setCheckInResult((prev: any) => ({
+        ...prev,
+        checkOutTime: data.data.checkOutTime,
+        workingDuration: data.data.workingDuration,
+      }));
+
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.5 },
+        colors: ['#a855f7', '#3b82f6', '#10b981', '#fbbf24'],
+      });
+    } catch (err: any) {
+      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
   if (isAuthChecking) {
     return (
       <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center">
@@ -395,12 +450,14 @@ export default function ExactEmployeeApp() {
             </div>
           </div>
 
-          {/* Overlapping Circular Check-In Button */}
+          {/* Overlapping Circular Check-In / Check-Out Dynamic Action Button */}
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
             {/* Pulsing Ripple Effect */}
-            {isInsideRadius && !checkInResult && (
+            {isInsideRadius && (!checkInResult || (checkInResult && !checkInResult.checkOutTime)) && (
               <motion.div
-                className="absolute -top-3 -left-3 w-30 h-30 rounded-full bg-blue-500/25"
+                className={`absolute -top-3 -left-3 w-30 h-30 rounded-full ${
+                  !checkInResult ? 'bg-blue-500/25' : 'bg-amber-500/25'
+                }`}
                 animate={{ scale: [1, 1.4, 1.7], opacity: [0.8, 0.25, 0] }}
                 transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
               />
@@ -409,26 +466,20 @@ export default function ExactEmployeeApp() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
-              onClick={handleCheckIn}
-              disabled={isCheckingIn || !!checkInResult}
+              onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? handleCheckOut : undefined}
+              disabled={isCheckingIn || isCheckingOut || (!!checkInResult && !!checkInResult.checkOutTime)}
               className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center text-white ring-4 ring-white shadow-2xl transition-all ${
-                checkInResult
-                  ? checkInResult.status === 'PRESENT'
-                    ? 'bg-gradient-to-b from-emerald-500 to-teal-600 shadow-emerald-500/40'
-                    : 'bg-gradient-to-b from-amber-500 to-orange-600 shadow-amber-500/40'
-                  : 'bg-gradient-to-b from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] shadow-blue-600/50'
+                !checkInResult
+                  ? 'bg-gradient-to-b from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] shadow-blue-600/50'
+                  : !checkInResult.checkOutTime
+                    ? 'bg-gradient-to-b from-amber-500 via-orange-500 to-rose-600 shadow-orange-500/50'
+                    : 'bg-gradient-to-b from-emerald-500 to-teal-600 shadow-emerald-500/40'
               }`}
             >
-              {isCheckingIn ? (
+              {isCheckingIn || isCheckingOut ? (
                 <RefreshCw className="w-7 h-7 animate-spin text-white" />
-              ) : checkInResult ? (
-                <div className="flex flex-col items-center">
-                  <CheckCircle2 className="w-7 h-7 text-white mb-0.5" />
-                  <span className="text-[11px] font-bold">เช็คอินแล้ว</span>
-                </div>
-              ) : (
+              ) : !checkInResult ? (
                 <div className="flex flex-col items-center justify-center">
-                  {/* Fingerprint / Touch Pointer Icon */}
                   <svg
                     className="w-8 h-8 text-white mb-0.5"
                     viewBox="0 0 24 24"
@@ -444,6 +495,16 @@ export default function ExactEmployeeApp() {
                     <path d="M18 11.5a1 1 0 0 1 2 0v3a8 8 0 1 1-16 0v-4" />
                   </svg>
                   <span className="text-xs font-bold tracking-tight">เข้างาน</span>
+                </div>
+              ) : !checkInResult.checkOutTime ? (
+                <div className="flex flex-col items-center justify-center">
+                  <LogOut className="w-7 h-7 text-white mb-0.5" />
+                  <span className="text-xs font-bold tracking-tight">ออกงาน</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <CheckCircle2 className="w-7 h-7 text-white mb-0.5" />
+                  <span className="text-[11px] font-bold">เสร็จสิ้น</span>
                 </div>
               )}
             </motion.button>
@@ -465,11 +526,15 @@ export default function ExactEmployeeApp() {
 
           {/* Card 2: ออกงาน */}
           <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center mb-1">
-              <Clock className="w-4 h-4" />
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+              checkInResult?.checkOutTime ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-400'
+            }`}>
+              <LogOut className="w-4 h-4" />
             </div>
-            <span className="text-sm font-bold font-mono text-slate-400">
-              --:--
+            <span className={`text-sm font-bold font-mono ${
+              checkInResult?.checkOutTime ? 'text-amber-600' : 'text-slate-400'
+            }`}>
+              {checkInResult?.checkOutTime ? checkInResult.checkOutTime : '--:--'}
             </span>
             <span className="text-[11px] text-slate-400 font-medium">ออกงาน</span>
           </div>
@@ -577,7 +642,7 @@ export default function ExactEmployeeApp() {
               </motion.div>
             )}
 
-            {checkInResult && (
+            {activeHistoryTab === 'in' && checkInResult && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -597,6 +662,68 @@ export default function ExactEmployeeApp() {
                 <div className="text-[11px] text-slate-600 mt-1">
                   เบี้ยขยันที่ได้รับวันนี้: <strong className="text-emerald-600 font-bold">+{checkInResult.allowance} บาท</strong>
                 </div>
+              </motion.div>
+            )}
+
+            {activeHistoryTab === 'out' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`p-3.5 rounded-xl border text-xs ${
+                  checkInResult?.checkOutTime
+                    ? 'bg-purple-50 border-purple-200 text-purple-900'
+                    : 'bg-slate-50 border-slate-200 text-slate-600'
+                }`}
+              >
+                {checkInResult?.checkOutTime ? (
+                  <>
+                    <div className="flex items-center justify-between font-bold text-sm">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                        ลงเวลาออกงานเรียบร้อย
+                      </span>
+                      <span className="font-mono text-purple-700">{checkInResult.checkOutTime}</span>
+                    </div>
+                    {checkInResult.workingDuration && (
+                      <div className="text-[11px] text-slate-600 mt-1">
+                        รวมระยะเวลาทำงาน: <strong className="text-purple-700 font-bold">{checkInResult.workingDuration}</strong>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span>ยังไม่ได้ลงเวลาออกงานของวันนี้</span>
+                    {checkInResult && (
+                      <button
+                        onClick={handleCheckOut}
+                        disabled={isCheckingOut}
+                        className="px-2.5 py-1 bg-amber-500 text-white rounded-lg font-bold text-[11px]"
+                      >
+                        {isCheckingOut ? 'กำลังบันทึก...' : 'กดออกงาน'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeHistoryTab === 'leave' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/60 text-xs flex items-center justify-between"
+              >
+                <div className="text-slate-700">
+                  <div className="font-bold text-blue-900">ยื่นคำขอลางาน</div>
+                  <div className="text-[11px] text-slate-500">ลาป่วย, ลากิจ, ลาพักร้อน ผ่านระบบ</div>
+                </div>
+                <Link
+                  href="/employee/leave"
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-xs"
+                >
+                  <span>ส่งใบลา</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
               </motion.div>
             )}
           </AnimatePresence>
