@@ -110,25 +110,17 @@ export default function ExactEmployeeApp() {
       fetch(`/api/employee/stats?id=${parsedEmp.id}`)
         .then((res) => res.json())
         .then((resData) => {
-          if (resData.success && resData.data?.logs) {
-            const todayStr = new Date().toISOString().split('T')[0];
-            const todayLog = resData.data.logs.find((l: any) => l.check_in_time?.startsWith(todayStr));
-            if (todayLog) {
-              const timeStr = new Date(todayLog.check_in_time).toLocaleTimeString('th-TH', {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'Asia/Bangkok',
-              });
-              setCheckInResult({
-                id: todayLog.id,
-                status: todayLog.status,
-                checkInTime: timeStr,
-                allowance: todayLog.allowance || 0,
-                distance: todayLog.distance_from_store || 0,
-                isLate: todayLog.status === 'LATE',
-                employeeName: parsedEmp.full_name || parsedEmp.fullName,
-              });
-            }
+          if (resData.success && resData.data?.todayLog) {
+            const todayLog = resData.data.todayLog;
+            setCheckInResult({
+              id: todayLog.id,
+              status: todayLog.status,
+              checkInTime: todayLog.checkInTime,
+              allowance: todayLog.allowance || 0,
+              distance: todayLog.distance || 0,
+              isLate: todayLog.status === 'LATE',
+              employeeName: parsedEmp.full_name || parsedEmp.fullName,
+            });
           }
         })
         .catch((err) => console.error('Error fetching today status:', err));
@@ -150,7 +142,7 @@ export default function ExactEmployeeApp() {
       const dayName = thaiDays[now.getDay()];
       const dayDate = now.getDate();
       const monthName = thaiMonths[now.getMonth()];
-      const year = now.getFullYear();
+      const year = now.getFullYear() + 543;
 
       setTime({
         hhmm: `${hh}:${mm}`,
@@ -165,31 +157,64 @@ export default function ExactEmployeeApp() {
     return () => clearInterval(interval);
   }, [router]);
 
-  // Distance calculation & GPS Tracking
+  // Real GPS & Distance Tracking
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [isUsingRealGPS, setIsUsingRealGPS] = useState(false);
+
+  const refreshRealGPS = () => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      setGpsLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setCurrentCoords({ lat, lng });
+          setIsUsingRealGPS(true);
+          setGpsLoading(false);
+
+          if (storeSettings) {
+            const dist = calculateHaversineDistance(
+              { latitude: lat, longitude: lng },
+              { latitude: Number(storeSettings.store_lat) || 15.110412, longitude: Number(storeSettings.store_lng) || 104.358434 }
+            );
+            setDistance(dist);
+          }
+        },
+        (err) => {
+          console.warn('GPS Geolocation notice:', err.message);
+          setGpsLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    }
+  };
+
   useEffect(() => {
     if (!storeSettings) return;
 
-    let targetLat = Number(storeSettings.store_lat) || 15.110412;
-    let targetLng = Number(storeSettings.store_lng) || 104.358434;
+    if (!isUsingRealGPS) {
+      let targetLat = Number(storeSettings.store_lat) || 15.110412;
+      let targetLng = Number(storeSettings.store_lng) || 104.358434;
 
-    if (simMode === 'inside') {
-      targetLat += 0.00003;
-      targetLng += 0.00003;
-      setCurrentCoords({ lat: targetLat, lng: targetLng });
-    } else {
-      targetLat += 0.0012;
-      targetLng += 0.0012;
-      setCurrentCoords({ lat: targetLat, lng: targetLng });
-    }
+      if (simMode === 'inside') {
+        targetLat += 0.00003;
+        targetLng += 0.00003;
+        setCurrentCoords({ lat: targetLat, lng: targetLng });
+      } else {
+        targetLat += 0.0012;
+        targetLng += 0.0012;
+        setCurrentCoords({ lat: targetLat, lng: targetLng });
+      }
 
-    if (targetLat && targetLng) {
-      const dist = calculateHaversineDistance(
-        { latitude: targetLat, longitude: targetLng },
-        { latitude: Number(storeSettings.store_lat) || 15.110412, longitude: Number(storeSettings.store_lng) || 104.358434 }
-      );
-      setDistance(dist);
+      if (targetLat && targetLng) {
+        const dist = calculateHaversineDistance(
+          { latitude: targetLat, longitude: targetLng },
+          { latitude: Number(storeSettings.store_lat) || 15.110412, longitude: Number(storeSettings.store_lng) || 104.358434 }
+        );
+        setDistance(dist);
+      }
     }
-  }, [simMode, storeSettings]);
+  }, [simMode, storeSettings, isUsingRealGPS]);
 
   // Logout Handler
   const handleLogout = () => {
@@ -205,15 +230,17 @@ export default function ExactEmployeeApp() {
     setErrorMessage('');
 
     let simulatedTimestamp = null;
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (simTimeMode === 'ontime') {
-      simulatedTimestamp = `${todayStr}T07:45:00+07:00`;
-    } else {
-      simulatedTimestamp = `${todayStr}T08:15:00+07:00`;
+    if (showSimPanel) {
+      const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
+      if (simTimeMode === 'ontime') {
+        simulatedTimestamp = `${todayStr}T07:45:00+07:00`;
+      } else {
+        simulatedTimestamp = `${todayStr}T08:15:00+07:00`;
+      }
     }
 
     try {
-      const empId = employee.id || '11111111-1111-1111-1111-111111111111';
+      const empId = employee.id || employee.employeeId;
       const res = await fetch('/api/check-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -440,14 +467,25 @@ export default function ExactEmployeeApp() {
               <MapPin className="w-4 h-4" />
             </div>
             <div>
-              <div className="font-bold text-slate-800">ศิริแสงยางยนต์ ศรีสะเกษ</div>
-              <div className="text-[11px] text-slate-400">ระยะห่าง: {distance !== null ? `${distance.toFixed(0)} เมตร` : 'กำลังคำนวณ...'}</div>
+              <div className="font-bold text-slate-800">{storeSettings?.store_name || 'สีแสงยางยนต์'}</div>
+              <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <span>ระยะห่าง: {distance !== null ? `${distance.toFixed(0)} เมตร` : 'กำลังคำนวณ...'}</span>
+                <button
+                  type="button"
+                  onClick={refreshRealGPS}
+                  className="text-blue-600 hover:text-blue-700 font-bold flex items-center gap-0.5"
+                  title="รีเฟรชพิกัด GPS จริงจากมือถือ"
+                >
+                  <RefreshCw className={`w-3 h-3 ${gpsLoading ? 'animate-spin' : ''}`} />
+                  <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรช GPS'}</span>
+                </button>
+              </div>
             </div>
           </div>
           <span className={`px-2.5 py-1 rounded-full font-bold text-[11px] ${
             isInsideRadius ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
           }`}>
-            {isInsideRadius ? '● ในพื้นที่ 50ม.' : '● นอกรัศมีร้าน'}
+            {isInsideRadius ? `● ในพื้นที่ ${storeSettings?.radius_meters || 50}ม.` : '● นอกรัศมีร้าน'}
           </span>
         </div>
 
