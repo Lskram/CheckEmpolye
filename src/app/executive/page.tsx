@@ -40,6 +40,8 @@ import {
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
 import SalaryAdvanceManager from '@/components/SalaryAdvanceManager';
+import NotificationCenter from '@/components/NotificationCenter';
+import { WebNotification, playWebAlertSound, showBrowserDesktopNotification } from '@/lib/web-notifications';
 
 const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
   ssr: false,
@@ -119,6 +121,48 @@ export default function MobileExecutiveApp() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState('');
 
+  // Notification & Audio Alert System
+  const [notificationsList, setNotificationsList] = useState<WebNotification[]>([]);
+  const [activeToast, setActiveToast] = useState<WebNotification | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const prevDataRef = useRef<{
+    logMap: Map<string, any>;
+    advanceMap: Map<string, any>;
+    leaveMap: Map<string, any>;
+    violationMap: Map<string, any>;
+    isFirstLoad: boolean;
+  }>({
+    logMap: new Map(),
+    advanceMap: new Map(),
+    leaveMap: new Map(),
+    violationMap: new Map(),
+    isFirstLoad: true,
+  });
+
+  const triggerNotification = (notif: Omit<WebNotification, 'id' | 'time' | 'timestamp' | 'read'>) => {
+    const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const fullNotif: WebNotification = {
+      ...notif,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      time,
+      timestamp: Date.now(),
+      read: false,
+    };
+
+    setNotificationsList((prev) => [fullNotif, ...prev.slice(0, 49)]);
+    setActiveToast(fullNotif);
+
+    if (soundEnabled) {
+      playWebAlertSound(notif.type);
+    }
+    showBrowserDesktopNotification(notif.title, notif.message);
+
+    setTimeout(() => {
+      setActiveToast((current) => (current?.id === fullNotif.id ? null : current));
+    }, 7000);
+  };
+
   // 1. Session & Auth Guard Check
   useEffect(() => {
     const savedToken = localStorage.getItem('executive_auth_token');
@@ -160,19 +204,121 @@ export default function MobileExecutiveApp() {
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Data Fetching & Real-Time Synchronization (Supabase Channel + Adaptive 4s Polling)
+  // 3. Data Fetching & Smart Diff Detection (Dual-Engine Live Sync)
   const loadData = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/analytics?period=${period}`, { cache: 'no-store' });
       const data = await res.json();
-      if (data.success) {
-        setAnalyticsData(data.data);
-        if (data.data.settings) {
+      if (data.success && data.data) {
+        const d = data.data;
+        setAnalyticsData(d);
+
+        if (d.settings) {
           if (!hasLoadedSettingsRef.current || activeTabRef.current !== 'settings') {
-            setStoreSettingsForm(data.data.settings);
+            setStoreSettingsForm(d.settings);
             hasLoadedSettingsRef.current = true;
           }
+        }
+
+        // Map employees for fast name lookup
+        const empMap = new Map<string, any>();
+        (d.employees || []).forEach((emp: any) => {
+          empMap.set(emp.id, emp);
+          if (emp.employee_code) empMap.set(emp.employee_code, emp);
+        });
+
+        const logs = d.attendanceLogs || [];
+        const advances = d.salaryAdvanceRequests || [];
+        const leaves = d.leaveRequests || [];
+        const violations = d.violations || [];
+
+        if (prevDataRef.current.isFirstLoad) {
+          logs.forEach((l: any) => prevDataRef.current.logMap.set(l.id, l));
+          advances.forEach((a: any) => prevDataRef.current.advanceMap.set(a.id, a));
+          leaves.forEach((lv: any) => prevDataRef.current.leaveMap.set(lv.id, lv));
+          violations.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
+          prevDataRef.current.isFirstLoad = false;
+        } else {
+          // 1. Detect New Advance Requests
+          advances.forEach((adv: any) => {
+            const prevAdv = prevDataRef.current.advanceMap.get(adv.id);
+            const emp = empMap.get(adv.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+
+            if (!prevAdv) {
+              triggerNotification({
+                type: 'advance',
+                title: `💵 มีคำขอเบิกเงินล่วงหน้าใหม่!`,
+                message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
+                targetTab: 'advances',
+              });
+            }
+          });
+
+          // 2. Detect New Check-in / Check-out Logs
+          logs.forEach((log: any) => {
+            const prevLog = prevDataRef.current.logMap.get(log.id);
+            const emp = empMap.get(log.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+
+            if (!prevLog) {
+              const timeStr = log.check_in_time ? new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+              const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
+              triggerNotification({
+                type: 'checkin',
+                title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างานแล้ว`,
+                message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
+                targetTab: 'overview',
+              });
+            } else if (!prevLog.check_out_time && log.check_out_time) {
+              const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+              triggerNotification({
+                type: 'checkout',
+                title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงานแล้ว`,
+                message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
+                targetTab: 'overview',
+              });
+            }
+          });
+
+          // 3. Detect New Leave Requests
+          leaves.forEach((lv: any) => {
+            const prevLv = prevDataRef.current.leaveMap.get(lv.id);
+            const emp = empMap.get(lv.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+
+            if (!prevLv) {
+              triggerNotification({
+                type: 'leave',
+                title: `📄 มีการยื่นใบลาใหม่!`,
+                message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
+                targetTab: 'leaves',
+              });
+            }
+          });
+
+          // 4. Detect New Violations
+          violations.forEach((v: any) => {
+            const prevV = prevDataRef.current.violationMap.get(v.id);
+            if (!prevV) {
+              triggerNotification({
+                type: 'violation',
+                title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
+                message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
+                targetTab: 'violations',
+              });
+            }
+          });
+
+          // Update cache maps
+          logs.forEach((l: any) => prevDataRef.current.logMap.set(l.id, l));
+          advances.forEach((a: any) => prevDataRef.current.advanceMap.set(a.id, a));
+          leaves.forEach((lv: any) => prevDataRef.current.leaveMap.set(lv.id, lv));
+          violations.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
         }
       }
     } catch (e) {
@@ -213,10 +359,10 @@ export default function MobileExecutiveApp() {
         .subscribe();
     }
 
-    // 2. Adaptive Fast Background Polling (4s)
+    // 2. Adaptive Fast Background Polling (3s)
     const pollTimer = setInterval(() => {
       loadData(true);
-    }, 4000);
+    }, 3000);
 
     // 3. Auto-sync on Tab/Window Focus
     const handleVisibility = () => {
@@ -559,9 +705,24 @@ export default function MobileExecutiveApp() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block shadow-xs shadow-emerald-400/50" />
               <span>{timeStr.dateThai}</span>
             </div>
-            <span className="font-mono font-bold bg-blue-900/40 px-2.5 py-0.5 rounded-lg border border-blue-400/20">
-              {timeStr.time} น.
-            </span>
+            <div className="flex items-center gap-2">
+              <NotificationCenter
+                notifications={notificationsList}
+                onClearAll={() => setNotificationsList([])}
+                onSelectNotification={(notif) => {
+                  if (notif.targetTab) {
+                    setActiveTab(notif.targetTab as any);
+                  }
+                }}
+                activeToast={activeToast}
+                onDismissToast={() => setActiveToast(null)}
+                soundEnabled={soundEnabled}
+                onToggleSound={() => setSoundEnabled(!soundEnabled)}
+              />
+              <span className="font-mono font-bold bg-blue-900/40 px-2.5 py-1.5 rounded-xl border border-blue-400/20">
+                {timeStr.time} น.
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center justify-between my-2">
