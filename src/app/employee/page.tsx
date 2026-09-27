@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function ExactEmployeeApp() {
   const router = useRouter();
@@ -69,6 +70,37 @@ export default function ExactEmployeeApp() {
   const [simTimeMode, setSimTimeMode] = useState<'ontime' | 'late'>('ontime');
   const [showSimPanel, setShowSimPanel] = useState(false);
 
+  const fetchTodayStatus = (empId: string, empName: string) => {
+    fetch(`/api/employee/stats?id=${empId}`, { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData.success && resData.data?.todayLog) {
+          const todayLog = resData.data.todayLog;
+          setCheckInResult({
+            id: todayLog.id,
+            status: todayLog.status,
+            checkInTime: todayLog.checkInTime,
+            allowance: todayLog.allowance || 0,
+            distance: todayLog.distance || 0,
+            isLate: todayLog.status === 'LATE',
+            employeeName: empName,
+          });
+        }
+      })
+      .catch((err) => console.error('Error fetching today status:', err));
+  };
+
+  const fetchSettings = () => {
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setStoreSettings(data.data);
+        }
+      })
+      .catch((e) => console.error(e));
+  };
+
   useEffect(() => {
     // 1. Auth Guard - Check saved profile
     const saved = localStorage.getItem('attendance_employee_profile');
@@ -96,37 +128,28 @@ export default function ExactEmployeeApp() {
     setHwid(deviceHwid);
 
     // 3. Store Settings
-    fetch('/api/admin/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data) {
-          setStoreSettings(data.data);
-        }
-      })
-      .catch((e) => console.error(e));
+    fetchSettings();
 
     // 4. Fetch today's check-in status for this employee
     if (parsedEmp?.id) {
-      fetch(`/api/employee/stats?id=${parsedEmp.id}`)
-        .then((res) => res.json())
-        .then((resData) => {
-          if (resData.success && resData.data?.todayLog) {
-            const todayLog = resData.data.todayLog;
-            setCheckInResult({
-              id: todayLog.id,
-              status: todayLog.status,
-              checkInTime: todayLog.checkInTime,
-              allowance: todayLog.allowance || 0,
-              distance: todayLog.distance || 0,
-              isLate: todayLog.status === 'LATE',
-              employeeName: parsedEmp.full_name || parsedEmp.fullName,
-            });
-          }
-        })
-        .catch((err) => console.error('Error fetching today status:', err));
+      fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
     }
 
-    // 5. Clock Ticker
+    // 5. Supabase Realtime Channel for Store Settings & Attendance Updates
+    let channel: any = null;
+    if (isSupabaseConfigured && supabase && parsedEmp?.id) {
+      channel = supabase
+        .channel(`employee-sync-${parsedEmp.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
+          fetchSettings();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
+          fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
+        })
+        .subscribe();
+    }
+
+    // 6. Clock Ticker
     const updateClock = () => {
       const now = new Date();
       const hh = String(now.getHours()).padStart(2, '0');
@@ -154,7 +177,10 @@ export default function ExactEmployeeApp() {
 
     updateClock();
     const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (channel && supabase) supabase.removeChannel(channel);
+    };
   }, [router]);
 
   // Real GPS & Distance Tracking

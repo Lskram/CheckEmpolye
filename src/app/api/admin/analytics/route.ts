@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     const todayStaffMap = new Map<string, {
       status: 'PRESENT' | 'LATE';
       checkInTimeStr: string;
+      rawCheckInTime?: string | null;
       distanceStr: string;
       allowance: number;
     }>();
@@ -54,15 +55,17 @@ export async function GET(request: Request) {
           timeZone: 'Asia/Bangkok',
           hour: '2-digit',
           minute: '2-digit',
+          second: '2-digit',
           hour12: false,
         }) + ' น.';
 
-        const distM = (log as any).distance_meters;
+        const distM = (log as any).distance_meters ?? (log as any).distance_from_store;
         const distanceStr = distM != null ? `พิกัดในร้าน (${Math.round(distM)} ม.)` : 'พิกัดในร้าน (5 ม.)';
 
         todayStaffMap.set(log.employee_id, {
           status: isPresent ? 'PRESENT' : 'LATE',
           checkInTimeStr: timeStr,
+          rawCheckInTime: log.check_in_time,
           distanceStr,
           allowance: Number(log.allowance) || 0,
         });
@@ -128,7 +131,7 @@ export async function GET(request: Request) {
       employeeAllowanceMap.set(log.employee_id, current);
     });
 
-    // Allowance reports for staff only
+    // Allowance reports for staff only (SORTED: Latest Check-in time descending)
     const allowanceReports = staffEmployees.map((emp) => {
       const stats = employeeAllowanceMap.get(emp.id) || { count: 0, totalAmount: 0, lateCount: 0, presentCount: 0 };
       const todayInfo = todayStaffMap.get(emp.id);
@@ -146,9 +149,17 @@ export async function GET(request: Request) {
         lateCount: stats.lateCount,
         todayStatus: todayInfo ? todayInfo.status : 'PENDING',
         todayCheckInTime: todayInfo ? todayInfo.checkInTimeStr : '-',
+        todayRawCheckInTime: todayInfo ? todayInfo.rawCheckInTime : null,
         todayDistance: todayInfo ? todayInfo.distanceStr : '-',
         todayAllowance: todayInfo ? todayInfo.allowance : 0,
       };
+    }).sort((a, b) => {
+      if (a.todayRawCheckInTime && b.todayRawCheckInTime) {
+        return new Date(b.todayRawCheckInTime).getTime() - new Date(a.todayRawCheckInTime).getTime();
+      }
+      if (a.todayRawCheckInTime) return -1;
+      if (b.todayRawCheckInTime) return 1;
+      return a.employeeCode.localeCompare(b.employeeCode);
     });
 
     // Sanitized all accounts list for Employee Directory

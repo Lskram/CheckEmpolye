@@ -30,8 +30,10 @@ import {
   Clock3, 
   Sparkles, 
   Check,
-  PieChart
+  PieChart,
+  Radio
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   ssr: false,
@@ -62,6 +64,7 @@ interface StaffItem {
   hwid: string | null;
   statusLabel: string;
   checkInTimeStr: string;
+  rawCheckInTime?: string | null;
   distanceStr: string;
   badgeColor: string;
 }
@@ -133,11 +136,11 @@ export default function WebExecutiveDashboard() {
     }
   }, []);
 
-  // 2. Data Fetching & Continuous Background Polling (Every 10s)
+  // 2. Data Fetching & Real-Time Sync (Supabase Channel + Adaptive Fast Polling)
   const loadDashboardData = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const res = await fetch(`/api/admin/analytics?period=${period}`);
+      const res = await fetch(`/api/admin/analytics?period=${period}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setAnalyticsData(data.data);
@@ -153,13 +156,55 @@ export default function WebExecutiveDashboard() {
   };
 
   useEffect(() => {
-    if (isExecutiveUnlocked) {
-      loadDashboardData(false);
-      const pollTimer = setInterval(() => {
-        loadDashboardData(true);
-      }, 10000);
-      return () => clearInterval(pollTimer);
+    if (!isExecutiveUnlocked) return;
+
+    loadDashboardData(false);
+
+    // 1. Supabase Realtime Channel Subscription (<100ms instant broadcast)
+    let channel: any = null;
+    if (isSupabaseConfigured && supabase) {
+      channel = supabase
+        .channel('admin-realtime-room')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
+          loadDashboardData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
+          loadDashboardData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'violation_logs' }, () => {
+          loadDashboardData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
+          loadDashboardData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
+          loadDashboardData(true);
+        })
+        .subscribe();
     }
+
+    // 2. Adaptive Fast Background Polling (Every 4 seconds fallback)
+    const pollTimer = setInterval(() => {
+      loadDashboardData(true);
+    }, 4000);
+
+    // 3. Instant sync on Tab/Window Focus
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadDashboardData(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
+    return () => {
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+      clearInterval(pollTimer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
   }, [isExecutiveUnlocked, period]);
 
   // Auth Handlers
@@ -342,7 +387,8 @@ export default function WebExecutiveDashboard() {
       allowance: emp.todayAllowance !== undefined ? emp.todayAllowance : (emp.totalAllowance || 0),
       hwid: emp.hwid || null,
       statusLabel: isPresent ? 'ตรงเวลา (+50฿)' : isLate ? 'มาสาย (>08:00)' : 'ยังไม่ลงเวลา',
-      checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45 น.' : isLate ? '08:15 น.' : '-'),
+      checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45:00 น.' : isLate ? '08:15:00 น.' : '-'),
+      rawCheckInTime: emp.todayRawCheckInTime || null,
       distanceStr: emp.todayDistance && emp.todayDistance !== '-' ? emp.todayDistance : (isPresent || isLate ? 'พิกัดในร้าน (5 ม.)' : '-'),
       badgeColor: isPresent ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : isLate ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200'
     };
@@ -361,6 +407,16 @@ export default function WebExecutiveDashboard() {
       );
     }
     return true;
+  }).sort((a: StaffItem, b: StaffItem) => {
+    // 1. Both checked in today: sort by latest check_in_time descending (Most recent at top!)
+    if (a.rawCheckInTime && b.rawCheckInTime) {
+      return new Date(b.rawCheckInTime).getTime() - new Date(a.rawCheckInTime).getTime();
+    }
+    // 2. Staff who checked in comes before pending
+    if (a.rawCheckInTime) return -1;
+    if (b.rawCheckInTime) return 1;
+    // 3. Fallback code ordering
+    return a.code.localeCompare(b.code);
   });
 
   const leaveRequests = analyticsData?.leaveRequests || [];

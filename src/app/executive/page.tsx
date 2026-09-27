@@ -36,6 +36,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
   ssr: false,
@@ -57,6 +58,7 @@ interface StaffItem {
   hwid: string | null;
   statusLabel: string;
   checkInTimeStr: string;
+  rawCheckInTime?: string | null;
   distanceStr: string;
   badgeColor: string;
 }
@@ -152,11 +154,11 @@ export default function MobileExecutiveApp() {
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Continuous Background Polling (Every 10s)
+  // 3. Data Fetching & Real-Time Synchronization (Supabase Channel + Adaptive 4s Polling)
   const loadData = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const res = await fetch(`/api/admin/analytics?period=${period}`);
+      const res = await fetch(`/api/admin/analytics?period=${period}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setAnalyticsData(data.data);
@@ -172,13 +174,55 @@ export default function MobileExecutiveApp() {
   };
 
   useEffect(() => {
-    if (isExecutiveUnlocked) {
-      loadData(false);
-      const pollTimer = setInterval(() => {
-        loadData(true);
-      }, 10000);
-      return () => clearInterval(pollTimer);
+    if (!isExecutiveUnlocked) return;
+
+    loadData(false);
+
+    // 1. Supabase Realtime Channel Subscription (<100ms instant broadcast)
+    let channel: any = null;
+    if (isSupabaseConfigured && supabase) {
+      channel = supabase
+        .channel('executive-mobile-realtime-room')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
+          loadData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
+          loadData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'violation_logs' }, () => {
+          loadData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
+          loadData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
+          loadData(true);
+        })
+        .subscribe();
     }
+
+    // 2. Adaptive Fast Background Polling (4s)
+    const pollTimer = setInterval(() => {
+      loadData(true);
+    }, 4000);
+
+    // 3. Auto-sync on Tab/Window Focus
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadData(true);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
+    return () => {
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+      clearInterval(pollTimer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
   }, [isExecutiveUnlocked, period]);
 
   // Auth Handlers
@@ -358,7 +402,8 @@ export default function MobileExecutiveApp() {
       allowance: emp.todayAllowance !== undefined ? emp.todayAllowance : (emp.totalAllowance || 0),
       hwid: emp.hwid || null,
       statusLabel: isPresent ? 'ตรงเวลา (+50฿)' : isLate ? 'มาสาย (>08:00)' : 'ยังไม่ลงเวลา',
-      checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45 น.' : isLate ? '08:15 น.' : '-'),
+      checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45:00 น.' : isLate ? '08:15:00 น.' : '-'),
+      rawCheckInTime: emp.todayRawCheckInTime || null,
       distanceStr: emp.todayDistance && emp.todayDistance !== '-' ? emp.todayDistance : (isPresent || isLate ? 'ในร้าน (5 ม.)' : '-'),
       badgeColor: isPresent ? 'bg-emerald-100 text-emerald-800' : isLate ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
     };
@@ -377,6 +422,16 @@ export default function MobileExecutiveApp() {
       );
     }
     return true;
+  }).sort((a: StaffItem, b: StaffItem) => {
+    // 1. Both checked in today: sort by latest check-in timestamp descending
+    if (a.rawCheckInTime && b.rawCheckInTime) {
+      return new Date(b.rawCheckInTime).getTime() - new Date(a.rawCheckInTime).getTime();
+    }
+    // 2. Staff who checked in comes before pending
+    if (a.rawCheckInTime) return -1;
+    if (b.rawCheckInTime) return 1;
+    // 3. Fallback code ordering
+    return a.code.localeCompare(b.code);
   });
 
   const leaveRequests = analyticsData?.leaveRequests || [];

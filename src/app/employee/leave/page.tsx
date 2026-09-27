@@ -7,7 +7,7 @@ import {
   FileText, 
   Calendar, 
   Clock, 
-  Coins,
+  Coins, 
   Send, 
   CheckCircle2, 
   Clock3, 
@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Menu
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function EmployeeLeavePage() {
   const router = useRouter();
@@ -33,6 +34,18 @@ export default function EmployeeLeavePage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const loadLeaves = async (empId: string) => {
+    try {
+      const res = await fetch(`/api/leave?employeeId=${empId}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setLeaveList(data.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     const saved = localStorage.getItem('attendance_employee_profile');
     if (!saved) {
@@ -43,22 +56,39 @@ export default function EmployeeLeavePage() {
       const parsed = JSON.parse(saved);
       setEmployee(parsed);
       loadLeaves(parsed.id);
+
+      // Realtime listener for leave status updates (e.g. Approved / Rejected by Admin)
+      let channel: any = null;
+      if (isSupabaseConfigured && supabase) {
+        channel = supabase
+          .channel(`leave-realtime-${parsed.id}`)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
+            loadLeaves(parsed.id);
+          })
+          .subscribe();
+      }
+
+      // 5-second polling fallback
+      const pollTimer = setInterval(() => {
+        loadLeaves(parsed.id);
+      }, 5000);
+
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible') {
+          loadLeaves(parsed.id);
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibility);
+
+      return () => {
+        if (channel && supabase) supabase.removeChannel(channel);
+        clearInterval(pollTimer);
+        document.removeEventListener('visibilitychange', handleVisibility);
+      };
     } catch (e) {
       router.push('/employee/login');
     }
   }, []);
-
-  const loadLeaves = async (empId: string) => {
-    try {
-      const res = await fetch(`/api/leave?employeeId=${empId}`);
-      const data = await res.json();
-      if (data.success) {
-        setLeaveList(data.data);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleSubmitLeave = async (e: React.FormEvent) => {
     e.preventDefault();
