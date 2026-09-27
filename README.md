@@ -1,6 +1,6 @@
-# 📱 ระบบ Attendance PWA (Next.js + Tailwind CSS + Supabase + Vercel)
+# 📱 ระบบ Attendance PWA & Native Mobile (สีแสงยางยนต์ - YOKOHAMA NAYA COSMIS)
 
-ระบบ PWA เช็คอินและจัดการเวลาทำงานอัจฉริยะ พร้อมระบบตรวจสอบ Geofencing พิกัดร้าน, ระบบความปลอดภัย HWID ประจำเครื่อง, คำนวณเบี้ยเลี้ยงตรงเวลา (50 บาท), ระบบส่งไลน์แจ้งเตือนเมื่อมาสาย, ระบบยื่นและอนุมัติใบลา, ปฏิทินสถิติพนักงาน และแดชบอร์ดผู้บริหารพร้อมแถบเตือนสีแดง (Red Alert)
+> 📋 **เอกสารสเปกและความต้องการระบบทั้งหมด (Living Requirements)**: สามารถดูและติดตามได้ที่ [PROJECT_REQUIREMENTS.md](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/PROJECT_REQUIREMENTS.md)
 
 ---
 
