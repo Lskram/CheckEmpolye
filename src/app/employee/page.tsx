@@ -667,10 +667,10 @@ export default function ExactEmployeeApp() {
         {/* ----------------------------------------------------------- */}
         {/* HIGH-PRECISION HARDWARE GEOFENCE STATUS CARD                */}
         {/* ----------------------------------------------------------- */}
-        <div className="p-4 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-2.5">
+        <div className="p-4 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs ${
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs shrink-0 ${
                 isInsideRadius ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
               }`}>
                 <MapPin className="w-5 h-5" />
@@ -694,32 +694,47 @@ export default function ExactEmployeeApp() {
 
             {/* Geofence Tag */}
             <span className={`px-2.5 py-1 rounded-full font-black text-[11px] shrink-0 ${
-              isInsideRadius ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800 border border-rose-300'
+              isInsideRadius ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
             }`}>
-              {isInsideRadius ? `● ในรัศมี ${allowedRadius}ม.` : `● นอกรัศมีร้าน`}
+              {isInsideRadius ? `🟢 ในรัศมี ${allowedRadius}ม.` : `🔴 นอกรัศมี (${distance !== null ? `${distance.toFixed(0)}ม.` : ''})`}
             </span>
           </div>
 
-          {/* Coordinates Details & Refresh */}
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-            <div className="flex items-center gap-1.5 font-mono">
-              <Crosshair className="w-3.5 h-3.5 text-blue-500" />
-              {currentCoords ? (
-                <span>GPS จริง: {currentCoords.lat.toFixed(5)}, {currentCoords.lng.toFixed(5)}</span>
-              ) : (
-                <span className="text-amber-600 animate-pulse">📡 กำลังค้นหาสัญญาณดาวเทียม GPS...</span>
-              )}
+          {/* Detailed Coordinates Comparison */}
+          <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5 text-[11px] font-mono">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="font-bold text-slate-500 flex items-center gap-1">
+                <span>🏢 จุดร้าน (Cloud):</span>
+              </span>
+              <span className="font-semibold text-slate-900">
+                {storeSettings?.store_lat ? `${Number(storeSettings.store_lat).toFixed(6)}, ${Number(storeSettings.store_lng).toFixed(6)}` : 'กำลังโหลด...'}
+              </span>
             </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="font-bold text-slate-500 flex items-center gap-1">
+                <span>📱 พิกัดมือถือ (GPS):</span>
+              </span>
+              <span className="font-semibold text-slate-900">
+                {currentCoords ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}` : '📡 กำลังจับสัญญาณ...'}
+              </span>
+            </div>
+          </div>
+
+          {/* Coordinates Details & Refresh */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span className="text-[10px] text-slate-400 font-medium">
+              {isInsideRadius ? '✅ ปลดล็อกปุ่มเข้างานแล้ว' : `⚠️ เกินรัศมีอนุญาต ${allowedRadius} เมตร`}
+            </span>
 
             <button
               type="button"
               onClick={handleManualRefresh}
               disabled={gpsLoading}
-              className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all active:scale-95 text-[11px]"
-              title="ดึงพิกัด GPS สดจากดาวเทียมและอัปเดตจุดร้าน"
+              className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all active:scale-95 text-xs shadow-xs"
+              title="ดึงพิกัดร้านล่าสุดจาก Cloud และรีเฟรช GPS สด"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
-              <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรชตำแหน่ง & ร้าน'}</span>
+              <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรชพิกัดสด'}</span>
             </button>
           </div>
         </div>

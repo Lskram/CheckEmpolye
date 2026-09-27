@@ -376,8 +376,8 @@ export default function WebExecutiveDashboard() {
     }
   };
 
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSettingsLoading(true);
     setSettingsMsg('');
     try {
@@ -1372,6 +1372,8 @@ export default function WebExecutiveDashboard() {
                       radius_meters: r
                     }));
                   }}
+                  onSave={handleSaveSettings}
+                  isSaving={settingsLoading}
                 />
               </div>
 

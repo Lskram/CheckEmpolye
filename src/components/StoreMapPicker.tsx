@@ -26,6 +26,8 @@ interface StoreMapPickerProps {
   storeName?: string;
   onChange: (lat: number, lng: number) => void;
   onRadiusChange?: (radius: number) => void;
+  onSave?: () => void;
+  isSaving?: boolean;
 }
 
 interface SearchResultItem {
@@ -47,6 +49,8 @@ export default function StoreMapPicker({
   storeName = 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS',
   onChange,
   onRadiusChange,
+  onSave,
+  isSaving = false,
 }: StoreMapPickerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -696,14 +700,35 @@ export default function StoreMapPicker({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => applyManualCoordinates(localLatInput, localLngInput)}
-            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 shadow-xs"
-          >
-            <MapPin className="w-3.5 h-3.5" />
-            <span>ปรับหมุดตามพิกัดที่พิมพ์</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => applyManualCoordinates(localLatInput, localLngInput)}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 shadow-xs"
+            >
+              <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              <span>ปรับหมุด</span>
+            </button>
+
+            {onSave && (
+              <button
+                type="button"
+                onClick={() => {
+                  applyManualCoordinates(localLatInput, localLngInput);
+                  onSave();
+                }}
+                disabled={isSaving}
+                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 shadow-md shadow-blue-500/25"
+              >
+                {isSaving ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Check className="w-3.5 h-3.5 text-emerald-300" />
+                )}
+                <span>{isSaving ? 'กำลังบันทึกลง Cloud...' : '💾 บันทึกจุดนี้ทันที'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
