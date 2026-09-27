@@ -24,7 +24,11 @@ import {
   Radio,
   Crosshair,
   Lock,
-  Tag
+  Tag,
+  Timer,
+  AlertTriangle,
+  X,
+  Sparkles
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -78,6 +82,18 @@ export default function ExactEmployeeApp() {
   const [errorMessage, setErrorMessage] = useState('');
   const [activeHistoryTab, setActiveHistoryTab] = useState<'in' | 'out' | 'leave'>('in');
 
+  // Safeguard: Check-out Confirmation Modal
+  const [showCheckOutConfirmModal, setShowCheckOutConfirmModal] = useState(false);
+
+  // Live Working Stopwatch Counter (ชั่วโมง:นาที:วินาที สดๆ)
+  const [liveWorkDuration, setLiveWorkDuration] = useState({
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    totalSeconds: 0,
+    text: '00:00:00',
+  });
+
   // Recalculate Distance Helper (Always uses freshest references)
   const recalculateDistance = useCallback((coords?: { lat: number; lng: number } | null, settings?: any) => {
     const effectiveCoords = coords || currentCoordsRef.current;
@@ -110,6 +126,8 @@ export default function ExactEmployeeApp() {
             id: todayLog.id,
             logReference: shortLogId,
             status: todayLog.status,
+            rawCheckInTime: todayLog.rawCheckInTime || todayLog.check_in_time,
+            rawCheckOutTime: todayLog.rawCheckOutTime || todayLog.check_out_time,
             checkInTime: todayLog.checkInTime,
             checkOutTime: todayLog.checkOutTime || null,
             workingDuration: todayLog.workingDuration || null,
@@ -139,6 +157,37 @@ export default function ExactEmployeeApp() {
       })
       .catch((e) => console.error('Failed to fetch store settings:', e));
   }, [recalculateDistance]);
+
+  // Live Stopwatch Ticker for Elapsed Working Time
+  useEffect(() => {
+    if (!checkInResult?.rawCheckInTime || checkInResult?.checkOutTime) {
+      return;
+    }
+
+    const inDate = new Date(checkInResult.rawCheckInTime);
+
+    const updateLiveDuration = () => {
+      const now = new Date();
+      const diffMs = Math.max(0, now.getTime() - inDate.getTime());
+      const totalSecs = Math.floor(diffMs / 1000);
+      const hrs = Math.floor(totalSecs / 3600);
+      const mins = Math.floor((totalSecs % 3600) / 60);
+      const secs = totalSecs % 60;
+
+      const pad = (n: number) => String(n).padStart(2, '0');
+      setLiveWorkDuration({
+        hours: hrs,
+        minutes: mins,
+        seconds: secs,
+        totalSeconds: totalSecs,
+        text: `${pad(hrs)}:${pad(mins)}:${pad(secs)}`,
+      });
+    };
+
+    updateLiveDuration();
+    const interval = setInterval(updateLiveDuration, 1000);
+    return () => clearInterval(interval);
+  }, [checkInResult?.rawCheckInTime, checkInResult?.checkOutTime]);
 
   // Manual GPS Refresh Trigger
   const refreshRealGPS = async () => {
@@ -258,7 +307,7 @@ export default function ExactEmployeeApp() {
       const thaiDays = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
       const thaiMonths = [
         'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+        'กรกฎาคม', 'สหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
       ];
 
       const dayName = thaiDays[now.getDay()];
@@ -380,21 +429,26 @@ export default function ExactEmployeeApp() {
     }
   };
 
-  // CHECK-OUT HANDLER (Strict Geofence Enforcement + Live Satellite Fix)
-  const handleCheckOut = async () => {
+  // CHECK-OUT SAFEGUARD TRIGGER (Shows Confirmation Modal)
+  const promptCheckOut = () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setErrorMessage('');
 
-    // 1. Strict Client-side Geofence Blocking
+    // Strict Client-side Geofence Blocking
     if (distance !== null && distance > allowedRadius) {
       setErrorMessage(`🚫 คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} เมตร เกินกำหนด ${allowedRadius} ม.) ไม่อนุญาตให้ลงเวลาออกงาน`);
       return;
     }
 
+    setShowCheckOutConfirmModal(true);
+  };
+
+  // CHECK-OUT EXECUTION HANDLER
+  const executeCheckOut = async () => {
+    setShowCheckOutConfirmModal(false);
     setIsCheckingOut(true);
 
     try {
-      // 2. Fetch fresh live hardware satellite position on button press
       let freshLat = currentCoords?.lat;
       let freshLng = currentCoords?.lng;
       let freshAcc = gpsAccuracy || 5;
@@ -442,6 +496,7 @@ export default function ExactEmployeeApp() {
         ...prev,
         checkOutTime: data.data.checkOutTime,
         workingDuration: data.data.workingDuration,
+        rawCheckOutTime: data.data.rawCheckOutTime,
       }));
 
       confetti({
@@ -468,85 +523,85 @@ export default function ExactEmployeeApp() {
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-20">
       {/* ------------------------------------------------------------- */}
-      {/* 1. TOP NATIVE HEADER & PROFILE                                */}
+      {/* 1. TOP HEADER (Blue Brand Theme)                              */}
       {/* ------------------------------------------------------------- */}
-      <div className="bg-white px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between shadow-xs sticky top-0 z-30">
-        {/* Staff Avatar + Name */}
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-sm">
-            <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-              <span className="font-extrabold text-blue-600 text-sm">
-                {employee?.nickname?.[0] || employee?.full_name?.[0] || employee?.fullName?.[0] || 'ส'}
-              </span>
+      <div className="w-full bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white px-5 pt-8 pb-5 rounded-b-3xl shadow-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-inner font-extrabold text-sm">
+              {employee?.nickname ? employee.nickname[0] : (employee?.full_name ? employee.full_name[0] : 'พ')}
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-blue-100 flex items-center gap-1.5">
+                <span>พนักงาน</span>
+                <span className="font-mono bg-white/20 px-1.5 py-0.2 rounded-md text-[10px]">
+                  {employee?.employee_code || employee?.employeeCode || 'EMP'}
+                </span>
+              </div>
+              <div className="text-sm font-extrabold tracking-tight leading-tight">
+                {employee?.full_name || employee?.fullName || 'พนักงานปฏิบัติการ'}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-[11px] font-semibold text-slate-400">ยินดีต้อนรับ</div>
-            <div className="font-bold text-slate-900 text-base tracking-tight leading-tight">
-              {employee?.full_name || employee?.fullName || 'สมศักดิ์ คงศรี'}
-            </div>
-          </div>
-        </div>
 
-        {/* Top Right Badges (Security Shield, Logout) */}
-        <div className="flex items-center gap-2">
-          {/* HWID Device Security Badge */}
-          <div 
-            title={`HWID: ${hwid || 'ผูกเครื่องแล้ว'}`}
-            className="relative w-9 h-9 rounded-xl bg-slate-100/80 border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-2xs"
-          >
-            <Shield className="w-4 h-4 text-blue-600" />
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[8px] font-bold flex items-center justify-center ring-2 ring-white">
-              ✓
-            </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              title="ออกจากระบบ"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            title="ออกจากระบบ"
-            className="relative w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 hover:bg-rose-100 transition-colors shadow-2xs"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. MAIN SCROLLABLE CONTENT BODY                               */}
+      {/* 2. MAIN INTERACTIVE CONTENT AREA                              */}
       {/* ------------------------------------------------------------- */}
-      <div className="flex-1 px-4 pt-4 space-y-4 max-w-lg mx-auto w-full">
-        {/* Blue Gradient Hero Card */}
-        <div className="relative pt-1 pb-12">
-          <div className="bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#1e40af] rounded-3xl pt-7 pb-14 px-4 text-center text-white relative shadow-xl shadow-blue-500/20 overflow-hidden">
-            {/* Background ambient lighting */}
-            <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            
-            {/* Digital Clock */}
-            <div className="flex items-baseline justify-center gap-1 mb-1.5">
-              <span className="text-5xl font-black tracking-tight font-mono drop-shadow-sm">
-                {time.hhmm}
-              </span>
-              <span className="text-lg font-bold font-mono text-blue-200">
-                {time.ss}
-              </span>
-            </div>
+      <div className="px-4 py-4 space-y-4 max-w-md w-full mx-auto flex-1">
+        
+        {/* Main Attendance Action Card */}
+        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-3 relative overflow-hidden">
+          
+          {/* Subtle Top Accent */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
 
-            {/* Thai Date */}
-            <p className="text-xs font-medium text-blue-100/90 tracking-wide">
-              {time.dateThai}
-            </p>
-
-            {/* Shift Rules Badge */}
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/25 backdrop-blur-md border border-white/15 text-[11px] font-bold text-white shadow-inner">
-              <span>⏰ กะปกติ {storeSettings?.standard_time?.substring(0, 5) || '07:40'} น.</span>
-              <span className="text-blue-200">•</span>
-              <span className="text-amber-300">เลทได้ถึง {storeSettings?.late_deadline?.substring(0, 5) || '08:00'} น. (รับ {storeSettings?.allowance_amount || 50}฿)</span>
-            </div>
+          {/* Date Label */}
+          <div className="text-xs font-bold text-slate-400">
+            {time.dateThai}
           </div>
 
-          {/* Overlapping Circular Check-In / Check-Out Dynamic Action Button */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-20">
+          {/* Big Digital Clock */}
+          <div className="flex items-baseline justify-center font-mono font-black text-slate-900 leading-none">
+            <span className="text-5xl tracking-tighter">{time.hhmm}</span>
+            <span className="text-xl text-slate-400 ml-1.5 font-medium">:{time.ss}</span>
+          </div>
+
+          {/* Geofence Status Indicator */}
+          <div className="flex items-center justify-center">
+            {currentCoords ? (
+              isInsideRadius ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>อยู่ในรัศมีร้าน ({distance?.toFixed(0)} ม.) พร้อมลงเวลา</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span>อยู่นอกระยะร้าน ({distance !== null ? `${distance.toFixed(0)} ม.` : 'กำลังค้นหา'})</span>
+                </div>
+              )
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>กำลังระบุพิกัดดาวเทียม...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Big Circular Action Button */}
+          <div className="py-2 relative">
             {/* Pulsing Ripple Effect */}
             {isInsideRadius && (!checkInResult || (checkInResult && !checkInResult.checkOutTime)) && (
               <motion.div
@@ -561,7 +616,7 @@ export default function ExactEmployeeApp() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
-              onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? handleCheckOut : undefined}
+              onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? promptCheckOut : undefined}
               disabled={isCheckingIn || isCheckingOut || (!!checkInResult && !!checkInResult.checkOutTime)}
               className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center text-white ring-4 shadow-2xl transition-all ${
                 !checkInResult
@@ -625,7 +680,7 @@ export default function ExactEmployeeApp() {
         </div>
 
         {/* 3 Summary Stat Cards */}
-        <div className="grid grid-cols-3 gap-3 pt-2">
+        <div className="grid grid-cols-3 gap-3 pt-1">
           {/* Card 1: เข้างาน */}
           <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
             <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
@@ -663,6 +718,98 @@ export default function ExactEmployeeApp() {
             <span className="text-[11px] text-slate-400 font-medium">เบี้ยขยันวันนี้</span>
           </div>
         </div>
+
+        {/* ----------------------------------------------------------- */}
+        {/* LIVE WORKING DURATION COUNTER (REAL-TIME STOPWATCH)         */}
+        {/* ----------------------------------------------------------- */}
+        {checkInResult && !checkInResult.checkOutTime && (
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white shadow-lg space-y-3 relative overflow-hidden border border-blue-500/20">
+            {/* Background Glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-400/30">
+                  <Timer className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-blue-200">นับเวลาปฏิบัติงานสด (Live Shift Timer)</div>
+                  <div className="text-[10px] text-slate-400">เช็คอินตั้งแต่ {checkInResult.checkInTime}</div>
+                </div>
+              </div>
+
+              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black flex items-center gap-1.5 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                กำลังทำงาน
+              </span>
+            </div>
+
+            {/* Big Digits Display */}
+            <div className="flex items-center justify-center gap-2 py-2">
+              <div className="bg-white/10 px-3.5 py-2 rounded-2xl border border-white/10 text-center min-w-[64px]">
+                <div className="text-2xl font-black font-mono tracking-tight text-white">{String(liveWorkDuration.hours).padStart(2, '0')}</div>
+                <div className="text-[9px] text-slate-400 uppercase font-bold">ชั่วโมง</div>
+              </div>
+              <span className="text-xl font-black text-blue-400">:</span>
+              <div className="bg-white/10 px-3.5 py-2 rounded-2xl border border-white/10 text-center min-w-[64px]">
+                <div className="text-2xl font-black font-mono tracking-tight text-white">{String(liveWorkDuration.minutes).padStart(2, '0')}</div>
+                <div className="text-[9px] text-slate-400 uppercase font-bold">นาที</div>
+              </div>
+              <span className="text-xl font-black text-blue-400">:</span>
+              <div className="bg-white/10 px-3.5 py-2 rounded-2xl border border-white/10 text-center min-w-[64px]">
+                <div className="text-2xl font-black font-mono tracking-tight text-emerald-400">{String(liveWorkDuration.seconds).padStart(2, '0')}</div>
+                <div className="text-[9px] text-slate-400 uppercase font-bold">วินาที</div>
+              </div>
+            </div>
+
+            {/* 8-Hour Target Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] text-slate-300 font-medium">
+                <span className="flex items-center gap-1">
+                  <span>เป้าหมายกะทำงาน (8 ชม.)</span>
+                  {liveWorkDuration.hours >= 8 && (
+                    <span className="px-1.5 py-0.2 bg-amber-500/30 text-amber-300 rounded text-[9px] font-bold">
+                      🔥 ครบเวลาแล้ว (OT)
+                    </span>
+                  )}
+                </span>
+                <span className="font-mono">{Math.min(100, Math.round((liveWorkDuration.totalSeconds / 28800) * 100))}%</span>
+              </div>
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-1000 ${
+                    liveWorkDuration.hours >= 8 
+                      ? 'bg-gradient-to-r from-amber-400 to-emerald-400' 
+                      : 'bg-gradient-to-r from-blue-500 to-indigo-400'
+                  }`}
+                  style={{ width: `${Math.min(100, (liveWorkDuration.totalSeconds / 28800) * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ----------------------------------------------------------- */}
+        {/* COMPLETED SHIFT SUMMARY CARD                                */}
+        {/* ----------------------------------------------------------- */}
+        {checkInResult?.checkOutTime && (
+          <div className="p-4 rounded-3xl bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 text-purple-950 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-xs">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-extrabold text-xs text-purple-950">เสร็จสิ้นการทำงานวันนี้แล้ว</div>
+                  <div className="text-[10px] text-purple-700 font-medium">ออกงานเมื่อเวลา {checkInResult.checkOutTime}</div>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-purple-200/80 text-purple-950 text-xs font-extrabold">
+                {checkInResult.workingDuration || 'ครบเวลา'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* ----------------------------------------------------------- */}
         {/* HIGH-PRECISION HARDWARE GEOFENCE STATUS CARD                */}
@@ -723,7 +870,7 @@ export default function ExactEmployeeApp() {
           {/* Coordinates Details & Refresh */}
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
             <span className="text-[10px] text-slate-400 font-medium">
-              {isInsideRadius ? '✅ ปลดล็อกปุ่มเข้างานแล้ว' : `⚠️ เกินรัศมีอนุญาต ${allowedRadius} เมตร`}
+              {isInsideRadius ? '✅ ปลดล็อกปุ่มลงเวลาแล้ว' : `⚠️ เกินรัศมีอนุญาต ${allowedRadius} เมตร`}
             </span>
 
             <button
@@ -864,9 +1011,9 @@ export default function ExactEmployeeApp() {
                     <span>ยังไม่ได้ลงเวลาออกงานของวันนี้</span>
                     {checkInResult && (
                       <button
-                        onClick={handleCheckOut}
+                        onClick={promptCheckOut}
                         disabled={isCheckingOut}
-                        className="px-2.5 py-1 bg-amber-500 text-white rounded-lg font-bold text-[11px]"
+                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-[11px] transition-all"
                       >
                         {isCheckingOut ? 'กำลังบันทึก...' : 'กดออกงาน'}
                       </button>
@@ -900,7 +1047,78 @@ export default function ExactEmployeeApp() {
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. FIXED BOTTOM NAVIGATION BAR (3 Clean Primary Tabs)         */}
+      {/* 3. MODAL: CHECK-OUT SAFEGUARD CONFIRMATION DIALOG             */}
+      {/* ------------------------------------------------------------- */}
+      <AnimatePresence>
+        {showCheckOutConfirmModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="max-w-sm w-full p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl space-y-4 text-center"
+            >
+              <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center shadow-inner">
+                <AlertTriangle className="w-7 h-7" />
+              </div>
+
+              <div>
+                <h3 className="font-black text-base text-slate-900">ยืนยันการลงเวลาออกงาน?</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  โปรดตรวจสอบเวลาทำงานของคุณก่อนยืนยัน เพื่อป้องกันการเผลอกด
+                </p>
+              </div>
+
+              {/* Working Duration Summary Box */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-1.5 text-xs text-amber-900">
+                <div className="font-bold flex items-center justify-center gap-1.5">
+                  <Timer className="w-4 h-4 text-amber-600" />
+                  <span>เวลาปฏิบัติงานของคุณ ณ ตอนนี้:</span>
+                </div>
+                <div className="text-xl font-black font-mono text-amber-700">
+                  {liveWorkDuration.hours} ชม. {liveWorkDuration.minutes} นาที {liveWorkDuration.seconds} วินาที
+                </div>
+                {liveWorkDuration.hours < 8 ? (
+                  <div className="text-[11px] text-amber-800 font-medium bg-white/70 p-2 rounded-xl border border-amber-200/60 mt-1">
+                    ⚠️ คุณยังทำงานไม่ครบกะ 8 ชั่วโมง (ยังอยู่ในเวลางาน) หากเผลอกดโดนปุ่ม กรุณากด <strong>"ยกเลิก"</strong>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-emerald-800 font-medium bg-emerald-50 p-2 rounded-xl border border-emerald-200 mt-1">
+                    🟢 ครบกะทำงานมาตรฐาน 8 ชั่วโมงแล้ว พร้อมบันทึกออกงาน
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCheckOutConfirmModal(false)}
+                  className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all active:scale-95"
+                >
+                  ✕ ยกเลิก (เผลอกด)
+                </button>
+                <button
+                  type="button"
+                  onClick={executeCheckOut}
+                  disabled={isCheckingOut}
+                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-xs shadow-md shadow-orange-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  {isCheckingOut ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isCheckingOut ? 'กำลังบันทึก...' : '✓ ยืนยันออกงาน'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 4. FIXED BOTTOM NAVIGATION BAR (3 Clean Primary Tabs)         */}
       {/* ------------------------------------------------------------- */}
       <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-2.5 flex items-center justify-around z-30 shadow-lg">
         {/* Tab 1: เช็คเวลา */}

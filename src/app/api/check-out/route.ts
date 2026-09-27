@@ -160,6 +160,8 @@ export async function POST(request: Request) {
       data: {
         id: todayLog.id,
         logReference: shortLogId,
+        rawCheckInTime: todayLog.check_in_time,
+        rawCheckOutTime: checkOutDate.toISOString(),
         checkInTime: new Date(todayLog.check_in_time).toLocaleTimeString('th-TH', {
           timeZone: 'Asia/Bangkok',
           hour: '2-digit',

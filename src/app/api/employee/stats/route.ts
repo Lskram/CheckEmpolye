@@ -127,6 +127,8 @@ export async function GET(request: Request) {
         todayLog: todayLog ? {
           id: todayLog.id,
           status: todayLog.status,
+          rawCheckInTime: todayLog.check_in_time,
+          rawCheckOutTime: todayLog.check_out_time || null,
           checkInTime: new Date(todayLog.check_in_time).toLocaleTimeString('th-TH', {
             timeZone: 'Asia/Bangkok',
             hour: '2-digit',
