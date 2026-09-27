@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -69,6 +69,9 @@ export default function MobileExecutiveApp() {
   // Navigation Tabs: overview, staff, leaves, settings
   const [activeTab, setActiveTab] = useState<'overview' | 'staff' | 'leaves' | 'settings'>('overview');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const hasLoadedSettingsRef = useRef(false);
 
   // Live Data & Loading
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -163,7 +166,10 @@ export default function MobileExecutiveApp() {
       if (data.success) {
         setAnalyticsData(data.data);
         if (data.data.settings) {
-          setStoreSettingsForm(data.data.settings);
+          if (!hasLoadedSettingsRef.current || activeTabRef.current !== 'settings') {
+            setStoreSettingsForm(data.data.settings);
+            hasLoadedSettingsRef.current = true;
+          }
         }
       }
     } catch (e) {
@@ -363,13 +369,16 @@ export default function MobileExecutiveApp() {
       });
       const data = await res.json();
       if (data.success) {
-        setSettingsMsg('บันทึกการตั้งค่าเรียบร้อยแล้ว');
-        setTimeout(() => setSettingsMsg(''), 2500);
+        if (data.data) {
+          setStoreSettingsForm(data.data);
+        }
+        setSettingsMsg('✅ บันทึกนโยบายและพิกัดร้านเรียบร้อยแล้ว');
+        setTimeout(() => setSettingsMsg(''), 4000);
       } else {
-        setSettingsMsg('ไม่สามารถบันทึกได้: ' + data.message);
+        setSettingsMsg('❌ ไม่สามารถบันทึกได้: ' + (data.message || 'เกิดข้อผิดพลาด'));
       }
     } catch (err: any) {
-      setSettingsMsg('เกิดข้อผิดพลาด: ' + err.message);
+      setSettingsMsg('❌ เกิดข้อผิดพลาด: ' + err.message);
     } finally {
       setSettingsLoading(false);
     }
@@ -803,6 +812,16 @@ export default function MobileExecutiveApp() {
                 <span>พิกัดร้านและนโยบายลงเวลา (GPS Geofence)</span>
               </div>
 
+              {settingsMsg && (
+                <div className={`p-3 rounded-2xl text-xs font-bold ${
+                  settingsMsg.includes('✅') || settingsMsg.includes('สำเร็จ')
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border border-rose-200 text-rose-800'
+                }`}>
+                  {settingsMsg}
+                </div>
+              )}
+
               <div>
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">ชื่อร้าน / สาขา</label>
                 <input
@@ -855,11 +874,37 @@ export default function MobileExecutiveApp() {
                 </div>
               </div>
 
+              {/* Map Picker on Mobile Executive */}
+              <div className="pt-2">
+                <label className="block text-[11px] font-bold text-slate-700 mb-1.5">แผนที่ปักหมุดจุดร้านค้า (Leaflet Map Picker)</label>
+                <StoreMapPicker
+                  lat={Number(storeSettingsForm.store_lat) || 15.110412}
+                  lng={Number(storeSettingsForm.store_lng) || 104.358434}
+                  radius={Number(storeSettingsForm.radius_meters) || 50}
+                  storeName={storeSettingsForm.store_name}
+                  onChange={(lat, lng) => {
+                    setStoreSettingsForm((prev: any) => ({
+                      ...prev,
+                      store_lat: lat,
+                      store_lng: lng
+                    }));
+                  }}
+                  onRadiusChange={(r) => {
+                    setStoreSettingsForm((prev: any) => ({
+                      ...prev,
+                      radius_meters: r
+                    }));
+                  }}
+                />
+              </div>
+
               <button
                 onClick={handleSaveSettings}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-xs active:scale-98"
+                disabled={settingsLoading}
+                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
               >
-                {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่านโยบาย'}
+                <Check className="w-4 h-4" />
+                <span>{settingsLoading ? 'กำลังบันทึกลงฐานข้อมูล...' : 'บันทึกการตั้งค่านโยบายและพิกัดร้าน'}</span>
               </button>
             </div>
 

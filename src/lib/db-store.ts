@@ -199,15 +199,34 @@ export const db = {
 
   async updateStoreSettings(updates: Partial<StoreSettings>): Promise<StoreSettings> {
     if (isSupabaseConfigured && supabase) {
-      const current = await this.getStoreSettings();
-      const targetId = current?.id || '00000000-0000-0000-0000-000000000001';
-      const { data, error } = await supabase
-        .from('store_settings')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', targetId)
-        .select()
-        .single();
-      if (!error && data) return data as StoreSettings;
+      try {
+        const current = await this.getStoreSettings();
+        const targetId = current?.id || '00000000-0000-0000-0000-000000000001';
+        const { data, error } = await supabase
+          .from('store_settings')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('id', targetId)
+          .select()
+          .single();
+        if (!error && data) {
+          mockStoreSettings = { ...mockStoreSettings, ...(data as StoreSettings) };
+          return data as StoreSettings;
+        }
+        if (error) {
+          console.warn('[Supabase updateStoreSettings update error]:', error.message);
+          const { data: upsertData, error: upsertError } = await supabase
+            .from('store_settings')
+            .upsert({ id: targetId, ...updates, updated_at: new Date().toISOString() })
+            .select()
+            .single();
+          if (!upsertError && upsertData) {
+            mockStoreSettings = { ...mockStoreSettings, ...(upsertData as StoreSettings) };
+            return upsertData as StoreSettings;
+          }
+        }
+      } catch (err: any) {
+        console.warn('[Supabase updateStoreSettings catch]:', err.message);
+      }
     }
     mockStoreSettings = { ...mockStoreSettings, ...updates, updated_at: new Date().toISOString() };
     return mockStoreSettings;

@@ -13,7 +13,10 @@ import {
   Sliders, 
   Navigation2,
   Building2,
-  Map as MapIcon
+  Copy,
+  ExternalLink,
+  Map as MapIcon,
+  CheckCircle2
 } from 'lucide-react';
 
 interface StoreMapPickerProps {
@@ -50,12 +53,18 @@ export default function StoreMapPicker({
   const markerRef = useRef<any>(null);
   const circleRef = useRef<any>(null);
 
+  // Local Coordinate Inputs for smooth editing
+  const [localLatInput, setLocalLatInput] = useState<string>(Number(lat || 15.110412).toFixed(6));
+  const [localLngInput, setLocalLngInput] = useState<string>(Number(lng || 104.358434).toFixed(6));
+  const [copiedCoords, setCopiedCoords] = useState(false);
+
   const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedRadius, setSelectedRadius] = useState<number>(radius || 50);
+  const [customStatusMsg, setCustomStatusMsg] = useState<string>('');
 
   // Sync radius state with props
   useEffect(() => {
@@ -63,6 +72,16 @@ export default function StoreMapPicker({
       setSelectedRadius(radius);
     }
   }, [radius]);
+
+  // Sync local lat/lng inputs when props change externally
+  useEffect(() => {
+    const pLat = Number(lat);
+    const pLng = Number(lng);
+    if (!isNaN(pLat) && !isNaN(pLng)) {
+      setLocalLatInput(pLat.toFixed(6));
+      setLocalLngInput(pLng.toFixed(6));
+    }
+  }, [lat, lng]);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -135,32 +154,56 @@ export default function StoreMapPicker({
       // Update when user drags marker
       marker.on('dragend', function (e: any) {
         const pos = e.target.getLatLng();
-        circle.setLatLng(pos);
-        onChange(Number(pos.lat.toFixed(6)), Number(pos.lng.toFixed(6)));
+        const newLat = Number(pos.lat.toFixed(6));
+        const newLng = Number(pos.lng.toFixed(6));
+        circle.setLatLng([newLat, newLng]);
+        setLocalLatInput(newLat.toFixed(6));
+        setLocalLngInput(newLng.toFixed(6));
+        onChange(newLat, newLng);
       });
 
       // Update when user clicks anywhere on map
       map.on('click', function (e: any) {
         const { lat: clickLat, lng: clickLng } = e.latlng;
-        marker.setLatLng([clickLat, clickLng]);
-        circle.setLatLng([clickLat, clickLng]);
-        onChange(Number(clickLat.toFixed(6)), Number(clickLng.toFixed(6)));
+        const newLat = Number(clickLat.toFixed(6));
+        const newLng = Number(clickLng.toFixed(6));
+        marker.setLatLng([newLat, newLng]);
+        circle.setLatLng([newLat, newLng]);
+        setLocalLatInput(newLat.toFixed(6));
+        setLocalLngInput(newLng.toFixed(6));
+        onChange(newLat, newLng);
       });
 
       mapInstanceRef.current = map;
       markerRef.current = marker;
       circleRef.current = circle;
 
-      // Invalidate size after modal/layout render
+      // Invalidate size on load
       setTimeout(() => {
-        map.invalidateSize();
+        if (isMounted && mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
       }, 300);
     }
 
     initMap();
 
+    // ResizeObserver to handle tab changes and modal resizing
+    let resizeObserver: ResizeObserver | null = null;
+    if (mapContainerRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
       isMounted = false;
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -186,9 +229,83 @@ export default function StoreMapPicker({
     circleRef.current.setRadius(Number(selectedRadius) || 50);
   }, [selectedRadius]);
 
+  // Direct Coordinates update from input fields
+  const applyManualCoordinates = (newLatStr: string, newLngStr: string) => {
+    const parsedLat = parseFloat(newLatStr);
+    const parsedLng = parseFloat(newLngStr);
+
+    if (isNaN(parsedLat) || isNaN(parsedLng)) {
+      alert('กรุณากรอกพิกัดตัวเลขละติจูดและลองจิจูดให้ถูกต้อง');
+      return;
+    }
+
+    if (parsedLat < -90 || parsedLat > 90 || parsedLng < -180 || parsedLng > 180) {
+      alert('ค่าพิกัดไม่อยู่ในช่วงที่ถูกต้อง (-90 ถึง 90, -180 ถึง 180)');
+      return;
+    }
+
+    const roundedLat = Number(parsedLat.toFixed(6));
+    const roundedLng = Number(parsedLng.toFixed(6));
+
+    setLocalLatInput(roundedLat.toFixed(6));
+    setLocalLngInput(roundedLng.toFixed(6));
+    onChange(roundedLat, roundedLng);
+
+    if (mapInstanceRef.current && markerRef.current && circleRef.current) {
+      mapInstanceRef.current.flyTo([roundedLat, roundedLng], 17, { duration: 1.2 });
+      markerRef.current.setLatLng([roundedLat, roundedLng]);
+      circleRef.current.setLatLng([roundedLat, roundedLng]);
+    }
+
+    setCustomStatusMsg(`📍 ปักหมุดพิกัด: ${roundedLat}, ${roundedLng}`);
+    setTimeout(() => setCustomStatusMsg(''), 3000);
+  };
+
+  // Instant Regex coordinate detector when typing or pasting in search box
+  const checkAndParseDirectInput = (text: string): boolean => {
+    const trimmed = text.trim();
+    
+    // 1. Check if string is "15.110412, 104.358434" or "15.110412 104.358434"
+    const coordMatch = trimmed.match(/^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$/);
+    if (coordMatch) {
+      const latVal = parseFloat(coordMatch[1]);
+      const lngVal = parseFloat(coordMatch[3]);
+      applyManualCoordinates(latVal.toString(), lngVal.toString());
+      return true;
+    }
+
+    // 2. Check if string contains @lat,lng in Google Maps URL
+    const atMatch = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (atMatch) {
+      const latVal = parseFloat(atMatch[1]);
+      const lngVal = parseFloat(atMatch[2]);
+      applyManualCoordinates(latVal.toString(), lngVal.toString());
+      return true;
+    }
+
+    // 3. Check query param ?q=lat,lng
+    const qMatch = trimmed.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (qMatch) {
+      const latVal = parseFloat(qMatch[1]);
+      const lngVal = parseFloat(qMatch[2]);
+      applyManualCoordinates(latVal.toString(), lngVal.toString());
+      return true;
+    }
+
+    return false;
+  };
+
   // Live Auto-Complete Search with Debounce
   useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+    const trimmed = searchQuery.trim();
+    if (!trimmed || trimmed.length < 2) {
+      setSearchResults([]);
+      setIsDropdownOpen(false);
+      return;
+    }
+
+    // If it's direct coordinates or GMaps link, parse directly
+    if (checkAndParseDirectInput(trimmed)) {
       setSearchResults([]);
       setIsDropdownOpen(false);
       return;
@@ -197,7 +314,7 @@ export default function StoreMapPicker({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        const res = await fetch(`/api/geocoding/search?q=${encodeURIComponent(trimmed)}`);
         const data = await res.json();
         if (data.success && Array.isArray(data.results)) {
           setSearchResults(data.results);
@@ -220,6 +337,8 @@ export default function StoreMapPicker({
     const newLat = item.lat;
     const newLng = item.lng;
 
+    setLocalLatInput(newLat.toFixed(6));
+    setLocalLngInput(newLng.toFixed(6));
     onChange(newLat, newLng);
     setSearchQuery(item.title);
     setIsDropdownOpen(false);
@@ -235,6 +354,8 @@ export default function StoreMapPicker({
   const handleSetSisaengBranch = () => {
     const branchLat = 15.110412;
     const branchLng = 104.358434;
+    setLocalLatInput(branchLat.toFixed(6));
+    setLocalLngInput(branchLng.toFixed(6));
     onChange(branchLat, branchLng);
     setSearchQuery('สีแสงยางยนต์ (Sisaeng Yangyont)');
     if (mapInstanceRef.current && markerRef.current && circleRef.current) {
@@ -242,6 +363,8 @@ export default function StoreMapPicker({
       markerRef.current.setLatLng([branchLat, branchLng]);
       circleRef.current.setLatLng([branchLat, branchLng]);
     }
+    setCustomStatusMsg('📍 รีเซ็ตตำแหน่งเป็น: สาขาสีแสงยางยนต์ (สำนักงานใหญ่)');
+    setTimeout(() => setCustomStatusMsg(''), 3000);
   };
 
   // Device GPS Auto-Locate
@@ -258,6 +381,8 @@ export default function StoreMapPicker({
         const userLat = Number(pos.coords.latitude.toFixed(6));
         const userLng = Number(pos.coords.longitude.toFixed(6));
 
+        setLocalLatInput(userLat.toFixed(6));
+        setLocalLngInput(userLng.toFixed(6));
         onChange(userLat, userLng);
         setSearchQuery('ตำแหน่ง GPS ปัจจุบันของฉัน');
 
@@ -266,6 +391,9 @@ export default function StoreMapPicker({
           markerRef.current.setLatLng([userLat, userLng]);
           circleRef.current.setLatLng([userLat, userLng]);
         }
+
+        setCustomStatusMsg(`📍 ปักหมุดพิกัด GPS อุปกรณ์ของคุณสำเร็จ: ${userLat}, ${userLng}`);
+        setTimeout(() => setCustomStatusMsg(''), 3000);
       },
       (err) => {
         setIsLocating(false);
@@ -281,6 +409,15 @@ export default function StoreMapPicker({
     if (onRadiusChange) {
       onRadiusChange(newRad);
     }
+  };
+
+  // Copy coordinates to clipboard
+  const handleCopyCoords = () => {
+    const curLat = Number(lat).toFixed(6);
+    const curLng = Number(lng).toFixed(6);
+    navigator.clipboard.writeText(`${curLat}, ${curLng}`);
+    setCopiedCoords(true);
+    setTimeout(() => setCopiedCoords(false), 2000);
   };
 
   return (
@@ -300,7 +437,7 @@ export default function StoreMapPicker({
               onFocus={() => {
                 if (searchResults.length > 0) setIsDropdownOpen(true);
               }}
-              placeholder="🔍 ค้นหาสถานที่, จังหวัด เช่น ศรีสะเกษ, สีแสงยางยนต์ หรือวางลิงก์ Google Maps"
+              placeholder="🔍 ค้นหาสถานที่, จังหวัด หรือวางลิงก์ Google Maps / พิกัดตัวเลข"
               className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 font-medium transition-all shadow-xs"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -418,6 +555,14 @@ export default function StoreMapPicker({
           <span>คลิกบนแผนที่ หรือลากหมุด เพื่อกำหนดจุดร้านค้า</span>
         </div>
 
+        {/* Dynamic Status Toast Banner */}
+        {customStatusMsg && (
+          <div className="absolute top-3 right-14 z-20 bg-emerald-600 text-white px-3.5 py-1.5 rounded-2xl text-[11px] font-bold flex items-center gap-1.5 shadow-lg animate-fade-in border border-emerald-400">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>{customStatusMsg}</span>
+          </div>
+        )}
+
         {/* Bottom Geofence Indicator Badge */}
         <div className="absolute bottom-3 left-3 z-20 bg-blue-950/90 backdrop-blur-xs text-white px-3.5 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 shadow-lg border border-blue-500/40 pointer-events-none">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
@@ -446,40 +591,119 @@ export default function StoreMapPicker({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* RADIUS QUICK SELECTOR & COORDINATE SUMMARY                     */}
+      {/* DIRECT LAT/LNG INPUT FIELDS WITH TWO-WAY REAL-TIME SYNC       */}
       {/* ------------------------------------------------------------- */}
-      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
-        
-        {/* Coordinates readout */}
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-            <Compass className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="text-[11px] text-slate-500 font-medium">พิกัดศูนย์กลางจุดเช็คอิน:</div>
-            <div className="font-mono font-black text-slate-900 text-xs">
-              Lat: {Number(lat).toFixed(6)}, Lng: {Number(lng).toFixed(6)}
+      <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+              <Compass className="w-4 h-4" />
             </div>
+            <div>
+              <span className="font-bold text-slate-800 text-xs">พิกัด GPS ของร้าน (ละติจูด, ลองจิจูด)</span>
+              <p className="text-[10px] text-slate-500">สามารถพิมพ์หรือวางตัวเลขพิกัดเพื่อปักหมุดตรงนี้ได้ทันที</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Copy button */}
+            <button
+              type="button"
+              onClick={handleCopyCoords}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-all flex items-center gap-1"
+              title="คัดลอกพิกัด"
+            >
+              {copiedCoords ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedCoords ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
+            </button>
+
+            {/* Open in Google Maps */}
+            <a
+              href={`https://www.google.com/maps?q=${Number(lat).toFixed(6)},${Number(lng).toFixed(6)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition-all flex items-center gap-1"
+              title="เปิดใน Google Maps"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>เปิดดูบน Maps</span>
+            </a>
           </div>
         </div>
 
-        {/* Quick Radius Buttons */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] font-bold text-slate-500 mr-1">ตั้งรัศมี:</span>
-          {[30, 50, 80, 100, 150].map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => handleRadiusChangeInternal(r)}
-              className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
-                selectedRadius === r
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              {r} ม.
-            </button>
-          ))}
+        {/* Dual Input Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              ละติจูด (Latitude): <span className="text-blue-600">*</span>
+            </label>
+            <input
+              type="number"
+              step="0.000001"
+              value={localLatInput}
+              onChange={(e) => setLocalLatInput(e.target.value)}
+              onBlur={() => applyManualCoordinates(localLatInput, localLngInput)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  applyManualCoordinates(localLatInput, localLngInput);
+                }
+              }}
+              placeholder="เช่น 15.110412"
+              className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              ลองจิจูด (Longitude): <span className="text-blue-600">*</span>
+            </label>
+            <input
+              type="number"
+              step="0.000001"
+              value={localLngInput}
+              onChange={(e) => setLocalLngInput(e.target.value)}
+              onBlur={() => applyManualCoordinates(localLatInput, localLngInput)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  applyManualCoordinates(localLatInput, localLngInput);
+                }
+              }}
+              placeholder="เช่น 104.358434"
+              className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+        </div>
+
+        {/* Radius preset pills */}
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-500 mr-1">เลือกรัศมีอนุญาต:</span>
+            {[30, 50, 80, 100, 150, 200].map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => handleRadiusChangeInternal(r)}
+                className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
+                  selectedRadius === r
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                {r} ม.
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => applyManualCoordinates(localLatInput, localLngInput)}
+            className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 shadow-xs"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>ปรับหมุดตามพิกัดที่พิมพ์</span>
+          </button>
         </div>
       </div>
     </div>

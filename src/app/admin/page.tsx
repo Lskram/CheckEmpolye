@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -77,6 +77,9 @@ export default function WebExecutiveDashboard() {
   // Desktop Navigation Tabs
   const [activeTab, setActiveTab] = useState<'overview' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const hasLoadedSettingsRef = useRef(false);
 
   // Live Data & Loading
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -154,7 +157,11 @@ export default function WebExecutiveDashboard() {
       if (data.success) {
         setAnalyticsData(data.data);
         if (data.data.settings) {
-          setStoreSettingsForm(data.data.settings);
+          // Never overwrite settings form if admin is currently viewing/editing settings tab
+          if (!hasLoadedSettingsRef.current || activeTabRef.current !== 'settings') {
+            setStoreSettingsForm(data.data.settings);
+            hasLoadedSettingsRef.current = true;
+          }
         }
       }
     } catch (e) {
@@ -381,13 +388,16 @@ export default function WebExecutiveDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setSettingsMsg('บันทึกการตั้งค่าเรียบร้อยแล้ว');
-        setTimeout(() => setSettingsMsg(''), 2500);
+        if (data.data) {
+          setStoreSettingsForm(data.data);
+        }
+        setSettingsMsg('✅ บันทึกนโยบายและพิกัดร้านใหม่สำเร็จ! ข้อมูลถูกกระจายไปยังมือถือพนักงานทั้งหมดแบบ Real-Time');
+        setTimeout(() => setSettingsMsg(''), 4000);
       } else {
-        setSettingsMsg('ไม่สามารถบันทึกได้: ' + data.message);
+        setSettingsMsg('❌ ไม่สามารถบันทึกได้: ' + (data.message || 'โปรดตรวจสอบสิทธิ์การเชื่อมต่อ'));
       }
     } catch (err: any) {
-      setSettingsMsg('เกิดข้อผิดพลาด: ' + err.message);
+      setSettingsMsg('❌ เกิดข้อผิดพลาด: ' + err.message);
     } finally {
       setSettingsLoading(false);
     }
