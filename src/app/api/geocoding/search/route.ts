@@ -129,7 +129,7 @@ export async function GET(request: Request) {
           };
         });
 
-        return NextResponse.json({ success: true, results, source: 'nominatim' });
+        return NextResponse.json({ success: true, results, data: results, source: 'nominatim' });
       }
     }
 
@@ -159,13 +159,13 @@ export async function GET(request: Request) {
           };
         });
 
-        return NextResponse.json({ success: true, results, source: 'photon' });
+        return NextResponse.json({ success: true, results, data: results, source: 'photon' });
       }
     }
 
-    return NextResponse.json({ success: true, results: [] });
+    return NextResponse.json({ success: true, results: [], data: [] });
   } catch (error: any) {
     console.error('Geocoding search API error:', error);
-    return NextResponse.json({ success: false, error: error.message, results: [] }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message, results: [], data: [] }, { status: 500 });
   }
 }

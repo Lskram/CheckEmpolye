@@ -183,9 +183,11 @@ export async function GET(request: Request) {
         allowanceReports,
         allEmployees: allEmployeesList,
         violations: violationLogs,
+        violationLogs: violationLogs,
         criticalViolations,
         recentAttendance: filteredLogs.slice(0, 50),
         pendingLeaves,
+        leaveRequests: leaveRequests,
         settings,
       },
     });
