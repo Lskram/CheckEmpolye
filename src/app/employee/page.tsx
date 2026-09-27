@@ -57,9 +57,14 @@ export default function ExactEmployeeApp() {
     late_deadline: '08:00',
     allowance_amount: 50,
   });
+  const storeSettingsRef = useRef(storeSettings);
+  storeSettingsRef.current = storeSettings;
 
   // Real Hardware Satellite GPS Coordinates & Accuracy
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const currentCoordsRef = useRef(currentCoords);
+  currentCoordsRef.current = currentCoords;
+
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -73,15 +78,21 @@ export default function ExactEmployeeApp() {
   const [errorMessage, setErrorMessage] = useState('');
   const [activeHistoryTab, setActiveHistoryTab] = useState<'in' | 'out' | 'leave'>('in');
 
-  // Recalculate Distance Helper
-  const recalculateDistance = useCallback((coords: { lat: number; lng: number } | null, settings: any) => {
-    if (!coords || !settings?.store_lat || !settings?.store_lng) return;
-    const storeLat = Number(settings.store_lat);
-    const storeLng = Number(settings.store_lng);
+  // Recalculate Distance Helper (Always uses freshest references)
+  const recalculateDistance = useCallback((coords?: { lat: number; lng: number } | null, settings?: any) => {
+    const effectiveCoords = coords || currentCoordsRef.current;
+    const effectiveSettings = settings || storeSettingsRef.current;
+
+    if (!effectiveCoords?.lat || !effectiveCoords?.lng || !effectiveSettings?.store_lat || !effectiveSettings?.store_lng) {
+      return;
+    }
+
+    const storeLat = Number(effectiveSettings.store_lat);
+    const storeLng = Number(effectiveSettings.store_lng);
     if (isNaN(storeLat) || isNaN(storeLng)) return;
 
     const dist = calculateHaversineDistance(
-      { latitude: coords.lat, longitude: coords.lng },
+      { latitude: effectiveCoords.lat, longitude: effectiveCoords.lng },
       { latitude: storeLat, longitude: storeLng }
     );
     setDistance(dist);
@@ -119,13 +130,11 @@ export default function ExactEmployeeApp() {
       .then((data) => {
         if (data.success && data.data) {
           setStoreSettings(data.data);
+          storeSettingsRef.current = data.data;
           // Recalculate distance immediately with current hardware coords
-          setCurrentCoords((latestCoords) => {
-            if (latestCoords) {
-              recalculateDistance(latestCoords, data.data);
-            }
-            return latestCoords;
-          });
+          if (currentCoordsRef.current) {
+            recalculateDistance(currentCoordsRef.current, data.data);
+          }
         }
       })
       .catch((e) => console.error('Failed to fetch store settings:', e));
@@ -139,15 +148,22 @@ export default function ExactEmployeeApp() {
       const pos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
       const newCoords = { lat: pos.latitude, lng: pos.longitude };
       setCurrentCoords(newCoords);
+      currentCoordsRef.current = newCoords;
       setGpsAccuracy(pos.accuracy);
       setGpsProvider(pos.provider);
-      recalculateDistance(newCoords, storeSettings);
+      recalculateDistance(newCoords, storeSettingsRef.current);
     } catch (err: any) {
       console.warn('GPS refresh error:', err);
       setGpsError(err.message || 'ไม่สามารถรับสัญญาณดาวเทียม GPS ได้');
     } finally {
       setGpsLoading(false);
     }
+  };
+
+  // Manual Full Refresh (both store coordinates & device GPS)
+  const handleManualRefresh = async () => {
+    fetchSettings();
+    await refreshRealGPS();
   };
 
   // 1. Core Lifecycle Setup & Real-Time Sync
@@ -189,10 +205,11 @@ export default function ExactEmployeeApp() {
       (pos: LiveLocationResult) => {
         const newCoords = { lat: pos.latitude, lng: pos.longitude };
         setCurrentCoords(newCoords);
+        currentCoordsRef.current = newCoords;
         setGpsAccuracy(pos.accuracy);
         setGpsProvider(pos.provider);
         setGpsError(null);
-        recalculateDistance(newCoords, storeSettings);
+        recalculateDistance(newCoords, storeSettingsRef.current);
       },
       (err: any) => {
         console.warn('Live location watch error:', err);
@@ -696,13 +713,13 @@ export default function ExactEmployeeApp() {
 
             <button
               type="button"
-              onClick={refreshRealGPS}
+              onClick={handleManualRefresh}
               disabled={gpsLoading}
-              className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50"
-              title="ดึงพิกัด GPS สดจากดาวเทียม"
+              className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all active:scale-95 text-[11px]"
+              title="ดึงพิกัด GPS สดจากดาวเทียมและอัปเดตจุดร้าน"
             >
-              <RefreshCw className={`w-3 h-3 ${gpsLoading ? 'animate-spin' : ''}`} />
-              <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรช GPS'}</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
+              <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรชตำแหน่ง & ร้าน'}</span>
             </button>
           </div>
         </div>
