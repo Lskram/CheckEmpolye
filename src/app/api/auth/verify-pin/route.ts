@@ -8,7 +8,7 @@ export async function POST(request: Request) {
 
     if (!employeeId || !pinCode) {
       return NextResponse.json(
-        { success: false, message: 'กรุณากรอกรหัส PIN ให้ครบ 4 หลัก' },
+        { success: false, message: 'กรุณากรอกรหัส PIN หรือรหัสผ่าน' },
         { status: 400 }
       );
     }
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         { 
           success: false, 
           code: 'INVALID_PIN', 
-          message: '❌ รหัส PIN 4 หลักไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' 
+          message: '❌ รหัส PIN / รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' 
         },
         { status: 401 }
       );

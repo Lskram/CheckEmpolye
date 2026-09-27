@@ -1459,13 +1459,12 @@ export default function WebExecutiveDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 mb-1">รหัส PIN 4 หลัก: <span className="text-rose-500">*</span></label>
+                  <label className="block text-slate-700 mb-1">รหัส PIN / รหัสผ่าน: <span className="text-rose-500">*</span></label>
                   <input
                     type="password"
-                    maxLength={4}
                     value={newPin}
                     onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="1234"
+                    placeholder="เช่น 1234 หรือรหัสผ่าน"
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-center tracking-widest focus:outline-none focus:border-blue-500"
                     required
                   />
