@@ -1,6 +1,7 @@
 # 📱 ระบบ Attendance PWA & Native Mobile (สีแสงยางยนต์ - YOKOHAMA NAYA COSMIS)
 
-> 📋 **เอกสารสเปกและความต้องการระบบทั้งหมด (Living Requirements)**: สามารถดูและติดตามได้ที่ [PROJECT_REQUIREMENTS.md](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/PROJECT_REQUIREMENTS.md)
+> 📖 **สถาปัตยกรรมระบบ, Data Flow, API Specs, และฐานข้อมูลฉบับสมบูรณ์ (Master SSOT)**: [SYSTEM_ARCHITECTURE.md](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/SYSTEM_ARCHITECTURE.md)
+> 📋 **เอกสารสเปกและความต้องการระบบทั้งหมด (Living Requirements)**: [PROJECT_REQUIREMENTS.md](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/PROJECT_REQUIREMENTS.md)
 
 ---
 
