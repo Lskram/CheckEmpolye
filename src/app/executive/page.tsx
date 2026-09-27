@@ -736,15 +736,21 @@ export default function MobileExecutiveApp() {
                 {leaveRequests.map((req: any) => (
                   <div key={req.id} className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-900">
-                        {req.employees?.full_name || req.employees?.employee_code || 'พนักงาน'}
-                      </span>
+                      <div>
+                        <span className="font-bold text-slate-900">
+                          {req.employee?.full_name || req.employees?.full_name || 'พนักงาน'}
+                          {(req.employee?.nickname || req.employees?.nickname) ? ` (${req.employee?.nickname || req.employees?.nickname})` : ''}
+                        </span>
+                        <span className="ml-1.5 font-mono text-[10px] text-blue-600 font-bold">
+                          [{req.employee?.employee_code || req.employees?.employee_code || req.employee_id?.slice(0, 8)}]
+                        </span>
+                      </div>
                       <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-100 text-amber-800">
-                        {req.leave_type}
+                        {req.leave_type === 'SICK' ? 'ลาป่วย 🩺' : req.leave_type === 'BUSINESS' ? 'ลากิจ 💼' : req.leave_type === 'ANNUAL' ? 'ลาพักร้อน 🏖️' : 'อื่นๆ 📝'}
                       </span>
                     </div>
                     <div className="text-xs text-slate-600">
-                      {req.start_date} {req.end_date ? `ถึง ${req.end_date}` : ''} ({req.reason || 'ไม่ระบุเหตุผล'})
+                      {req.start_date} {req.end_date && req.end_date !== req.start_date ? `ถึง ${req.end_date}` : ''} ({req.days_count || 1} วัน) • <span className="italic text-slate-500">"{req.reason || 'ไม่ระบุเหตุผล'}"</span>
                     </div>
                     {req.status === 'PENDING' && (
                       <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">

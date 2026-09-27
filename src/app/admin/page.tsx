@@ -1128,11 +1128,19 @@ export default function WebExecutiveDashboard() {
                   <tbody className="divide-y divide-slate-100">
                     {leaveRequests.map((req: any) => (
                       <tr key={req.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-3 font-bold text-slate-900">
-                          {req.employees?.full_name || req.employees?.employee_code || 'พนักงาน'}
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-slate-900">
+                            {req.employee?.full_name || req.employees?.full_name || 'พนักงาน'}
+                            {(req.employee?.nickname || req.employees?.nickname) ? ` (${req.employee?.nickname || req.employees?.nickname})` : ''}
+                          </div>
+                          <div className="font-mono text-[10px] text-blue-600 font-bold">
+                            {req.employee?.employee_code || req.employees?.employee_code || req.employee_id?.slice(0, 8)}
+                          </div>
                         </td>
-                        <td className="py-3 px-3">{req.leave_type}</td>
-                        <td className="py-3 px-3 font-mono">{req.start_date} {req.end_date ? `ถึง ${req.end_date}` : ''}</td>
+                        <td className="py-3 px-3 font-medium">
+                          {req.leave_type === 'SICK' ? 'ลาป่วย 🩺' : req.leave_type === 'BUSINESS' ? 'ลากิจ 💼' : req.leave_type === 'ANNUAL' ? 'ลาพักร้อน 🏖️' : 'อื่นๆ 📝'}
+                        </td>
+                        <td className="py-3 px-3 font-mono">{req.start_date} {req.end_date && req.end_date !== req.start_date ? `ถึง ${req.end_date}` : ''} ({req.days_count || 1} วัน)</td>
                         <td className="py-3 px-3 text-slate-600">{req.reason || '-'}</td>
                         <td className="py-3 px-3">
                           <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
