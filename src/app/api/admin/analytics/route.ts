@@ -10,12 +10,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'monthly'; // 'daily' | 'weekly' | 'monthly'
 
-    const [employees, attendanceLogs, leaveRequests, violationLogs, settings] = await Promise.all([
+    const [employees, attendanceLogs, leaveRequests, violationLogs, settings, salaryAdvances] = await Promise.all([
       db.getEmployees(),
       db.getAttendanceLogs(300),
       db.getLeaveRequests(),
       db.getViolationLogs(),
       db.getStoreSettings(),
+      db.getSalaryAdvanceRequests(),
     ]);
 
     // Thailand Timezone (Asia/Bangkok) Date Formatter
@@ -229,8 +230,9 @@ export async function GET(request: Request) {
     const criticalViolations = violationLogs.filter((v) => v.severity === 'CRITICAL' && !v.is_resolved);
     const hasCriticalHWIDOverlap = criticalViolations.some((v) => v.violation_type === 'HWID_OVERLAP');
 
-    // Pending Leaves
+    // Pending Leaves & Advances
     const pendingLeaves = leaveRequests.filter((l) => l.status === 'PENDING');
+    const pendingAdvances = salaryAdvances.filter((a) => a.status === 'PENDING');
 
     return NextResponse.json({
       success: true,
@@ -258,6 +260,7 @@ export async function GET(request: Request) {
           periodAllowancePaid,
 
           pendingLeavesCount: pendingLeaves.length,
+          pendingAdvancesCount: pendingAdvances.length,
           unresolvedViolationsCount: unresolvedViolations.length,
           criticalAlertActive: hasCriticalHWIDOverlap,
         },
@@ -277,6 +280,9 @@ export async function GET(request: Request) {
         recentAttendance: filteredLogs.slice(0, 50),
         pendingLeaves,
         leaveRequests: leaveRequests,
+        salaryAdvances,
+        salaryAdvanceRequests: salaryAdvances,
+        pendingAdvances,
         settings,
       },
     });

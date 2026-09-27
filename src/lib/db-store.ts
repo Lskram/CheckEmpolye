@@ -4,9 +4,12 @@ import {
   DailyAttendanceSummary, 
   LeaveRequest, 
   ViolationLog, 
-  StoreSettings 
+  StoreSettings,
+  SalaryAdvanceRequest
 } from './types';
 import { supabase, isSupabaseConfigured } from './supabase';
+
+let mockSalaryAdvanceRequests: SalaryAdvanceRequest[] = [];
 
 // Mock in-memory state for immediate testing & zero-setup preview
 let mockEmployees: Employee[] = [
@@ -480,5 +483,106 @@ export const db = {
       v.is_resolved = true;
     });
     return true;
+  },
+
+  // -------------------------------------------------------------
+  // SALARY ADVANCE REQUESTS
+  // -------------------------------------------------------------
+  async createSalaryAdvanceRequest(
+    req: Omit<SalaryAdvanceRequest, 'id' | 'created_at' | 'updated_at' | 'status'>
+  ): Promise<SalaryAdvanceRequest> {
+    const newReq: SalaryAdvanceRequest = {
+      id: generateUUID(),
+      ...req,
+      status: 'PENDING',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('salary_advance_requests')
+        .insert(newReq)
+        .select()
+        .single();
+      if (!error && data) return data as SalaryAdvanceRequest;
+    }
+
+    mockSalaryAdvanceRequests.unshift(newReq);
+    return newReq;
+  },
+
+  async getSalaryAdvanceRequests(employeeId?: string): Promise<SalaryAdvanceRequest[]> {
+    if (isSupabaseConfigured && supabase) {
+      let query = supabase
+        .from('salary_advance_requests')
+        .select('*, employee:employees!salary_advance_requests_employee_id_fkey(*), reviewer:employees!salary_advance_requests_reviewed_by_fkey(*)')
+        .order('created_at', { ascending: false });
+
+      if (employeeId) {
+        query = query.eq('employee_id', employeeId);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) return data as SalaryAdvanceRequest[];
+
+      // Resilient fallback: simple select + manual hydration
+      let rawQuery = supabase.from('salary_advance_requests').select('*').order('created_at', { ascending: false });
+      if (employeeId) rawQuery = rawQuery.eq('employee_id', employeeId);
+      const { data: rawData, error: rawErr } = await rawQuery;
+      if (!rawErr && rawData) {
+        const employees = await this.getEmployees();
+        return rawData.map((item: any) => ({
+          ...item,
+          employee: employees.find((e) => e.id === item.employee_id),
+          reviewer: item.reviewed_by ? employees.find((e) => e.id === item.reviewed_by) : undefined,
+        })) as SalaryAdvanceRequest[];
+      }
+    }
+
+    const filtered = employeeId
+      ? mockSalaryAdvanceRequests.filter((r) => r.employee_id === employeeId)
+      : mockSalaryAdvanceRequests;
+
+    return filtered.map((r) => ({
+      ...r,
+      employee: mockEmployees.find((e) => e.id === r.employee_id),
+      reviewer: r.reviewed_by ? mockEmployees.find((e) => e.id === r.reviewed_by) : undefined,
+    }));
+  },
+
+  async updateSalaryAdvanceStatus(
+    id: string,
+    status: 'APPROVED' | 'REJECTED',
+    reviewedBy: string,
+    rejectionReason?: string
+  ): Promise<SalaryAdvanceRequest | null> {
+    const updatePayload = {
+      status,
+      reviewed_by: reviewedBy,
+      reviewed_at: new Date().toISOString(),
+      rejection_reason: rejectionReason || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('salary_advance_requests')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) return data as SalaryAdvanceRequest;
+    }
+
+    const index = mockSalaryAdvanceRequests.findIndex((r) => r.id === id);
+    if (index !== -1) {
+      mockSalaryAdvanceRequests[index] = {
+        ...mockSalaryAdvanceRequests[index],
+        ...updatePayload,
+      };
+      return mockSalaryAdvanceRequests[index];
+    }
+    return null;
   }
 };

@@ -28,12 +28,14 @@ import {
   Timer,
   AlertTriangle,
   X,
-  Sparkles
+  Sparkles,
+  Coins
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { getLiveHardwarePosition, watchLivePosition, LiveLocationResult } from '@/lib/location';
+import { MobileNotificationService } from '@/lib/mobile-notifications';
 
 export default function ExactEmployeeApp() {
   const router = useRouter();
@@ -153,6 +155,9 @@ export default function ExactEmployeeApp() {
           if (currentCoordsRef.current) {
             recalculateDistance(currentCoordsRef.current, data.data);
           }
+          if (data.data.standard_time) {
+            MobileNotificationService.scheduleShiftCountdown(data.data.standard_time);
+          }
         }
       })
       .catch((e) => console.error('Failed to fetch store settings:', e));
@@ -244,6 +249,7 @@ export default function ExactEmployeeApp() {
 
     // 1.3 Fetch Initial Settings & Status
     fetchSettings();
+    MobileNotificationService.requestPermission();
     if (parsedEmp?.id) {
       fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
     }
@@ -413,6 +419,11 @@ export default function ExactEmployeeApp() {
       }
 
       setCheckInResult(data.data);
+      MobileNotificationService.showCheckInSuccess(
+        data.data.checkInTime || time.hhmm,
+        data.data.status !== 'PRESENT',
+        data.data.allowance || 0
+      );
 
       if (data.data.status === 'PRESENT') {
         confetti({
@@ -498,6 +509,11 @@ export default function ExactEmployeeApp() {
         workingDuration: data.data.workingDuration,
         rawCheckOutTime: data.data.rawCheckOutTime,
       }));
+
+      MobileNotificationService.showCheckOutSuccess(
+        data.data.checkOutTime || time.hhmm,
+        data.data.workHours
+      );
 
       confetti({
         particleCount: 80,
@@ -1118,15 +1134,15 @@ export default function ExactEmployeeApp() {
       </AnimatePresence>
 
       {/* ------------------------------------------------------------- */}
-      {/* 4. FIXED BOTTOM NAVIGATION BAR (3 Clean Primary Tabs)         */}
+      {/* 4. FIXED BOTTOM NAVIGATION BAR (4 Clean Primary Tabs)         */}
       {/* ------------------------------------------------------------- */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-2.5 flex items-center justify-around z-30 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex items-center justify-around z-30 shadow-lg">
         {/* Tab 1: เช็คเวลา */}
         <Link 
           href="/employee"
-          className="flex flex-col items-center gap-1 text-blue-600 font-bold text-xs"
+          className="flex flex-col items-center gap-0.5 text-blue-600 font-bold text-[11px]"
         >
-          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs">
+          <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs">
             <Clock className="w-4 h-4" />
           </div>
           <span>เช็คเวลา</span>
@@ -1136,10 +1152,10 @@ export default function ExactEmployeeApp() {
         {/* Tab 2: ปฏิทิน */}
         <Link
           href="/employee/stats"
-          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors"
+          className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[11px] transition-colors"
         >
-          <div className="w-8 h-8 flex items-center justify-center">
-            <Calendar className="w-5 h-5" />
+          <div className="w-7 h-7 flex items-center justify-center">
+            <Calendar className="w-4 h-4" />
           </div>
           <span>ปฏิทิน</span>
         </Link>
@@ -1147,12 +1163,23 @@ export default function ExactEmployeeApp() {
         {/* Tab 3: ยื่นใบลา */}
         <Link
           href="/employee/leave"
-          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors"
+          className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 font-medium text-[11px] transition-colors"
         >
-          <div className="w-8 h-8 flex items-center justify-center">
-            <FileText className="w-5 h-5" />
+          <div className="w-7 h-7 flex items-center justify-center">
+            <FileText className="w-4 h-4" />
           </div>
           <span>ยื่นใบลา</span>
+        </Link>
+
+        {/* Tab 4: ขอเบิกเงิน */}
+        <Link
+          href="/employee/advance"
+          className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-amber-600 font-medium text-[11px] transition-colors"
+        >
+          <div className="w-7 h-7 flex items-center justify-center text-amber-500">
+            <Coins className="w-4 h-4" />
+          </div>
+          <span>ขอเบิกเงิน</span>
         </Link>
       </div>
     </div>

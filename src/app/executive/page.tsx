@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
+import SalaryAdvanceManager from '@/components/SalaryAdvanceManager';
 
 const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
   ssr: false,
@@ -68,8 +69,8 @@ interface StaffItem {
 export default function MobileExecutiveApp() {
   const router = useRouter();
 
-  // Navigation Tabs: overview, staff, leaves, violations, settings
-  const [activeTab, setActiveTab] = useState<'overview' | 'staff' | 'leaves' | 'violations' | 'settings'>('overview');
+  // Navigation Tabs: overview, staff, leaves, advances, violations, settings
+  const [activeTab, setActiveTab] = useState<'overview' | 'staff' | 'leaves' | 'advances' | 'violations' | 'settings'>('overview');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
@@ -195,6 +196,9 @@ export default function MobileExecutiveApp() {
           loadData(true);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
+          loadData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'salary_advance_requests' }, () => {
           loadData(true);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'violation_logs' }, () => {
@@ -448,6 +452,10 @@ export default function MobileExecutiveApp() {
   const leaveRequests = analyticsData?.leaveRequests || [];
   const violationLogs = analyticsData?.violationLogs || [];
   const unresolvedViolationsCount = (violationLogs || []).filter((v: any) => !v.is_resolved).length;
+  const salaryAdvances = analyticsData?.salaryAdvanceRequests || [];
+  const pendingAdvancesCount = overview?.pendingAdvancesCount !== undefined 
+    ? overview.pendingAdvancesCount 
+    : salaryAdvances.filter((a: any) => a.status === 'PENDING').length;
 
   // Export CSV
   const handleExportCSV = () => {
@@ -947,7 +955,16 @@ export default function MobileExecutiveApp() {
           </div>
         )}
 
-        {/* TAB 4: VIOLATIONS & SECURITY LOGS */}
+        {/* TAB 4: SALARY ADVANCE REQUESTS */}
+        {activeTab === 'advances' && (
+          <SalaryAdvanceManager
+            requests={salaryAdvances}
+            onRefresh={() => loadData(false)}
+            reviewerId="00000000-0000-0000-0000-000000000000"
+          />
+        )}
+
+        {/* TAB 5: VIOLATIONS & SECURITY LOGS */}
         {activeTab === 'violations' && (
           <SecurityLogsViewer
             logs={violationLogs}
@@ -960,12 +977,13 @@ export default function MobileExecutiveApp() {
       {/* ------------------------------------------------------------- */}
       {/* BOTTOM FLOATING NAVIGATION TABS (Mobile Only)                 */}
       {/* ------------------------------------------------------------- */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2 shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 shadow-lg">
         <div className="max-w-lg mx-auto flex items-center justify-around">
           {[
             { id: 'overview', label: 'ภาพรวม', icon: TrendingUp },
             { id: 'staff', label: 'ลูกน้อง', icon: Users },
             { id: 'leaves', label: 'ใบลา', icon: Calendar, badge: pendingLeavesCount },
+            { id: 'advances', label: 'เบิกเงิน', icon: Coins, badge: pendingAdvancesCount },
             { id: 'violations', label: 'ความปลอดภัย', icon: ShieldAlert, badge: unresolvedViolationsCount },
             { id: 'settings', label: 'ตั้งค่า', icon: Settings },
           ].map((tab) => {

@@ -99,6 +99,23 @@ export interface StoreSettings {
   updated_at?: string;
 }
 
+export interface SalaryAdvanceRequest {
+  id: string;
+  employee_id: string;
+  amount: number;
+  request_date: string; // 'YYYY-MM-DD'
+  reason: string;
+  needed_before_date?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  employee?: Employee;
+  reviewer?: Employee;
+}
+
 export interface OTRequest {
   id: string;
   employee_id: string;

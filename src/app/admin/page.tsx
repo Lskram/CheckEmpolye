@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
+import SalaryAdvanceManager from '@/components/SalaryAdvanceManager';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   ssr: false,
@@ -76,7 +77,7 @@ export default function WebExecutiveDashboard() {
   const router = useRouter();
 
   // Desktop Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'employees' | 'leaves' | 'advances' | 'violations' | 'settings'>('overview');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
@@ -189,14 +190,41 @@ export default function WebExecutiveDashboard() {
             setLiveNotification({
               id: payload.new.id,
               type: 'checkin',
-              title: `🔔 พนักงานลงเวลาสำเร็จ (${shortId})`,
+              title: `🔔 พนักงานลงเวลาเข้างานสำเร็จ (${shortId})`,
               message: `ระยะห่างร้าน ${Number(payload.new.distance_from_store || 0).toFixed(1)} ม. สถานะ: ${payload.new.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย'}`,
               time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
             });
             setTimeout(() => setLiveNotification(null), 6000);
           }
         })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'attendance_logs' }, () => {
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'attendance_logs' }, (payload: any) => {
+          loadDashboardData(true);
+          if (payload.new && payload.new.check_out_time) {
+            const shortId = `#LOG-${payload.new.id.slice(0, 8).toUpperCase()}`;
+            setLiveNotification({
+              id: payload.new.id,
+              type: 'checkin',
+              title: `🏁 พนักงานลงชื่อออกงานแล้ว (${shortId})`,
+              message: `เวลาออกงาน: ${new Date(payload.new.check_out_time).toLocaleTimeString('th-TH')} | ทำงาน: ${payload.new.work_hours || '-'} ชม.`,
+              time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            });
+            setTimeout(() => setLiveNotification(null), 6000);
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'salary_advance_requests' }, (payload: any) => {
+          loadDashboardData(true);
+          if (payload.new) {
+            setLiveNotification({
+              id: payload.new.id,
+              type: 'leave',
+              title: `💵 มีคำขอเบิกเงินล่วงหน้าใหม่!`,
+              message: `ยอดขอเบิก ${Number(payload.new.amount || 0).toLocaleString()} บาท (เหตุผล: ${payload.new.reason || '-'})`,
+              time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            });
+            setTimeout(() => setLiveNotification(null), 8000);
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'salary_advance_requests' }, () => {
           loadDashboardData(true);
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'violation_logs' }, (payload: any) => {
@@ -467,6 +495,10 @@ export default function WebExecutiveDashboard() {
 
   const leaveRequests = analyticsData?.leaveRequests || [];
   const violationLogs = analyticsData?.violationLogs || [];
+  const salaryAdvances = analyticsData?.salaryAdvanceRequests || [];
+  const pendingAdvancesCount = overview?.pendingAdvancesCount !== undefined 
+    ? overview.pendingAdvancesCount 
+    : salaryAdvances.filter((a: any) => a.status === 'PENDING').length;
 
   // Chart Data
   const defaultDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
@@ -773,6 +805,7 @@ export default function WebExecutiveDashboard() {
               { id: 'overview', label: '📈 ภาพรวม & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
               { id: 'employees', label: '👥 จัดการพนักงาน', icon: Users, color: 'bg-sky-500' },
               { id: 'leaves', label: '📅 อนุมัติใบลา', icon: Calendar, badge: pendingLeavesCount, color: 'bg-amber-500' },
+              { id: 'advances', label: '💵 ขอเบิกเงิน', icon: Coins, badge: pendingAdvancesCount, color: 'bg-emerald-600' },
               { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: violationLogs.filter((v: any) => !v.is_resolved).length, color: 'bg-red-500' },
               { id: 'settings', label: '⚙️ ตั้งค่าระบบ', icon: Settings, color: 'bg-slate-700' },
             ].map((tab) => {
@@ -1218,7 +1251,16 @@ export default function WebExecutiveDashboard() {
           </div>
         )}
 
-        {/* TAB 4: VIOLATIONS & SECURITY LOGS */}
+        {/* TAB 4: SALARY ADVANCE REQUESTS */}
+        {activeTab === 'advances' && (
+          <SalaryAdvanceManager
+            requests={salaryAdvances}
+            onRefresh={() => loadDashboardData(false)}
+            reviewerId="00000000-0000-0000-0000-000000000000"
+          />
+        )}
+
+        {/* TAB 5: VIOLATIONS & SECURITY LOGS */}
         {activeTab === 'violations' && (
           <SecurityLogsViewer
             logs={violationLogs}
