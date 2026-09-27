@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,11 +19,15 @@ import {
   FileText, 
   MapPin, 
   ChevronRight, 
-  LogOut 
+  LogOut,
+  Navigation2,
+  Radio,
+  Crosshair
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { getLiveHardwarePosition, watchLivePosition, LiveLocationResult } from '@/lib/location';
 
 export default function ExactEmployeeApp() {
   const router = useRouter();
@@ -35,13 +39,13 @@ export default function ExactEmployeeApp() {
 
   // Live Real-Time Clock
   const [time, setTime] = useState({
-    hhmm: '09:28',
-    ss: '34',
-    dateThai: 'วันศุกร์, 20 มกราคม 2023',
-    rawTimeStr: '09:28:34',
+    hhmm: '07:40',
+    ss: '00',
+    dateThai: 'วันจันทร์, 1 มกราคม 2024',
+    rawTimeStr: '07:40:00',
   });
 
-  // Store Settings & Geofence
+  // Store Settings & Geofence (Live Synced from Supabase DB)
   const [storeSettings, setStoreSettings] = useState<any>({
     store_name: 'สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)',
     store_lat: 15.110412,
@@ -52,11 +56,13 @@ export default function ExactEmployeeApp() {
     allowance_amount: 50,
   });
 
-  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>({
-    lat: 15.110412,
-    lng: 104.358434,
-  });
-  const [distance, setDistance] = useState<number | null>(5);
+  // Real Hardware Satellite GPS Coordinates & Accuracy
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [gpsProvider, setGpsProvider] = useState<'capacitor' | 'browser' | 'fallback'>('capacitor');
 
   // Check-in & Check-out State & Results
   const [isCheckingIn, setIsCheckingIn] = useState(false);
@@ -64,14 +70,23 @@ export default function ExactEmployeeApp() {
   const [checkInResult, setCheckInResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [activeHistoryTab, setActiveHistoryTab] = useState<'in' | 'out' | 'leave'>('in');
-  const [activeNavTab, setActiveNavTab] = useState<'clock' | 'calendar' | 'allowance' | 'requests'>('clock');
 
-  // Simulation Controls
-  const [simMode, setSimMode] = useState<'inside' | 'outside'>('inside');
-  const [simTimeMode, setSimTimeMode] = useState<'ontime' | 'late'>('ontime');
-  const [showSimPanel, setShowSimPanel] = useState(false);
+  // Recalculate Distance Helper
+  const recalculateDistance = useCallback((coords: { lat: number; lng: number } | null, settings: any) => {
+    if (!coords || !settings?.store_lat || !settings?.store_lng) return;
+    const storeLat = Number(settings.store_lat);
+    const storeLng = Number(settings.store_lng);
+    if (isNaN(storeLat) || isNaN(storeLng)) return;
 
-  const fetchTodayStatus = (empId: string, empName: string) => {
+    const dist = calculateHaversineDistance(
+      { latitude: coords.lat, longitude: coords.lng },
+      { latitude: storeLat, longitude: storeLng }
+    );
+    setDistance(dist);
+  }, []);
+
+  // Fetch Today's Check-in & Check-out Status
+  const fetchTodayStatus = useCallback((empId: string, empName: string) => {
     fetch(`/api/employee/stats?id=${empId}`, { cache: 'no-store' })
       .then((res) => res.json())
       .then((resData) => {
@@ -82,6 +97,7 @@ export default function ExactEmployeeApp() {
             status: todayLog.status,
             checkInTime: todayLog.checkInTime,
             checkOutTime: todayLog.checkOutTime || null,
+            workingDuration: todayLog.workingDuration || null,
             allowance: todayLog.allowance || 0,
             distance: todayLog.distance || 0,
             isLate: todayLog.status === 'LATE',
@@ -90,21 +106,49 @@ export default function ExactEmployeeApp() {
         }
       })
       .catch((err) => console.error('Error fetching today status:', err));
-  };
+  }, []);
 
-  const fetchSettings = () => {
+  // Fetch Store Settings from DB
+  const fetchSettings = useCallback(() => {
     fetch('/api/admin/settings', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.data) {
           setStoreSettings(data.data);
+          // Recalculate distance immediately with current hardware coords
+          setCurrentCoords((latestCoords) => {
+            if (latestCoords) {
+              recalculateDistance(latestCoords, data.data);
+            }
+            return latestCoords;
+          });
         }
       })
-      .catch((e) => console.error(e));
+      .catch((e) => console.error('Failed to fetch store settings:', e));
+  }, [recalculateDistance]);
+
+  // Manual GPS Refresh Trigger
+  const refreshRealGPS = async () => {
+    setGpsLoading(true);
+    setGpsError(null);
+    try {
+      const pos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
+      const newCoords = { lat: pos.latitude, lng: pos.longitude };
+      setCurrentCoords(newCoords);
+      setGpsAccuracy(pos.accuracy);
+      setGpsProvider(pos.provider);
+      recalculateDistance(newCoords, storeSettings);
+    } catch (err: any) {
+      console.warn('GPS refresh error:', err);
+      setGpsError(err.message || 'ไม่สามารถรับสัญญาณดาวเทียม GPS ได้');
+    } finally {
+      setGpsLoading(false);
+    }
   };
 
+  // 1. Core Lifecycle Setup & Real-Time Sync
   useEffect(() => {
-    // 1. Auth Guard - Check saved profile
+    // 1.1 Auth Guard - Check saved profile
     const saved = localStorage.getItem('attendance_employee_profile');
     if (!saved) {
       router.replace('/employee/login');
@@ -125,23 +169,37 @@ export default function ExactEmployeeApp() {
       return;
     }
 
-    // 2. Fetch HWID
+    // 1.2 Fetch HWID
     const deviceHwid = getDeviceHWID();
     setHwid(deviceHwid);
 
-    // 3. Store Settings
+    // 1.3 Fetch Initial Settings & Status
     fetchSettings();
-
-    // 4. Fetch today's check-in status for this employee
     if (parsedEmp?.id) {
       fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
     }
 
-    // 5. Supabase Realtime Channel for Store Settings & Attendance Updates
+    // 1.4 Start Continuous Live Hardware Satellite GPS Tracking
+    refreshRealGPS();
+    const cleanupLocationWatcher = watchLivePosition(
+      (pos: LiveLocationResult) => {
+        const newCoords = { lat: pos.latitude, lng: pos.longitude };
+        setCurrentCoords(newCoords);
+        setGpsAccuracy(pos.accuracy);
+        setGpsProvider(pos.provider);
+        setGpsError(null);
+        recalculateDistance(newCoords, storeSettings);
+      },
+      (err: any) => {
+        console.warn('Live location watch error:', err);
+      }
+    );
+
+    // 1.5 Supabase Realtime Channel Subscription (<100ms sync when Admin updates marker)
     let channel: any = null;
     if (isSupabaseConfigured && supabase && parsedEmp?.id) {
       channel = supabase
-        .channel(`employee-sync-${parsedEmp.id}`)
+        .channel(`employee-geofence-sync-${parsedEmp.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
           fetchSettings();
         })
@@ -151,7 +209,25 @@ export default function ExactEmployeeApp() {
         .subscribe();
     }
 
-    // 6. Clock Ticker
+    // 1.6 Fast Adaptive Heartbeat Polling (Every 4 seconds fallback)
+    const settingsPollTimer = setInterval(() => {
+      fetchSettings();
+    }, 4000);
+
+    // 1.7 Sync on App Focus / Visibility Change
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        fetchSettings();
+        refreshRealGPS();
+        if (parsedEmp?.id) {
+          fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleFocus);
+    window.addEventListener('focus', handleFocus);
+
+    // 1.8 Clock Ticker
     const updateClock = () => {
       const now = new Date();
       const hh = String(now.getHours()).padStart(2, '0');
@@ -178,71 +254,24 @@ export default function ExactEmployeeApp() {
     };
 
     updateClock();
-    const interval = setInterval(updateClock, 1000);
+    const clockInterval = setInterval(updateClock, 1000);
+
     return () => {
-      clearInterval(interval);
+      clearInterval(clockInterval);
+      clearInterval(settingsPollTimer);
+      cleanupLocationWatcher();
+      document.removeEventListener('visibilitychange', handleFocus);
+      window.removeEventListener('focus', handleFocus);
       if (channel && supabase) supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [router, fetchSettings, fetchTodayStatus, recalculateDistance]);
 
-  // Real GPS & Distance Tracking
-  const [gpsLoading, setGpsLoading] = useState(false);
-  const [isUsingRealGPS, setIsUsingRealGPS] = useState(false);
-
-  const refreshRealGPS = () => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      setGpsLoading(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setCurrentCoords({ lat, lng });
-          setIsUsingRealGPS(true);
-          setGpsLoading(false);
-
-          if (storeSettings) {
-            const dist = calculateHaversineDistance(
-              { latitude: lat, longitude: lng },
-              { latitude: Number(storeSettings.store_lat) || 15.110412, longitude: Number(storeSettings.store_lng) || 104.358434 }
-            );
-            setDistance(dist);
-          }
-        },
-        (err) => {
-          console.warn('GPS Geolocation notice:', err.message);
-          setGpsLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-      );
-    }
-  };
-
+  // Recalculate distance whenever storeSettings changes
   useEffect(() => {
-    if (!storeSettings) return;
-
-    if (!isUsingRealGPS) {
-      let targetLat = Number(storeSettings.store_lat) || 15.110412;
-      let targetLng = Number(storeSettings.store_lng) || 104.358434;
-
-      if (simMode === 'inside') {
-        targetLat += 0.00003;
-        targetLng += 0.00003;
-        setCurrentCoords({ lat: targetLat, lng: targetLng });
-      } else {
-        targetLat += 0.0012;
-        targetLng += 0.0012;
-        setCurrentCoords({ lat: targetLat, lng: targetLng });
-      }
-
-      if (targetLat && targetLng) {
-        const dist = calculateHaversineDistance(
-          { latitude: targetLat, longitude: targetLng },
-          { latitude: Number(storeSettings.store_lat) || 15.110412, longitude: Number(storeSettings.store_lng) || 104.358434 }
-        );
-        setDistance(dist);
-      }
+    if (currentCoords && storeSettings) {
+      recalculateDistance(currentCoords, storeSettings);
     }
-  }, [simMode, storeSettings, isUsingRealGPS]);
+  }, [storeSettings, currentCoords, recalculateDistance]);
 
   // Logout Handler
   const handleLogout = () => {
@@ -252,33 +281,46 @@ export default function ExactEmployeeApp() {
     }
   };
 
+  // CHECK-IN HANDLER (Captures Fresh Hardware GPS on Tap)
   const handleCheckIn = async () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setIsCheckingIn(true);
     setErrorMessage('');
 
-    let simulatedTimestamp = null;
-    if (showSimPanel) {
-      const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
-      if (simTimeMode === 'ontime') {
-        simulatedTimestamp = `${todayStr}T07:45:00+07:00`;
-      } else {
-        simulatedTimestamp = `${todayStr}T08:15:00+07:00`;
-      }
-    }
-
     try {
+      // 1. Fetch fresh live hardware satellite position on button press
+      let freshLat = currentCoords?.lat;
+      let freshLng = currentCoords?.lng;
+      let freshAcc = gpsAccuracy || 5;
+
+      try {
+        const livePos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 0 });
+        freshLat = livePos.latitude;
+        freshLng = livePos.longitude;
+        freshAcc = livePos.accuracy;
+        setCurrentCoords({ lat: livePos.latitude, lng: livePos.longitude });
+        setGpsAccuracy(livePos.accuracy);
+        recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
+      } catch (e) {
+        console.warn('Using last known coordinates for check-in:', e);
+      }
+
+      if (freshLat === undefined || freshLng === undefined) {
+        setErrorMessage('ไม่สามารถระบุพิกัดดาวเทียม GPS ได้ กรุณาเปิด GPS บนโทรศัพท์แล้วกดใหม่อีกครั้ง');
+        setIsCheckingIn(false);
+        return;
+      }
+
       const empId = employee.id || employee.employeeId;
       const res = await fetch('/api/check-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId: empId,
-          latitude: currentCoords?.lat || 15.110412,
-          longitude: currentCoords?.lng || 104.358434,
-          accuracy: 5,
+          latitude: freshLat,
+          longitude: freshLng,
+          accuracy: freshAcc,
           hwid,
-          simulatedTime: simulatedTimestamp,
         }),
       });
 
@@ -307,29 +349,46 @@ export default function ExactEmployeeApp() {
     }
   };
 
+  // CHECK-OUT HANDLER (Captures Fresh Hardware GPS on Tap)
   const handleCheckOut = async () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setIsCheckingOut(true);
     setErrorMessage('');
 
-    let simulatedTimestamp = null;
-    if (showSimPanel) {
-      const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
-      simulatedTimestamp = `${todayStr}T17:05:00+07:00`;
-    }
-
     try {
+      // 1. Fetch fresh live hardware satellite position on button press
+      let freshLat = currentCoords?.lat;
+      let freshLng = currentCoords?.lng;
+      let freshAcc = gpsAccuracy || 5;
+
+      try {
+        const livePos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 0 });
+        freshLat = livePos.latitude;
+        freshLng = livePos.longitude;
+        freshAcc = livePos.accuracy;
+        setCurrentCoords({ lat: livePos.latitude, lng: livePos.longitude });
+        setGpsAccuracy(livePos.accuracy);
+        recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
+      } catch (e) {
+        console.warn('Using last known coordinates for check-out:', e);
+      }
+
+      if (freshLat === undefined || freshLng === undefined) {
+        setErrorMessage('ไม่สามารถระบุพิกัดดาวเทียม GPS ได้ กรุณาเปิด GPS บนโทรศัพท์');
+        setIsCheckingOut(false);
+        return;
+      }
+
       const empId = employee.id || employee.employeeId;
       const res = await fetch('/api/check-out', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId: empId,
-          latitude: currentCoords?.lat || 15.110412,
-          longitude: currentCoords?.lng || 104.358434,
-          accuracy: 5,
+          latitude: freshLat,
+          longitude: freshLng,
+          accuracy: freshAcc,
           hwid,
-          simulatedTime: simulatedTimestamp,
         }),
       });
 
@@ -368,7 +427,8 @@ export default function ExactEmployeeApp() {
     );
   }
 
-  const isInsideRadius = distance !== null && distance <= (storeSettings?.radius_meters || 50);
+  const allowedRadius = Number(storeSettings?.radius_meters) || 50;
+  const isInsideRadius = distance !== null && distance <= allowedRadius;
 
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-20">
@@ -551,33 +611,64 @@ export default function ExactEmployeeApp() {
           </div>
         </div>
 
-        {/* Geofence Status Banner */}
-        <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isInsideRadius ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-bold text-slate-800">{storeSettings?.store_name || 'สีแสงยางยนต์'}</div>
-              <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                <span>ระยะห่าง: {distance !== null ? `${distance.toFixed(0)} เมตร` : 'กำลังคำนวณ...'}</span>
-                <button
-                  type="button"
-                  onClick={refreshRealGPS}
-                  className="text-blue-600 hover:text-blue-700 font-bold flex items-center gap-0.5"
-                  title="รีเฟรชพิกัด GPS จริงจากมือถือ"
-                >
-                  <RefreshCw className={`w-3 h-3 ${gpsLoading ? 'animate-spin' : ''}`} />
-                  <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรช GPS'}</span>
-                </button>
+        {/* ----------------------------------------------------------- */}
+        {/* HIGH-PRECISION HARDWARE GEOFENCE STATUS CARD                */}
+        {/* ----------------------------------------------------------- */}
+        <div className="p-4 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs ${
+                isInsideRadius ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+              }`}>
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-extrabold text-slate-900 text-sm leading-tight">
+                  {storeSettings?.store_name || 'สีแสงยางยนต์ YOKOHAMA'}
+                </div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  <span className="font-bold text-slate-700">
+                    ระยะห่าง: {distance !== null ? `${distance.toFixed(1)} เมตร` : 'กำลังคำนวณ...'}
+                  </span>
+                  {gpsAccuracy !== null && (
+                    <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-md">
+                      (±{gpsAccuracy}ม.)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Geofence Tag */}
+            <span className={`px-2.5 py-1 rounded-full font-black text-[11px] shrink-0 ${
+              isInsideRadius ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+            }`}>
+              {isInsideRadius ? `● ในรัศมี ${allowedRadius}ม.` : `● นอกรัศมีร้าน`}
+            </span>
           </div>
-          <span className={`px-2.5 py-1 rounded-full font-bold text-[11px] ${
-            isInsideRadius ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-          }`}>
-            {isInsideRadius ? `● ในพื้นที่ ${storeSettings?.radius_meters || 50}ม.` : '● นอกรัศมีร้าน'}
-          </span>
+
+          {/* Coordinates Details & Refresh */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+            <div className="flex items-center gap-1.5 font-mono">
+              <Crosshair className="w-3.5 h-3.5 text-blue-500" />
+              {currentCoords ? (
+                <span>GPS จริง: {currentCoords.lat.toFixed(5)}, {currentCoords.lng.toFixed(5)}</span>
+              ) : (
+                <span className="text-amber-600 animate-pulse">📡 กำลังค้นหาสัญญาณดาวเทียม GPS...</span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={refreshRealGPS}
+              disabled={gpsLoading}
+              className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50"
+              title="ดึงพิกัด GPS สดจากดาวเทียม"
+            >
+              <RefreshCw className={`w-3 h-3 ${gpsLoading ? 'animate-spin' : ''}`} />
+              <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรช GPS'}</span>
+            </button>
+          </div>
         </div>
 
         {/* History Tabs Section */}
@@ -636,7 +727,7 @@ export default function ExactEmployeeApp() {
               >
                 <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold">ไม่สามารถเช็คอินได้</div>
+                  <div className="font-bold">ไม่สามารถบันทึกเวลาได้</div>
                   <div className="text-[11px] mt-0.5">{errorMessage}</div>
                 </div>
               </motion.div>
@@ -657,7 +748,7 @@ export default function ExactEmployeeApp() {
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     {checkInResult.status === 'PRESENT' ? 'เช็คอินตรงเวลาสำเร็จ' : 'เช็คอินสำเร็จ (มาสาย)'}
                   </span>
-                  <span className="font-mono">{checkInResult.checkInTime} น.</span>
+                  <span className="font-mono">{checkInResult.checkInTime}</span>
                 </div>
                 <div className="text-[11px] text-slate-600 mt-1">
                   เบี้ยขยันที่ได้รับวันนี้: <strong className="text-emerald-600 font-bold">+{checkInResult.allowance} บาท</strong>

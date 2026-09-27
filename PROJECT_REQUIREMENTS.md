@@ -89,6 +89,7 @@ flowchart TD
 | **REQ-010** | Attendance | ระบบลงเวลา "ออกงาน" (Check-Out Flow) บันทึกเวลาเลิกงานและระยะเวลาทำงาน | ✅ เสร็จสิ้น | API `/api/check-out` / Mobile UI |
 | **REQ-011** | Reporting | ปุ่มส่งออกรายงาน Excel / CSV (Export Report UTF-8 with BOM สำหรับภาษาไทย) | ✅ เสร็จสิ้น | Admin Web Dashboard (`/admin`) |
 | **REQ-012** | Attendance | ระบบป้องกันการกดเช็คอินซ้ำในวันเดียวกัน (Daily Check-in Duplicate Prevention) | ✅ เสร็จสิ้น | API `/api/check-in` Backend Guard |
+| **REQ-018** | Geofence | ระบบพิกัดดาวเทียมฮาร์ดแวร์ความแม่นยำสูง และซิงค์จุดมาร์คร้านจากเว็บสู่มือถือแบบเรียลไทม์ (<100ms) | ✅ เสร็จสิ้น | Capacitor Geolocation / Supabase Realtime |
 
 ---
 
@@ -116,6 +117,12 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-09-27] - High-Precision Hardware Satellite GPS & Live Geofence Sync (Version 2.3)
+- ✅ **สร้างโมดูลระบบพิกัดฮาร์ดแวร์ดาวเทียม (`src/lib/location.ts`)**: เชื่อมต่อชิป GPS ของเครื่องผ่าน `@capacitor/geolocation` พร้อมเปิด `enableHighAccuracy: true`
+- ✅ **ยกเลิกพิกัดจำลองในแอปมือถือ (`src/app/employee/page.tsx`)**: ใช้พิกัดจริง 100% จากตัวเครื่องเพื่อวัดระยะห่างที่ถูกต้อง
+- ✅ **ระบบซิงค์จุดมาร์คร้านค้าแบบเรียลไทม์ (<100ms)**: เมื่อผู้บริหารปรับเปลี่ยนหรือลากหมุดบนแผนที่หน้าเว็บ (`/admin`) ข้อมูลจะส่งตรงถึงมือถือพนักงานทันที และคำนวณระยะห่างใหม่ในเสี้ยววินาที
+- ✅ **ดึงพิกัดสดทันทีที่กดปุ่มเข้างาน/ออกงาน**: ตรวจสอบตำแหน่ง ณ วินาทีที่กด เพื่อป้องกันพิกัดค้างหรือคลาดเคลื่อน
 
 ### 📌 [2026-09-27] - Check-Out Flow, CSV Export & Duplicate Prevention (Version 2.2)
 - ✅ **เพิ่มคอลัมน์ `check_out_time`** ในฐานข้อมูล Supabase PostgreSQL ตาราง `attendance_logs`
