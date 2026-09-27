@@ -29,7 +29,8 @@ import {
   ArrowRight, 
   Clock3, 
   Sparkles, 
-  Check 
+  Check,
+  PieChart
 } from 'lucide-react';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
@@ -65,12 +66,11 @@ interface StaffItem {
   badgeColor: string;
 }
 
-export default function ExecutiveUnifiedDashboard() {
+export default function WebExecutiveDashboard() {
   const router = useRouter();
 
-  // Desktop vs Mobile tab states
-  const [desktopTab, setDesktopTab] = useState<'overview' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
-  const [mobileTab, setMobileTab] = useState<'overview' | 'staff' | 'leaves' | 'settings'>('overview');
+  // Desktop Navigation Tabs
+  const [activeTab, setActiveTab] = useState<'overview' | 'employees' | 'leaves' | 'violations' | 'settings'>('overview');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
 
   // Live Data & Loading
@@ -78,7 +78,7 @@ export default function ExecutiveUnifiedDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(false);
 
-  // 3D Chart Toggle (Desktop)
+  // 3D Chart Toggle
   const [is3DMode, setIs3DMode] = useState<boolean>(true);
 
   // Login Form State
@@ -88,13 +88,7 @@ export default function ExecutiveUnifiedDashboard() {
   const [executivePinError, setExecutivePinError] = useState('');
   const [rememberSession, setRememberSession] = useState(true);
 
-  // Live Clock
-  const [timeStr, setTimeStr] = useState({
-    time: '08:00:00',
-    dateThai: 'วันอาทิตย์, 27 กันยายน 2026'
-  });
-
-  // Search & Filter (Desktop + Mobile)
+  // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'late' | 'pending'>('all');
 
@@ -139,30 +133,7 @@ export default function ExecutiveUnifiedDashboard() {
     }
   }, []);
 
-  // 2. Real-time Clock Ticker
-  useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      const timeFormatted = now.toLocaleTimeString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      });
-      const dateFormatted = now.toLocaleDateString('th-TH', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      setTimeStr({ time: timeFormatted, dateThai: dateFormatted });
-    };
-    updateClock();
-    const timer = setInterval(updateClock, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // 3. Data Fetching & Continuous Background Polling (Every 10s)
+  // 2. Data Fetching & Continuous Background Polling (Every 10s)
   const loadDashboardData = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
@@ -175,7 +146,7 @@ export default function ExecutiveUnifiedDashboard() {
         }
       }
     } catch (e) {
-      console.error('Failed to load dashboard data:', e);
+      console.error('Failed to load web dashboard data:', e);
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -217,7 +188,6 @@ export default function ExecutiveUnifiedDashboard() {
     setIsExecutiveUnlocked(false);
     setExecutivePinInput('');
     setExecutivePinError('');
-    router.push('/employee/login');
   };
 
   // CRUD Handlers
@@ -457,10 +427,10 @@ export default function ExecutiveUnifiedDashboard() {
               <div className="font-black text-white text-sm tracking-tight leading-none flex items-center gap-2">
                 <span>YOKOHAMA • NAYA • COSMIS</span>
                 <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  EXECUTIVE PORTAL
+                  EXECUTIVE PORTAL (WEB)
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">ระบบควบคุมและศูนย์บัญชาการผู้บริหารระดับสูง</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">ระบบควบคุมและแดชบอร์ดสำหรับผู้บริหาร (Web Browser Version)</p>
             </div>
           </div>
 
@@ -481,10 +451,10 @@ export default function ExecutiveUnifiedDashboard() {
                 <span>Executive Authentication</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                เข้าสู่ระบบผู้บริหาร
+                เข้าสู่ระบบ Web Dashboard
               </h1>
               <p className="text-xs text-slate-400">
-                กรุณาระบุรหัสผู้บริหารและรหัส PIN เพื่อเข้าสู่แดชบอร์ด
+                กรุณาระบุรหัสผู้บริหารและรหัส PIN เพื่อเปิดแดชบอร์ดบนเบราว์เซอร์
               </p>
             </div>
 
@@ -559,7 +529,7 @@ export default function ExecutiveUnifiedDashboard() {
                 type="submit"
                 className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                <span>เข้าสู่ระบบผู้บริหาร (Sign In)</span>
+                <span>เข้าสู่ระบบแดชบอร์ด (Sign In)</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -567,1126 +537,738 @@ export default function ExecutiveUnifiedDashboard() {
         </main>
 
         <footer className="max-w-6xl mx-auto w-full text-center py-2 text-xs text-slate-500 z-10">
-          © YOKOHAMA • NAYA • COSMIS WHEELS & TIRES — Executive Workforce Suite
+          © YOKOHAMA • NAYA • COSMIS WHEELS & TIRES — Web Executive Dashboard
         </footer>
       </div>
     );
   }
 
   return (
-    <>
-      {/* ========================================================================= */}
-      {/* 1. DESKTOP / LAPTOP / WEB BROWSER DASHBOARD (Visible on md: and above)    */}
-      {/* ========================================================================= */}
-      <div className="hidden md:flex flex-col min-h-screen bg-[#f8fafc] text-slate-800 font-sans select-none w-full">
-        
-        {/* Top Navbar */}
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            
-            {/* Logo & Title */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/30 font-black text-xl">
-                👑
-              </div>
-              <div>
-                <div className="font-black text-slate-900 text-sm leading-tight flex items-center gap-2">
-                  <span>YOKOHAMA • NAYA • COSMIS</span>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-xs flex items-center gap-1">
-                    <Lock className="w-2.5 h-2.5" />
-                    SI01: EXECUTIVE
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-500 font-medium">ศูนย์บัญชาการผู้บริหารระดับสูง (Executive Management System)</div>
-              </div>
+    <div className="flex flex-col min-h-screen bg-[#f8fafc] text-slate-800 font-sans select-none w-full">
+      
+      {/* ------------------------------------------------------------- */}
+      {/* TOP HEADER BAR (Web Browser Desktop)                          */}
+      {/* ------------------------------------------------------------- */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          
+          {/* Logo & Title */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/30 font-black text-xl">
+              👑
             </div>
-
-            {/* Actions & Tools */}
-            <div className="flex items-center gap-2.5">
-              {/* Brand Pills */}
-              <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold">
-                <span className="px-2 py-0.5 rounded bg-red-600 text-white">YOKOHAMA</span>
-                <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-black">NAYA</span>
-                <span className="px-2 py-0.5 rounded bg-orange-600 text-white">COSMIS</span>
-                <span className="px-2 py-0.5 rounded bg-blue-600 text-white">LENSO</span>
-                <span className="px-2 py-0.5 rounded bg-black text-white">BRIDGESTONE</span>
+            <div>
+              <div className="font-black text-slate-900 text-sm leading-tight flex items-center gap-2">
+                <span>YOKOHAMA • NAYA • COSMIS</span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-xs flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  SI01: EXECUTIVE
+                </span>
               </div>
-
-              {/* 3D / 2D Switcher */}
-              <button
-                onClick={() => setIs3DMode(!is3DMode)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
-                  is3DMode
-                    ? 'bg-gradient-to-r from-blue-600 to-sky-500 text-white border-blue-400 shadow-sm'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <Box className="w-3.5 h-3.5" />
-                <span>{is3DMode ? '3D WebGL' : '2D Chart'}</span>
-              </button>
-
-              {/* Export CSV */}
-              <button
-                onClick={handleExportCSV}
-                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Export CSV</span>
-              </button>
-
-              {/* Live Reload */}
-              <button
-                onClick={() => loadDashboardData(false)}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
-                title="รีเฟรชข้อมูลล่าสุด"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
-              </button>
-
-              {/* Logout */}
-              <button
-                onClick={handleLogout}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 hover:border-rose-200 transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>ออกจากระบบ</span>
-              </button>
+              <div className="text-[11px] text-slate-500 font-medium">ศูนย์บัญชาการผู้บริหารระดับสูง (Web Browser Dashboard)</div>
             </div>
           </div>
-        </header>
 
-        {/* Real Storefront Hero Banner */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 w-full">
-          <div className="relative w-full h-36 sm:h-44 rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900">
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/90 via-slate-900/80 to-transparent flex items-center p-6 text-white">
-              <div className="space-y-1.5 max-w-2xl">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] tracking-wider uppercase shadow-xs">
-                    ★ Executive Master Portal
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> เข้างาน: {storeSettingsForm.standard_time?.substring(0, 5) || '07:40'} น.
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] flex items-center gap-1">
-                    <Clock3 className="w-3 h-3" /> ตัดสาย: {storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'} น.
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/80 text-white font-bold text-[10px]">
-                    +{storeSettingsForm.allowance_amount || 50}฿ เบี้ยขยัน
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-white font-bold text-[10px]">
-                    GPS Geofence {storeSettingsForm.radius_meters || 50}m
-                  </span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight drop-shadow-md">
-                  ศูนย์บัญชาการผู้บริหาร • {storeSettingsForm.store_name || 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS'}
-                </h2>
-                <p className="text-xs text-indigo-100 font-medium drop-shadow-sm">
-                  ระบบเชื่อมต่อฐานข้อมูล Supabase PostgreSQL แบบเรียลไทม์ ตรวจสอบการเข้างาน และอนุมัติใบลา
-                </p>
+          {/* Actions & Tools */}
+          <div className="flex items-center gap-2.5">
+            {/* Brand Pills */}
+            <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold">
+              <span className="px-2 py-0.5 rounded bg-red-600 text-white">YOKOHAMA</span>
+              <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-black">NAYA</span>
+              <span className="px-2 py-0.5 rounded bg-orange-600 text-white">COSMIS</span>
+              <span className="px-2 py-0.5 rounded bg-blue-600 text-white">LENSO</span>
+              <span className="px-2 py-0.5 rounded bg-black text-white">BRIDGESTONE</span>
+            </div>
+
+            {/* 3D / 2D Switcher */}
+            <button
+              onClick={() => setIs3DMode(!is3DMode)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
+                is3DMode
+                  ? 'bg-gradient-to-r from-blue-600 to-sky-500 text-white border-blue-400 shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <Box className="w-3.5 h-3.5" />
+              <span>{is3DMode ? '3D WebGL' : '2D Chart'}</span>
+            </button>
+
+            {/* Export CSV */}
+            <button
+              onClick={handleExportCSV}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export CSV</span>
+            </button>
+
+            {/* Live Reload */}
+            <button
+              onClick={() => loadDashboardData(false)}
+              className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+              title="รีเฟรชข้อมูลล่าสุด"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+            </button>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 hover:border-rose-200 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>ออกจากระบบ</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ------------------------------------------------------------- */}
+      {/* STOREFRONT HERO BANNER                                        */}
+      {/* ------------------------------------------------------------- */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 w-full">
+        <div className="relative w-full h-36 sm:h-44 rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/90 via-slate-900/80 to-transparent flex items-center p-6 text-white">
+            <div className="space-y-1.5 max-w-2xl">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] tracking-wider uppercase shadow-xs">
+                  ★ Executive Master Portal
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> เข้างาน: {storeSettingsForm.standard_time?.substring(0, 5) || '07:40'} น.
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] flex items-center gap-1">
+                  <Clock3 className="w-3 h-3" /> ตัดสาย: {storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'} น.
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/80 text-white font-bold text-[10px]">
+                  +{storeSettingsForm.allowance_amount || 50}฿ เบี้ยขยัน
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-white font-bold text-[10px]">
+                  GPS Geofence {storeSettingsForm.radius_meters || 50}m
+                </span>
               </div>
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight drop-shadow-md">
+                ศูนย์บัญชาการผู้บริหาร • {storeSettingsForm.store_name || 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS'}
+              </h2>
+              <p className="text-xs text-indigo-100 font-medium drop-shadow-sm">
+                ระบบเชื่อมต่อฐานข้อมูล Supabase PostgreSQL แบบเรียลไทม์ ตรวจสอบการเข้างาน และอนุมัติใบลา
+              </p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Main Content Area */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-6 flex-1">
-          
-          {/* Navigation Tabs */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-              {[
-                { id: 'overview', label: '📈 ภาพรวม & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
-                { id: 'employees', label: '👥 จัดการพนักงาน', icon: Users, color: 'bg-sky-500' },
-                { id: 'leaves', label: '📅 อนุมัติใบลา', icon: Calendar, badge: pendingLeavesCount, color: 'bg-amber-500' },
-                { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: violationLogs.length, color: 'bg-red-500' },
-                { id: 'settings', label: '⚙️ ตั้งค่าระบบ', icon: Settings, color: 'bg-slate-700' },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setDesktopTab(tab.id as any)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 ${
-                      desktopTab === tab.id
-                        ? `${tab.color} text-white shadow-md`
-                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{tab.label}</span>
-                    {tab.badge !== undefined && tab.badge > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-900">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Period Selector */}
-            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
-              {(['daily', 'weekly', 'monthly'] as const).map((p) => (
+      {/* ------------------------------------------------------------- */}
+      {/* MAIN CONTENT AREA                                             */}
+      {/* ------------------------------------------------------------- */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-6 flex-1">
+        
+        {/* Navigation Tabs */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            {[
+              { id: 'overview', label: '📈 ภาพรวม & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
+              { id: 'employees', label: '👥 จัดการพนักงาน', icon: Users, color: 'bg-sky-500' },
+              { id: 'leaves', label: '📅 อนุมัติใบลา', icon: Calendar, badge: pendingLeavesCount, color: 'bg-amber-500' },
+              { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: violationLogs.length, color: 'bg-red-500' },
+              { id: 'settings', label: '⚙️ ตั้งค่าระบบ', icon: Settings, color: 'bg-slate-700' },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
                 <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    period === p
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                    activeTab === tab.id
+                      ? `${tab.color} text-white shadow-md`
+                      : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
                   }`}
                 >
-                  {p === 'daily' ? 'รายวัน' : p === 'weekly' ? 'รายสัปดาห์' : 'รายเดือน'}
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-900">
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {/* TAB 1: OVERVIEW */}
-          {desktopTab === 'overview' && (
-            <div className="space-y-6">
-              {/* 3 Top Hero Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
-                {/* Allowance Total */}
-                <div className="bg-gradient-to-br from-amber-500 to-yellow-400 text-slate-950 p-6 rounded-3xl shadow-lg shadow-amber-500/20 flex flex-col justify-between space-y-2 border border-amber-300">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-900/80">
-                    <span className="flex items-center gap-1.5">
-                      <Coins className="w-4 h-4 text-slate-950" />
-                      ยอดจ่ายเบี้ยขยันวันนี้
-                    </span>
-                    <span className="bg-slate-950/15 px-2 py-0.5 rounded-full font-black text-[10px]">
-                      +{storeSettingsForm.allowance_amount || 50}฿ / คน
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-4xl font-black tracking-tight font-mono">
-                      {totalAllowancePaid} <span className="text-lg font-bold font-sans">บาท</span>
-                    </div>
-                    <div className="text-xs font-bold text-slate-900/80 mt-1">
-                      สะสม {totalPresent} คน (ตรงเวลา 100%)
-                    </div>
-                  </div>
-                  <div className="text-[11px] font-black bg-slate-950 text-amber-300 px-3 py-1 rounded-xl w-fit shadow-xs">
-                    💰 จ่ายเบี้ยขยันตรงเวลาครบถ้วน
-                  </div>
-                </div>
+          {/* Period Selector */}
+          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+            {(['daily', 'weekly', 'monthly'] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  period === p
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {p === 'daily' ? 'รายวัน' : p === 'weekly' ? 'รายสัปดาห์' : 'รายเดือน'}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                {/* Big Headcount */}
-                <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-6 rounded-3xl shadow-lg shadow-blue-500/25 flex flex-col justify-between items-center text-center space-y-3 border border-blue-400/30 relative overflow-hidden">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-blue-100">
-                    <Users className="w-4 h-4 text-blue-200" />
-                    <span>สรุปพนักงานปฏิบัติการวันนี้</span>
-                  </div>
-                  <div className="my-auto space-y-0.5">
-                    <div className="text-5xl sm:text-6xl font-black tracking-tight font-mono drop-shadow-md">
-                      {totalPresent + totalLate} <span className="text-2xl font-bold font-sans">/ {totalEmployees} คน</span>
-                    </div>
-                    <div className="text-xs font-bold text-blue-100">
-                      พนักงานเข้างานจริงในระบบ
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 w-full pt-2 border-t border-blue-400/30 text-[11px] font-bold">
-                    <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
-                      <div className="text-emerald-300 font-mono font-black text-sm">{totalPresent}</div>
-                      <div className="text-blue-200 text-[10px]">ตรงเวลา</div>
-                    </div>
-                    <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
-                      <div className="text-amber-300 font-mono font-black text-sm">{totalLate}</div>
-                      <div className="text-blue-200 text-[10px]">มาสาย</div>
-                    </div>
-                    <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
-                      <div className="text-slate-300 font-mono font-black text-sm">{pendingCount}</div>
-                      <div className="text-blue-200 text-[10px]">ยังไม่ลงเวลา</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Punctuality Rate */}
-                <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white p-6 rounded-3xl shadow-lg shadow-emerald-500/25 flex flex-col justify-between space-y-2 border border-emerald-400/30">
-                  <div className="flex items-center justify-between text-xs font-bold text-emerald-100">
-                    <span className="flex items-center gap-1.5">
-                      <TrendingUp className="w-4 h-4 text-emerald-200" />
-                      อัตราความตรงต่อเวลา
-                    </span>
-                    <span className="bg-emerald-950/40 px-2 py-0.5 rounded-full font-black text-[10px] text-emerald-200 border border-emerald-400/20">
-                      เป้าหมาย {'>'} 90%
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-4xl font-black tracking-tight font-mono">
-                      {onTimePercent}%
-                    </div>
-                    <div className="text-xs font-bold text-emerald-100 mt-1">
-                      {onTimePercent >= 90 ? 'ยอดเยี่ยม! ตรงตามเป้าหมาย' : 'กำลังปรับปรุงความตรงต่อเวลา'}
-                    </div>
-                  </div>
-                  <div className="w-full bg-emerald-950/50 h-2.5 rounded-full overflow-hidden border border-emerald-400/20">
-                    <div
-                      className="bg-amber-400 h-full rounded-full transition-all duration-1000"
-                      style={{ width: `${Math.max(onTimePercent, 5)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Staff Attendance Table */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                      <UserCheck className="w-5 h-5 text-blue-600" />
-                      <span>รายชื่อพนักงานเข้างานวันนี้ (Staff Check-in List)</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                      เวลาเช็คอินจริง, เบี้ยขยันสะสม, และสถานะการลงเวลา
-                    </p>
-                  </div>
-
-                  {/* Filter & Search */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="ค้นหาชื่อ / รหัส..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-blue-500 w-36 sm:w-48 font-medium"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-                      {(['all', 'present', 'late', 'pending'] as const).map((f) => (
-                        <button
-                          key={f}
-                          onClick={() => setStatusFilter(f)}
-                          className={`px-2.5 py-1 rounded-lg transition-all text-[11px] ${
-                            statusFilter === f
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          {f === 'all' ? 'ทั้งหมด' : f === 'present' ? 'ตรงเวลา' : f === 'late' ? 'มาสาย' : 'ยังไม่ลงเวลา'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {filteredStaff.length === 0 ? (
-                  <div className="py-12 px-4 text-center space-y-2 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                    <Users className="w-8 h-8 text-slate-400 mx-auto" />
-                    <p className="text-xs text-slate-500 font-bold">ไม่พบข้อมูลพนักงานในเงื่อนไขนี้</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                          <th className="py-2.5 px-3">พนักงาน</th>
-                          <th className="py-2.5 px-3">รหัสพนักงาน</th>
-                          <th className="py-2.5 px-3">ตำแหน่ง / แผนก</th>
-                          <th className="py-2.5 px-3">เวลาเช็คอิน</th>
-                          <th className="py-2.5 px-3">สถานะวันนี้</th>
-                          <th className="py-2.5 px-3">เบี้ยขยันสะสม</th>
-                          <th className="py-2.5 px-3 text-right">ระยะห่างร้าน</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {filteredStaff.map((emp: StaffItem) => (
-                          <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="py-3 px-3">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black flex items-center justify-center text-xs border border-blue-200">
-                                  {emp.nickname[0] || 'E'}
-                                </div>
-                                <div>
-                                  <div className="font-bold text-slate-900">{emp.name}</div>
-                                  <div className="text-[10px] text-slate-500">ชื่อเล่น: {emp.nickname}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
-                            <td className="py-3 px-3">
-                              <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-slate-100 text-slate-700">
-                                {emp.role}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkInTimeStr}</td>
-                            <td className="py-3 px-3">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${emp.badgeColor}`}>
-                                {emp.statusLabel}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className={`font-mono font-black text-xs ${emp.allowance > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-                                {emp.allowance > 0 ? `+${emp.allowance} บาท` : '0 บาท'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 text-right text-slate-700 font-mono font-bold text-[11px]">{emp.distanceStr}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* 3D / 2D Chart */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4 text-blue-600" />
-                      <span>{is3DMode ? 'กราฟแท่ง 3 มิติ (Weekly Attendance 3D)' : 'สถิติการเข้างานประจำสัปดาห์'}</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                      จำนวนพนักงานที่เข้างานตรงเวลาในแต่ละวัน
-                    </p>
-                  </div>
-                  <span className="text-white bg-blue-600 px-3 py-1 rounded-full font-black text-[11px] shadow-xs flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-yellow-300" />
-                    <span>{is3DMode ? '3D WebGL Mode' : '2D Chart Mode'}</span>
+        {/* TAB 1: OVERVIEW */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* 3 Top Hero Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+              {/* Allowance Total */}
+              <div className="bg-gradient-to-br from-amber-500 to-yellow-400 text-slate-950 p-6 rounded-3xl shadow-lg shadow-amber-500/20 flex flex-col justify-between space-y-2 border border-amber-300">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-900/80">
+                  <span className="flex items-center gap-1.5">
+                    <Coins className="w-4 h-4 text-slate-950" />
+                    ยอดจ่ายเบี้ยขยันวันนี้
+                  </span>
+                  <span className="bg-slate-950/15 px-2 py-0.5 rounded-full font-black text-[10px]">
+                    +{storeSettingsForm.allowance_amount || 50}฿ / คน
                   </span>
                 </div>
-
-                {is3DMode ? (
-                  <ThreeBarChart3D data={weeklyData} />
-                ) : (
-                  <div className="h-64 w-full pt-4 flex items-end justify-between gap-3 border-b border-slate-100 pb-2">
-                    {weeklyData.map((item: any, idx: number) => {
-                      const maxOntime = Math.max(...weeklyData.map((w: any) => w.ontime), 1);
-                      const barHeight = item.ontime > 0 ? (item.ontime / maxOntime) * 100 : 0;
-                      return (
-                        <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-                          <div className="w-full max-w-[32px] bg-slate-100 rounded-xl overflow-hidden h-full flex flex-col justify-end">
-                            <div
-                              style={{ height: `${barHeight}%` }}
-                              className={`w-full rounded-xl transition-all duration-500 ${item.ontime > 0 ? 'bg-blue-600' : 'bg-transparent'}`}
-                            />
-                          </div>
-                          <span className="text-[11px] font-bold text-slate-600">{item.day}</span>
-                        </div>
-                      );
-                    })}
+                <div>
+                  <div className="text-4xl font-black tracking-tight font-mono">
+                    {totalAllowancePaid} <span className="text-lg font-bold font-sans">บาท</span>
                   </div>
-                )}
+                  <div className="text-xs font-bold text-slate-900/80 mt-1">
+                    สะสม {totalPresent} คน (ตรงเวลา 100%)
+                  </div>
+                </div>
+                <div className="text-[11px] font-black bg-slate-950 text-amber-300 px-3 py-1 rounded-xl w-fit shadow-xs">
+                  💰 จ่ายเบี้ยขยันตรงเวลาครบถ้วน
+                </div>
+              </div>
+
+              {/* Big Headcount */}
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-6 rounded-3xl shadow-lg shadow-blue-500/25 flex flex-col justify-between items-center text-center space-y-3 border border-blue-400/30 relative overflow-hidden">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-100">
+                  <Users className="w-4 h-4 text-blue-200" />
+                  <span>สรุปพนักงานปฏิบัติการวันนี้</span>
+                </div>
+                <div className="my-auto space-y-0.5">
+                  <div className="text-5xl sm:text-6xl font-black tracking-tight font-mono drop-shadow-md">
+                    {totalPresent + totalLate} <span className="text-2xl font-bold font-sans">/ {totalEmployees} คน</span>
+                  </div>
+                  <div className="text-xs font-bold text-blue-100">
+                    พนักงานเข้างานจริงในระบบ
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 w-full pt-2 border-t border-blue-400/30 text-[11px] font-bold">
+                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
+                    <div className="text-emerald-300 font-mono font-black text-sm">{totalPresent}</div>
+                    <div className="text-blue-200 text-[10px]">ตรงเวลา</div>
+                  </div>
+                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
+                    <div className="text-amber-300 font-mono font-black text-sm">{totalLate}</div>
+                    <div className="text-blue-200 text-[10px]">มาสาย</div>
+                  </div>
+                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
+                    <div className="text-slate-300 font-mono font-black text-sm">{pendingCount}</div>
+                    <div className="text-blue-200 text-[10px]">ยังไม่ลงเวลา</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Punctuality Rate */}
+              <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white p-6 rounded-3xl shadow-lg shadow-emerald-500/25 flex flex-col justify-between space-y-2 border border-emerald-400/30">
+                <div className="flex items-center justify-between text-xs font-bold text-emerald-100">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingUp className="w-4 h-4 text-emerald-200" />
+                    อัตราความตรงต่อเวลา
+                  </span>
+                  <span className="bg-emerald-950/40 px-2 py-0.5 rounded-full font-black text-[10px] text-emerald-200 border border-emerald-400/20">
+                    เป้าหมาย {'>'} 90%
+                  </span>
+                </div>
+                <div>
+                  <div className="text-4xl font-black tracking-tight font-mono">
+                    {onTimePercent}%
+                  </div>
+                  <div className="text-xs font-bold text-emerald-100 mt-1">
+                    {onTimePercent >= 90 ? 'ยอดเยี่ยม! ตรงตามเป้าหมาย' : 'กำลังปรับปรุงความตรงต่อเวลา'}
+                  </div>
+                </div>
+                <div className="w-full bg-emerald-950/50 h-2.5 rounded-full overflow-hidden border border-emerald-400/20">
+                  <div
+                    className="bg-amber-400 h-full rounded-full transition-all duration-1000"
+                    style={{ width: `${Math.max(onTimePercent, 5)}%` }}
+                  />
+                </div>
               </div>
             </div>
-          )}
 
-          {/* TAB 2: EMPLOYEES */}
-          {desktopTab === 'employees' && (
+            {/* Staff Attendance Table */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-600" />
-                    <span>จัดการบัญชีพนักงาน (Staff Management)</span>
+                    <UserCheck className="w-5 h-5 text-blue-600" />
+                    <span>รายชื่อพนักงานเข้างานวันนี้ (Staff Check-in List)</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                    เพิ่ม, ลบ, หรือปลดล็อกอุปกรณ์ประจำตัวพนักงาน (Reset HWID)
+                    เวลาเช็คอินจริง, เบี้ยขยันสะสม, และสถานะการลงเวลา
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>+ เพิ่มพนักงานใหม่</span>
-                </button>
+                {/* Filter & Search */}
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="ค้นหาชื่อ / รหัส..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-blue-500 w-36 sm:w-48 font-medium"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                    {(['all', 'present', 'late', 'pending'] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setStatusFilter(f)}
+                        className={`px-2.5 py-1 rounded-lg transition-all text-[11px] ${
+                          statusFilter === f
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        {f === 'all' ? 'ทั้งหมด' : f === 'present' ? 'ตรงเวลา' : f === 'late' ? 'มาสาย' : 'ยังไม่ลงเวลา'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
+              {filteredStaff.length === 0 ? (
+                <div className="py-12 px-4 text-center space-y-2 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <Users className="w-8 h-8 text-slate-400 mx-auto" />
+                  <p className="text-xs text-slate-500 font-bold">ไม่พบข้อมูลพนักงานในเงื่อนไขนี้</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-bold">
+                        <th className="py-2.5 px-3">พนักงาน</th>
+                        <th className="py-2.5 px-3">รหัสพนักงาน</th>
+                        <th className="py-2.5 px-3">ตำแหน่ง / แผนก</th>
+                        <th className="py-2.5 px-3">เวลาเช็คอิน</th>
+                        <th className="py-2.5 px-3">สถานะวันนี้</th>
+                        <th className="py-2.5 px-3">เบี้ยขยันสะสม</th>
+                        <th className="py-2.5 px-3 text-right">ระยะห่างร้าน</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredStaff.map((emp: StaffItem) => (
+                        <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black flex items-center justify-center text-xs border border-blue-200">
+                                {emp.nickname[0] || 'E'}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-900">{emp.name}</div>
+                                <div className="text-[10px] text-slate-500">ชื่อเล่น: {emp.nickname}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-slate-100 text-slate-700">
+                              {emp.role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkInTimeStr}</td>
+                          <td className="py-3 px-3">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${emp.badgeColor}`}>
+                              {emp.statusLabel}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`font-mono font-black text-xs ${emp.allowance > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                              {emp.allowance > 0 ? `+${emp.allowance} บาท` : '0 บาท'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right text-slate-700 font-mono font-bold text-[11px]">{emp.distanceStr}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* 3D / 2D Chart */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-blue-600" />
+                    <span>{is3DMode ? 'กราฟแท่ง 3 มิติ (Weekly Attendance 3D)' : 'สถิติการเข้างานประจำสัปดาห์'}</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                    จำนวนพนักงานที่เข้างานตรงเวลาในแต่ละวัน
+                  </p>
+                </div>
+                <span className="text-white bg-blue-600 px-3 py-1 rounded-full font-black text-[11px] shadow-xs flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-yellow-300" />
+                  <span>{is3DMode ? '3D WebGL Mode' : '2D Chart Mode'}</span>
+                </span>
+              </div>
+
+              {is3DMode ? (
+                <ThreeBarChart3D data={weeklyData} />
+              ) : (
+                <div className="h-64 w-full pt-4 flex items-end justify-between gap-3 border-b border-slate-100 pb-2">
+                  {weeklyData.map((item: any, idx: number) => {
+                    const maxOntime = Math.max(...weeklyData.map((w: any) => w.ontime), 1);
+                    const barHeight = item.ontime > 0 ? (item.ontime / maxOntime) * 100 : 0;
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                        <div className="w-full max-w-[32px] bg-slate-100 rounded-xl overflow-hidden h-full flex flex-col justify-end">
+                          <div
+                            style={{ height: `${barHeight}%` }}
+                            className={`w-full rounded-xl transition-all duration-500 ${item.ontime > 0 ? 'bg-blue-600' : 'bg-transparent'}`}
+                          />
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-600">{item.day}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: EMPLOYEES */}
+        {activeTab === 'employees' && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <span>จัดการบัญชีพนักงาน (Staff Management)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  เพิ่ม, ลบ, หรือปลดล็อกอุปกรณ์ประจำตัวพนักงาน (Reset HWID)
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ เพิ่มพนักงานใหม่</span>
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 font-bold">
+                    <th className="py-2.5 px-3">พนักงาน</th>
+                    <th className="py-2.5 px-3">รหัสพนักงาน</th>
+                    <th className="py-2.5 px-3">ตำแหน่ง</th>
+                    <th className="py-2.5 px-3">อุปกรณ์ประจำตัว (HWID)</th>
+                    <th className="py-2.5 px-3 text-right">การดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {formattedStaff.map((emp: StaffItem) => (
+                    <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">{emp.name} ({emp.nickname})</div>
+                      </td>
+                      <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
+                      <td className="py-3 px-3">
+                        <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
+                          {emp.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        {emp.hwid ? (
+                          <span className="font-mono text-[11px] text-emerald-600 font-bold">✓ ผูกเครื่องแล้ว</span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 font-medium">ยังไม่ผูกอุปกรณ์</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-right space-x-2">
+                        <button
+                          onClick={() => handleResetHWID(emp.id, emp.name)}
+                          className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-[11px] transition-colors"
+                        >
+                          Reset HWID
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-[11px] transition-colors"
+                        >
+                          ลบบัญชี
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: LEAVES */}
+        {activeTab === 'leaves' && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div>
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-amber-500" />
+                <span>รายการขออนุมัติลางาน ({leaveRequests.length} รายการ)</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                พิจารณาคำขอลางานของพนักงาน
+              </p>
+            </div>
+
+            {leaveRequests.length === 0 ? (
+              <div className="py-12 px-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
+                ไม่มีรายการขอลางานในขณะนี้
+              </div>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-400 font-bold">
                       <th className="py-2.5 px-3">พนักงาน</th>
-                      <th className="py-2.5 px-3">รหัสพนักงาน</th>
-                      <th className="py-2.5 px-3">ตำแหน่ง</th>
-                      <th className="py-2.5 px-3">อุปกรณ์ประจำตัว (HWID)</th>
-                      <th className="py-2.5 px-3 text-right">การดำเนินการ</th>
+                      <th className="py-2.5 px-3">ประเภทการลา</th>
+                      <th className="py-2.5 px-3">วันที่ลา</th>
+                      <th className="py-2.5 px-3">เหตุผล</th>
+                      <th className="py-2.5 px-3">สถานะ</th>
+                      <th className="py-2.5 px-3 text-right">การอนุมัติ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {formattedStaff.map((emp: StaffItem) => (
-                      <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-3">
-                          <div className="font-bold text-slate-900">{emp.name} ({emp.nickname})</div>
+                    {leaveRequests.map((req: any) => (
+                      <tr key={req.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-3 font-bold text-slate-900">
+                          {req.employees?.full_name || req.employees?.employee_code || 'พนักงาน'}
                         </td>
-                        <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
+                        <td className="py-3 px-3">{req.leave_type}</td>
+                        <td className="py-3 px-3 font-mono">{req.start_date} {req.end_date ? `ถึง ${req.end_date}` : ''}</td>
+                        <td className="py-3 px-3 text-slate-600">{req.reason || '-'}</td>
                         <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
-                            {emp.role}
+                          <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                            req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : req.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {req.status === 'APPROVED' ? 'อนุมัติแล้ว' : req.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'}
                           </span>
                         </td>
-                        <td className="py-3 px-3">
-                          {emp.hwid ? (
-                            <span className="font-mono text-[11px] text-emerald-600 font-bold">✓ ผูกเครื่องแล้ว</span>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 font-medium">ยังไม่ผูกอุปกรณ์</span>
-                          )}
-                        </td>
                         <td className="py-3 px-3 text-right space-x-2">
-                          <button
-                            onClick={() => handleResetHWID(emp.id, emp.name)}
-                            className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-[11px] transition-colors"
-                          >
-                            Reset HWID
-                          </button>
-                          <button
-                            onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
-                            className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-[11px] transition-colors"
-                          >
-                            ลบบัญชี
-                          </button>
+                          {req.status === 'PENDING' && (
+                            <>
+                              <button
+                                onClick={() => handleLeaveAction(req.id, 'APPROVED')}
+                                className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px]"
+                              >
+                                อนุมัติ
+                              </button>
+                              <button
+                                onClick={() => handleLeaveAction(req.id, 'REJECTED')}
+                                className="px-3 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px]"
+                              >
+                                ปฏิเสธ
+                              </button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
-          {/* TAB 3: LEAVES */}
-          {desktopTab === 'leaves' && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div>
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-amber-500" />
-                  <span>รายการขออนุมัติลางาน ({leaveRequests.length} รายการ)</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                  พิจารณาคำขอลางานของพนักงาน
-                </p>
-              </div>
-
-              {leaveRequests.length === 0 ? (
-                <div className="py-12 px-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
-                  ไม่มีรายการขอลางานในขณะนี้
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                        <th className="py-2.5 px-3">พนักงาน</th>
-                        <th className="py-2.5 px-3">ประเภทการลา</th>
-                        <th className="py-2.5 px-3">วันที่ลา</th>
-                        <th className="py-2.5 px-3">เหตุผล</th>
-                        <th className="py-2.5 px-3">สถานะ</th>
-                        <th className="py-2.5 px-3 text-right">การอนุมัติ</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {leaveRequests.map((req: any) => (
-                        <tr key={req.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-3 font-bold text-slate-900">
-                            {req.employees?.full_name || req.employees?.employee_code || 'พนักงาน'}
-                          </td>
-                          <td className="py-3 px-3">{req.leave_type}</td>
-                          <td className="py-3 px-3 font-mono">{req.start_date} {req.end_date ? `ถึง ${req.end_date}` : ''}</td>
-                          <td className="py-3 px-3 text-slate-600">{req.reason || '-'}</td>
-                          <td className="py-3 px-3">
-                            <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
-                              req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : req.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {req.status === 'APPROVED' ? 'อนุมัติแล้ว' : req.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-right space-x-2">
-                            {req.status === 'PENDING' && (
-                              <>
-                                <button
-                                  onClick={() => handleLeaveAction(req.id, 'APPROVED')}
-                                  className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px]"
-                                >
-                                  อนุมัติ
-                                </button>
-                                <button
-                                  onClick={() => handleLeaveAction(req.id, 'REJECTED')}
-                                  className="px-3 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px]"
-                                >
-                                  ปฏิเสธ
-                                </button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 4: VIOLATIONS */}
-          {desktopTab === 'violations' && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-              <div>
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-rose-500" />
-                  <span>บันทึกความปลอดภัย & ป้องกันทุจริต (Security Logs)</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                  ตรวจจับการใช้ Fake GPS, Mock Location, หรือการพยายามเช็คอินนอกพื้นที่
-                </p>
-              </div>
-
-              {violationLogs.length === 0 ? (
-                <div className="py-12 px-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
-                  ✓ ไม่พบประวัติความผิดปกติ ทุกอย่างปลอดภัย 100%
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                        <th className="py-2.5 px-3">เวลาที่เกิดเหตุ</th>
-                        <th className="py-2.5 px-3">พนักงาน</th>
-                        <th className="py-2.5 px-3">ประเภทความผิดปกติ</th>
-                        <th className="py-2.5 px-3">รายละเอียด</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {violationLogs.map((v: any) => (
-                        <tr key={v.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-3 font-mono text-slate-500">
-                            {new Date(v.created_at).toLocaleString('th-TH')}
-                          </td>
-                          <td className="py-3 px-3 font-bold text-slate-900">
-                            {v.employees?.full_name || v.employees?.employee_code || '-'}
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-rose-100 text-rose-700">
-                              {v.violation_type}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-slate-600">{v.details || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 5: SETTINGS */}
-          {desktopTab === 'settings' && (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-              <div>
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-slate-700" />
-                  <span>ตั้งค่าพิกัดร้าน & นโยบายลงเวลา (GPS Geofence Policy)</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                  กำหนดพิกัดร้าน, รัศมีลงเวลา, เวลาเข้างาน, และจำนวนเงินเบี้ยขยัน
-                </p>
-              </div>
-
-              {settingsMsg && (
-                <div className={`p-3.5 rounded-2xl text-xs font-bold ${
-                  settingsMsg.includes('เรียบร้อย')
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                    : 'bg-rose-50 border border-rose-200 text-rose-800'
-                }`}>
-                  {settingsMsg}
-                </div>
-              )}
-
-              <form onSubmit={handleSaveSettings} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">ชื่อร้าน / สาขา</label>
-                    <input
-                      type="text"
-                      value={storeSettingsForm.store_name}
-                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_name: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">เวลากะปกติ</label>
-                      <input
-                        type="text"
-                        value={storeSettingsForm.standard_time}
-                        onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">ตัดสาย (Deadline)</label>
-                      <input
-                        type="text"
-                        value={storeSettingsForm.late_deadline}
-                        onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">รัศมีเช็คอิน (เมตร)</label>
-                    <input
-                      type="number"
-                      value={storeSettingsForm.radius_meters}
-                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: Number(e.target.value) })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">เบี้ยขยัน (บาท/วัน)</label>
-                    <input
-                      type="number"
-                      value={storeSettingsForm.allowance_amount}
-                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Map Picker */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">เลือกพิกัดร้านบนแผนที่ (Leaflet Map Picker)</label>
-                  <StoreMapPicker
-                    lat={Number(storeSettingsForm.store_lat) || 15.110412}
-                    lng={Number(storeSettingsForm.store_lng) || 104.358434}
-                    radius={Number(storeSettingsForm.radius_meters) || 50}
-                    storeName={storeSettingsForm.store_name}
-                    onChange={(lat, lng) => {
-                      setStoreSettingsForm((prev: any) => ({
-                        ...prev,
-                        store_lat: lat,
-                        store_lng: lng
-                      }));
-                    }}
-                    onRadiusChange={(r) => {
-                      setStoreSettingsForm((prev: any) => ({
-                        ...prev,
-                        radius_meters: r
-                      }));
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={settingsLoading}
-                  className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all active:scale-98 flex items-center gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>{settingsLoading ? 'กำลังบันทึกลง Supabase...' : 'บันทึกการตั้งค่านโยบายและพิกัดร้าน'}</span>
-                </button>
-              </form>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* 2. MOBILE EXECUTIVE APP VIEW (Visible on mobile < md)                     */}
-      {/* ========================================================================= */}
-      <div className="md:hidden min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-24">
-        
-        {/* Main Content Container */}
-        <div className="flex-1 px-4 pt-4 space-y-4 max-w-lg mx-auto w-full">
-          
-          {/* Blue Gradient Hero Card (Clean Style matching Employee App) */}
-          <div className="bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#1e40af] rounded-3xl p-5 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            
-            <div className="flex items-center justify-between text-xs text-blue-100 font-medium mb-2">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block shadow-xs shadow-emerald-400/50" />
-                <span>{timeStr.dateThai}</span>
-              </div>
-              <span className="font-mono font-bold bg-blue-900/40 px-2.5 py-0.5 rounded-lg border border-blue-400/20">
-                {timeStr.time} น.
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between my-2">
-              <div>
-                <div className="text-[11px] text-blue-200 font-semibold">สรุปพนักงานวันนี้</div>
-                <div className="text-3xl font-black font-mono tracking-tight">
-                  {totalPresent + totalLate} <span className="text-base font-normal text-blue-100">/ {totalEmployees} คน</span>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <div className="text-[11px] text-blue-200 font-semibold">ยอดจ่ายเบี้ยขยันวันนี้</div>
-                <div className="text-2xl font-black font-mono text-amber-300">
-                  +{totalAllowancePaid} <span className="text-xs text-amber-200 font-normal">บาท</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 3 Pillar Summary Badges */}
-            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-blue-400/25 text-center text-xs">
-              <div className="bg-blue-900/40 rounded-xl p-2 border border-blue-400/20">
-                <div className="font-black text-sm font-mono text-emerald-300">{totalPresent}</div>
-                <div className="text-[10px] text-blue-200 font-medium">ตรงเวลา</div>
-              </div>
-              <div className="bg-blue-900/40 rounded-xl p-2 border border-blue-400/20">
-                <div className="font-black text-sm font-mono text-amber-300">{totalLate}</div>
-                <div className="text-[10px] text-blue-200 font-medium">มาสาย</div>
-              </div>
-              <div className="bg-blue-900/40 rounded-xl p-2 border border-blue-400/20">
-                <div className="font-black text-sm font-mono text-slate-300">{pendingCount}</div>
-                <div className="text-[10px] text-blue-200 font-medium">ยังไม่ลงเวลา</div>
-              </div>
-            </div>
+            )}
           </div>
+        )}
 
-          {/* MOBILE TAB 1: OVERVIEW */}
-          {mobileTab === 'overview' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-                  <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-1">
-                    <span>ความตรงต่อเวลา</span>
-                    <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <div className="text-2xl font-black font-mono text-slate-900">{onTimePercent}%</div>
-                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    {onTimePercent >= 90 ? 'ตรงเป้าหมาย' : 'ต่ำกว่าเป้าหมาย'}
-                  </div>
-                </div>
-
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-                  <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-1">
-                    <span>คำขอลาที่รออนุมัติ</span>
-                    <Calendar className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <div className="text-2xl font-black font-mono text-slate-900">{pendingLeavesCount}</div>
-                  <div className="text-[10px] text-slate-400 font-medium mt-0.5">รอผู้บริหารพิจารณา</div>
-                </div>
-              </div>
-
-              {/* Staff List */}
-              <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-black text-slate-900">สถานะการเข้างานของลูกน้อง</span>
-                  </div>
-                  <button
-                    onClick={() => setMobileTab('staff')}
-                    className="text-xs text-blue-600 font-bold hover:underline"
-                  >
-                    ดูทั้งหมด ({formattedStaff.length}) →
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {formattedStaff.map((emp: StaffItem) => (
-                    <div
-                      key={emp.id}
-                      className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-black text-xs flex items-center justify-center">
-                          {emp.nickname[0] || 'U'}
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-900">
-                            {emp.name} ({emp.nickname})
-                          </div>
-                          <div className="text-[10px] text-slate-400 font-mono">
-                            {emp.code}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          emp.status === 'PRESENT'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : emp.status === 'LATE'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-slate-200 text-slate-600'
-                        }`}>
-                          {emp.statusLabel}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick CSV Export */}
-              <button
-                onClick={handleExportCSV}
-                className="w-full py-3.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-xs flex items-center justify-center gap-2"
-              >
-                <Download className="w-4 h-4 text-emerald-600" />
-                <span>ดาวน์โหลดรายงานสรุปการทำงาน (Excel / CSV)</span>
-              </button>
+        {/* TAB 4: VIOLATIONS */}
+        {activeTab === 'violations' && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div>
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-rose-500" />
+                <span>บันทึกความปลอดภัย & ป้องกันทุจริต (Security Logs)</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                ตรวจจับการใช้ Fake GPS, Mock Location, หรือการพยายามเช็คอินนอกพื้นที่
+              </p>
             </div>
-          )}
 
-          {/* MOBILE TAB 2: STAFF */}
-          {mobileTab === 'staff' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-black text-sm text-slate-900">รายชื่อลูกน้อง ({formattedStaff.length} คน)</h3>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-1 shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>เพิ่มพนักงาน</span>
-                </button>
+            {violationLogs.length === 0 ? (
+              <div className="py-12 px-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
+                ✓ ไม่พบประวัติความผิดปกติ ทุกอย่างปลอดภัย 100%
               </div>
-
-              <div className="space-y-2">
-                {formattedStaff.map((emp: StaffItem) => (
-                  <div key={emp.id} className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-xs flex items-center justify-center">
-                          {emp.nickname[0] || 'U'}
-                        </div>
-                        <div>
-                          <div className="font-bold text-xs text-slate-900">{emp.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{emp.code} • {emp.nickname}</div>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
-                        {emp.role}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                      <div className="text-[10px] text-slate-500">
-                        อุปกรณ์: {emp.hwid ? <span className="text-emerald-600 font-bold">ผูกแล้ว</span> : 'ยังไม่ผูก'}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleResetHWID(emp.id, emp.name)}
-                          className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold"
-                        >
-                          Reset HWID
-                        </button>
-                        <button
-                          onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
-                          className="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-bold"
-                        >
-                          ลบ
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 font-bold">
+                      <th className="py-2.5 px-3">เวลาที่เกิดเหตุ</th>
+                      <th className="py-2.5 px-3">พนักงาน</th>
+                      <th className="py-2.5 px-3">ประเภทความผิดปกติ</th>
+                      <th className="py-2.5 px-3">รายละเอียด</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {violationLogs.map((v: any) => (
+                      <tr key={v.id} className="hover:bg-slate-50">
+                        <td className="py-3 px-3 font-mono text-slate-500">
+                          {new Date(v.created_at).toLocaleString('th-TH')}
+                        </td>
+                        <td className="py-3 px-3 font-bold text-slate-900">
+                          {v.employees?.full_name || v.employees?.employee_code || '-'}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-rose-100 text-rose-700">
+                            {v.violation_type}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-slate-600">{v.details || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* MOBILE TAB 3: LEAVES */}
-          {mobileTab === 'leaves' && (
-            <div className="space-y-3">
-              <h3 className="font-black text-sm text-slate-900">คำขอลางาน ({leaveRequests.length})</h3>
-              {leaveRequests.length === 0 ? (
-                <div className="p-8 text-center bg-white rounded-2xl border border-slate-100 text-slate-400 text-xs font-bold">
-                  ไม่มีรายการขอลางานในขณะนี้
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {leaveRequests.map((req: any) => (
-                    <div key={req.id} className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-900">
-                          {req.employees?.full_name || req.employees?.employee_code || 'พนักงาน'}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-100 text-amber-800">
-                          {req.leave_type}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-600">
-                        {req.start_date} {req.end_date ? `ถึง ${req.end_date}` : ''} ({req.reason || 'ไม่ระบุเหตุผล'})
-                      </div>
-                      {req.status === 'PENDING' && (
-                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                          <button
-                            onClick={() => handleLeaveAction(req.id, 'APPROVED')}
-                            className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs"
-                          >
-                            อนุมัติ
-                          </button>
-                          <button
-                            onClick={() => handleLeaveAction(req.id, 'REJECTED')}
-                            className="px-3 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold text-xs"
-                          >
-                            ปฏิเสธ
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* TAB 5: SETTINGS */}
+        {activeTab === 'settings' && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <div>
+              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-slate-700" />
+                <span>ตั้งค่าพิกัดร้าน & นโยบายลงเวลา (GPS Geofence Policy)</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                กำหนดพิกัดร้าน, รัศมีลงเวลา, เวลาเข้างาน, และจำนวนเงินเบี้ยขยัน
+              </p>
             </div>
-          )}
 
-          {/* MOBILE TAB 4: SETTINGS */}
-          {mobileTab === 'settings' && (
-            <div className="space-y-4">
-              <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center text-xl shadow-xs">
-                  👑
-                </div>
+            {settingsMsg && (
+              <div className={`p-3.5 rounded-2xl text-xs font-bold ${
+                settingsMsg.includes('เรียบร้อย')
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border border-rose-200 text-rose-800'
+              }`}>
+                {settingsMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSettings} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md w-fit">
-                    SI01 • ผู้บริหารสูงสุด
-                  </div>
-                  <div className="text-sm font-black text-slate-900 mt-0.5">ศูนย์บัญชาการผู้บริหาร</div>
-                  <div className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    ระบบเชื่อมต่อเรียลไทม์ (Live Sync)
-                  </div>
-                </div>
-              </div>
-
-              {/* Store Policy Form */}
-              <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  <span>พิกัดร้านและนโยบายลงเวลา (GPS Geofence)</span>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">ชื่อร้าน / สาขา</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">ชื่อร้าน / สาขา</label>
                   <input
                     type="text"
                     value={storeSettingsForm.store_name}
                     onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_name: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600"
+                    required
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">เวลากะปกติ</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">เวลากะปกติ</label>
                     <input
                       type="text"
                       value={storeSettingsForm.standard_time}
                       onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
+                      required
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">ตัดสาย (Deadline)</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">ตัดสาย (Deadline)</label>
                     <input
                       type="text"
                       value={storeSettingsForm.late_deadline}
                       onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
+                      required
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">รัศมีเช็คอิน (เมตร)</label>
-                    <input
-                      type="number"
-                      value={storeSettingsForm.radius_meters}
-                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: Number(e.target.value) })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">เบี้ยขยัน (บาท/วัน)</label>
-                    <input
-                      type="number"
-                      value={storeSettingsForm.allowance_amount}
-                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSaveSettings}
-                  className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-xs active:scale-98"
-                >
-                  {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่านโยบาย'}
-                </button>
-              </div>
-
-              {/* Security Logs */}
-              <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>บันทึกความปลอดภัย (Security Logs)</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 text-[11px] text-slate-500 text-center">
-                  {violationLogs.length === 0 ? 'ไม่มีประวัติความผิดปกติ ทุกอย่างปลอดภัย 100%' : `พบ ${violationLogs.length} รายการ`}
                 </div>
               </div>
 
-              {/* Logout Button in Settings Tab */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">รัศมีเช็คอิน (เมตร)</label>
+                  <input
+                    type="number"
+                    value={storeSettingsForm.radius_meters}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">เบี้ยขยัน (บาท/วัน)</label>
+                  <input
+                    type="number"
+                    value={storeSettingsForm.allowance_amount}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Map Picker */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">เลือกพิกัดร้านบนแผนที่ (Leaflet Map Picker)</label>
+                <StoreMapPicker
+                  lat={Number(storeSettingsForm.store_lat) || 15.110412}
+                  lng={Number(storeSettingsForm.store_lng) || 104.358434}
+                  radius={Number(storeSettingsForm.radius_meters) || 50}
+                  storeName={storeSettingsForm.store_name}
+                  onChange={(lat, lng) => {
+                    setStoreSettingsForm((prev: any) => ({
+                      ...prev,
+                      store_lat: lat,
+                      store_lng: lng
+                    }));
+                  }}
+                  onRadiusChange={(r) => {
+                    setStoreSettingsForm((prev: any) => ({
+                      ...prev,
+                      radius_meters: r
+                    }));
+                  }}
+                />
+              </div>
+
               <button
-                onClick={handleLogout}
-                className="w-full py-3.5 rounded-2xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98"
+                type="submit"
+                disabled={settingsLoading}
+                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all active:scale-98 flex items-center gap-2"
               >
-                <LogOut className="w-4 h-4" />
-                <span>ออกจากระบบผู้บริหาร (Logout)</span>
+                <Check className="w-4 h-4" />
+                <span>{settingsLoading ? 'กำลังบันทึกลง Supabase...' : 'บันทึกการตั้งค่านโยบายและพิกัดร้าน'}</span>
               </button>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom Floating Navigation Tabs (Mobile Only) */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-2 shadow-lg">
-          <div className="max-w-lg mx-auto flex items-center justify-around">
-            {[
-              { id: 'overview', label: 'ภาพรวม', icon: TrendingUp },
-              { id: 'staff', label: 'ลูกน้อง', icon: Users },
-              { id: 'leaves', label: 'ใบลา', icon: Calendar, badge: pendingLeavesCount },
-              { id: 'settings', label: 'ตั้งค่า', icon: Settings },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = mobileTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setMobileTab(tab.id as any)}
-                  className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all relative ${
-                    isActive ? 'text-blue-600 font-black' : 'text-slate-400 hover:text-slate-600 font-medium'
-                  }`}
-                >
-                  <div className="relative">
-                    <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                    {tab.badge !== undefined && tab.badge > 0 && (
-                      <span className="absolute -top-1.5 -right-2.5 bg-amber-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px]">{tab.label}</span>
-                </button>
-              );
-            })}
+            </form>
           </div>
-        </div>
-      </div>
+        )}
+      </main>
 
-      {/* ========================================================================= */}
-      {/* 3. MODAL: ADD EMPLOYEE (Shared across Desktop & Mobile)                    */}
-      {/* ========================================================================= */}
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL: ADD EMPLOYEE                                           */}
+      {/* ------------------------------------------------------------- */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="max-w-md w-full p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl space-y-4">
@@ -1791,6 +1373,6 @@ export default function ExecutiveUnifiedDashboard() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

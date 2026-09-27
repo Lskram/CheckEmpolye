@@ -80,6 +80,10 @@ export default function ExactEmployeeApp() {
     let parsedEmp: any = null;
     try {
       parsedEmp = JSON.parse(saved);
+      if (parsedEmp?.role === 'ADMIN' || parsedEmp?.employee_code === 'SI01') {
+        router.replace('/executive');
+        return;
+      }
       setEmployee(parsedEmp);
       setIsAuthChecking(false);
     } catch (e) {

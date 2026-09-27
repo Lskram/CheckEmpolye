@@ -101,7 +101,7 @@ export default function EmployeeLoginPage() {
 
       localStorage.setItem('attendance_employee_profile', JSON.stringify(data.data));
 
-      const targetPath = data.data.role === 'ADMIN' ? '/admin' : '/employee';
+      const targetPath = data.data.role === 'ADMIN' ? '/executive' : '/employee';
       if (data.data.role === 'ADMIN') {
         localStorage.setItem('executive_auth_token', 'true');
         localStorage.setItem('executive_user_code', data.data.employee_code);
@@ -150,7 +150,7 @@ export default function EmployeeLoginPage() {
       }
 
       localStorage.setItem('attendance_employee_profile', JSON.stringify(data.data));
-      const targetPath = data.data.role === 'ADMIN' ? '/admin' : '/employee';
+      const targetPath = data.data.role === 'ADMIN' ? '/executive' : '/employee';
       if (data.data.role === 'ADMIN') {
         localStorage.setItem('executive_auth_token', 'true');
         localStorage.setItem('executive_user_code', data.data.employee_code);
