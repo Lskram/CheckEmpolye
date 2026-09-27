@@ -240,7 +240,7 @@ export default function MobileExecutiveApp() {
           violations.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
           prevDataRef.current.isFirstLoad = false;
         } else {
-          // 1. Detect New Advance Requests
+          // 1. Detect New Advance Requests & Status Changes
           advances.forEach((adv: any) => {
             const prevAdv = prevDataRef.current.advanceMap.get(adv.id);
             const emp = empMap.get(adv.employee_id) || {};
@@ -250,10 +250,21 @@ export default function MobileExecutiveApp() {
             if (!prevAdv) {
               triggerNotification({
                 type: 'advance',
+                relatedId: adv.id,
+                status: adv.status,
                 title: `💵 มีคำขอเบิกเงินล่วงหน้าใหม่!`,
                 message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
                 targetTab: 'advances',
               });
+            } else if (prevAdv.status !== adv.status) {
+              setNotificationsList((prevList) =>
+                prevList.map((n) =>
+                  n.relatedId === adv.id ? { ...n, read: true, status: adv.status } : n
+                )
+              );
+              if (activeToast?.relatedId === adv.id) {
+                setActiveToast(null);
+              }
             }
           });
 
@@ -269,6 +280,7 @@ export default function MobileExecutiveApp() {
               const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
               triggerNotification({
                 type: 'checkin',
+                relatedId: log.id,
                 title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างานแล้ว`,
                 message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
                 targetTab: 'overview',
@@ -277,6 +289,7 @@ export default function MobileExecutiveApp() {
               const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
               triggerNotification({
                 type: 'checkout',
+                relatedId: log.id,
                 title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงานแล้ว`,
                 message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
                 targetTab: 'overview',
@@ -294,10 +307,18 @@ export default function MobileExecutiveApp() {
             if (!prevLv) {
               triggerNotification({
                 type: 'leave',
+                relatedId: lv.id,
+                status: lv.status,
                 title: `📄 มีการยื่นใบลาใหม่!`,
                 message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
                 targetTab: 'leaves',
               });
+            } else if (prevLv.status !== lv.status) {
+              setNotificationsList((prevList) =>
+                prevList.map((n) =>
+                  n.relatedId === lv.id ? { ...n, read: true, status: lv.status } : n
+                )
+              );
             }
           });
 
@@ -307,6 +328,7 @@ export default function MobileExecutiveApp() {
             if (!prevV) {
               triggerNotification({
                 type: 'violation',
+                relatedId: v.id,
                 title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
                 message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
                 targetTab: 'violations',
@@ -509,6 +531,28 @@ export default function MobileExecutiveApp() {
     }
   };
 
+  const handleMarkAsRead = (notifId: string) => {
+    setNotificationsList((prev) =>
+      prev.map((n) => (n.id === notifId ? { ...n, read: true } : n))
+    );
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleAdvanceActionCompleted = (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+    setNotificationsList((prevList) =>
+      prevList.map((n) =>
+        n.relatedId === requestId ? { ...n, read: true, status } : n
+      )
+    );
+    if (activeToast?.relatedId === requestId) {
+      setActiveToast(null);
+    }
+    loadData(true);
+  };
+
   const handleSaveSettings = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSettingsLoading(true);
@@ -709,6 +753,8 @@ export default function MobileExecutiveApp() {
               <NotificationCenter
                 notifications={notificationsList}
                 onClearAll={() => setNotificationsList([])}
+                onMarkAllAsRead={handleMarkAllAsRead}
+                onMarkAsRead={handleMarkAsRead}
                 onSelectNotification={(notif) => {
                   if (notif.targetTab) {
                     setActiveTab(notif.targetTab as any);
@@ -1122,6 +1168,7 @@ export default function MobileExecutiveApp() {
             requests={salaryAdvances}
             onRefresh={() => loadData(false)}
             reviewerId="00000000-0000-0000-0000-000000000000"
+            onActionCompleted={handleAdvanceActionCompleted}
           />
         )}
 

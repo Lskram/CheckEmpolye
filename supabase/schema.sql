@@ -177,6 +177,48 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 11. SALARY ADVANCE REQUESTS TABLE (Employee Advance Requests)
+CREATE TABLE IF NOT EXISTS salary_advance_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    amount DECIMAL(10, 2) NOT NULL,
+    request_date DATE NOT NULL,
+    reason TEXT NOT NULL,
+    needed_before_date DATE,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    reviewed_by UUID REFERENCES employees(id),
+    reviewed_at TIMESTAMPTZ,
+    rejection_reason TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_salary_advance_employee ON salary_advance_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_salary_advance_status ON salary_advance_requests(status);
+
+-- =========================================================
+-- PERMISSIONS & REALTIME CONFIGURATION (DISABLE RLS)
+-- =========================================================
+ALTER TABLE IF EXISTS employees DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS store_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS attendance_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS daily_attendance_summaries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS leave_requests DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS violation_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS ot_requests DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS monthly_payroll_summaries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS announcements DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS audit_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS salary_advance_requests DISABLE ROW LEVEL SECURITY;
+
+-- Enable Realtime Broadcast for Web & Mobile Synchronization
+ALTER PUBLICATION supabase_realtime ADD TABLE salary_advance_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE attendance_logs;
+ALTER PUBLICATION supabase_realtime ADD TABLE leave_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE violation_logs;
+ALTER PUBLICATION supabase_realtime ADD TABLE employees;
+ALTER PUBLICATION supabase_realtime ADD TABLE store_settings;
+
 -- =========================================================
 -- INITIAL SEED DATA
 -- =========================================================

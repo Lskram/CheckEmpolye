@@ -23,9 +23,15 @@ interface SalaryAdvanceManagerProps {
   requests: SalaryAdvanceRequest[];
   onRefresh: () => void;
   reviewerId: string;
+  onActionCompleted?: (id: string, status: 'APPROVED' | 'REJECTED') => void;
 }
 
-export default function SalaryAdvanceManager({ requests, onRefresh, reviewerId }: SalaryAdvanceManagerProps) {
+export default function SalaryAdvanceManager({ 
+  requests, 
+  onRefresh, 
+  reviewerId,
+  onActionCompleted 
+}: SalaryAdvanceManagerProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -78,6 +84,9 @@ export default function SalaryAdvanceManager({ requests, onRefresh, reviewerId }
       if (data.success) {
         setActionMsg(`✓ อนุมัติการขอเบิกเงิน ${amount.toLocaleString()} บาท ของ ${empName} เรียบร้อย`);
         setTimeout(() => setActionMsg(null), 4000);
+        if (onActionCompleted) {
+          onActionCompleted(id, 'APPROVED');
+        }
         onRefresh();
       } else {
         alert('เกิดข้อผิดพลาด: ' + data.message);
@@ -113,6 +122,9 @@ export default function SalaryAdvanceManager({ requests, onRefresh, reviewerId }
       if (data.success) {
         setActionMsg(`ปฏิเสธคำขอเบิกเงินของ ${rejectingItem.employee?.full_name} เรียบร้อย`);
         setTimeout(() => setActionMsg(null), 4000);
+        if (onActionCompleted) {
+          onActionCompleted(rejectingItem.id, 'REJECTED');
+        }
         setRejectingItem(null);
         setRejectReason('');
         onRefresh();

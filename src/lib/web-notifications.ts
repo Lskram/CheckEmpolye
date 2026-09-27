@@ -11,6 +11,8 @@ export interface WebNotification {
   time: string;
   timestamp: number;
   read: boolean;
+  relatedId?: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   targetTab?: 'overview' | 'employees' | 'staff' | 'leaves' | 'advances' | 'advance' | 'violations' | 'security' | 'settings';
 }
 

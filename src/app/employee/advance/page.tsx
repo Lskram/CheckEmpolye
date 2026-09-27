@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { SalaryAdvanceRequest } from '@/lib/types';
+import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function EmployeeSalaryAdvancePage() {
   const router = useRouter();
@@ -145,7 +146,7 @@ export default function EmployeeSalaryAdvancePage() {
   const quickAmounts = [500, 1000, 1500, 2000, 3000];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans pb-16 select-none">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans pb-28 select-none">
       {/* Top Header */}
       <header className="bg-slate-900 text-white p-4 sticky top-0 z-40 shadow-md">
         <div className="max-w-md mx-auto flex items-center justify-between">
@@ -381,6 +382,9 @@ export default function EmployeeSalaryAdvancePage() {
           )}
         </div>
       </main>
+
+      {/* SMART AUTO-HIDE BOTTOM NAVIGATION BAR */}
+      <EmployeeBottomNav currentTab="advance" />
     </div>
   );
 }

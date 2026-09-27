@@ -1,12 +1,29 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, DollarSign, FileText, AlertTriangle, Volume2, VolumeX, ArrowRight, X, Sparkles } from 'lucide-react';
+import { 
+  Bell, 
+  Check, 
+  DollarSign, 
+  FileText, 
+  AlertTriangle, 
+  Volume2, 
+  VolumeX, 
+  ArrowRight, 
+  X, 
+  Sparkles,
+  CheckCheck,
+  CheckCircle2,
+  XCircle,
+  Clock3
+} from 'lucide-react';
 import { WebNotification, requestBrowserNotificationPermission } from '@/lib/web-notifications';
 
 interface NotificationCenterProps {
   notifications: WebNotification[];
   onClearAll: () => void;
+  onMarkAllAsRead?: () => void;
+  onMarkAsRead?: (id: string) => void;
   onSelectNotification?: (notif: WebNotification) => void;
   activeToast: WebNotification | null;
   onDismissToast: () => void;
@@ -17,6 +34,8 @@ interface NotificationCenterProps {
 export default function NotificationCenter({
   notifications,
   onClearAll,
+  onMarkAllAsRead,
+  onMarkAsRead,
   onSelectNotification,
   activeToast,
   onDismissToast,
@@ -46,7 +65,13 @@ export default function NotificationCenter({
       {/* ------------------------------------------------------------- */}
       <div className="relative">
         <button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            setIsOpen(!isOpen);
+            if (!isOpen && onMarkAllAsRead && unreadCount > 0) {
+              // When opening drawer, auto-mark unread items as seen
+              onMarkAllAsRead();
+            }
+          }}
           className="relative p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-all active:scale-95 flex items-center justify-center shadow-sm"
           title="การแจ้งเตือน Real-time"
         >
@@ -72,15 +97,26 @@ export default function NotificationCenter({
                 <div>
                   <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
                     การแจ้งเตือนสด
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
-                      {notifications.length}
-                    </span>
+                    {unreadCount > 0 && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        {unreadCount} ใหม่
+                      </span>
+                    )}
                   </h4>
                   <p className="text-[10px] text-slate-400">Log การเข้างาน & คำขอ Real-time</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
+                {unreadCount > 0 && onMarkAllAsRead && (
+                  <button
+                    onClick={onMarkAllAsRead}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-blue-300 hover:bg-slate-800 text-xs flex items-center gap-1"
+                    title="ทำเครื่องหมายว่าอ่านแล้วทั้งหมด"
+                  >
+                    <CheckCheck className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   onClick={onToggleSound}
                   className={`p-1.5 rounded-lg text-xs transition-colors ${
@@ -125,11 +161,12 @@ export default function NotificationCenter({
                   <div
                     key={n.id}
                     onClick={() => {
+                      if (onMarkAsRead) onMarkAsRead(n.id);
                       if (onSelectNotification) onSelectNotification(n);
                       setIsOpen(false);
                     }}
                     className={`p-3.5 hover:bg-slate-800/60 transition-colors cursor-pointer flex items-start gap-3 ${
-                      !n.read ? 'bg-blue-950/20' : ''
+                      !n.read ? 'bg-blue-950/30' : ''
                     }`}
                   >
                     <div
@@ -158,11 +195,29 @@ export default function NotificationCenter({
                         <span className="text-[9px] text-slate-500 font-mono shrink-0">{n.time}</span>
                       </div>
                       <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-2 leading-snug">{n.message}</p>
-                      {n.targetTab && (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 font-bold mt-1 hover:underline">
-                          ไปที่หน้านี้ <ArrowRight className="w-3 h-3" />
-                        </span>
-                      )}
+                      
+                      <div className="flex items-center justify-between gap-2 mt-1.5">
+                        {n.status === 'APPROVED' && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3" /> อนุมัติแล้ว
+                          </span>
+                        )}
+                        {n.status === 'REJECTED' && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20">
+                            <XCircle className="w-3 h-3" /> ไม่อนุมัติ
+                          </span>
+                        )}
+                        {n.status === 'PENDING' && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                            <Clock3 className="w-3 h-3" /> รออนุมัติ
+                          </span>
+                        )}
+                        {n.targetTab && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 font-bold hover:underline ml-auto">
+                            ไปที่หน้านี้ <ArrowRight className="w-3 h-3" />
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -172,7 +227,7 @@ export default function NotificationCenter({
             {/* Footer */}
             {notifications.length > 0 && (
               <div className="p-2.5 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs">
-                <span className="text-[10px] text-slate-500">เก็บประวัติสดของการเชื่อมต่อนี้</span>
+                <span className="text-[10px] text-slate-500">{notifications.length} รายการในเซสชัน</span>
                 <button
                   onClick={onClearAll}
                   className="text-[10px] font-bold text-rose-400 hover:text-rose-300 px-2 py-1 rounded-lg hover:bg-rose-500/10 transition-colors"
@@ -220,6 +275,7 @@ export default function NotificationCenter({
                   {activeToast.targetTab && onSelectNotification && (
                     <button
                       onClick={() => {
+                        if (onMarkAsRead) onMarkAsRead(activeToast.id);
                         onSelectNotification(activeToast);
                         onDismissToast();
                       }}

@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Menu
 } from 'lucide-react';
+import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function EmployeeStatsPage() {
   const router = useRouter();
@@ -217,33 +218,8 @@ export default function EmployeeStatsPage() {
         </div>
       </main>
 
-      {/* 3-Tab Clean Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-2.5 flex items-center justify-around z-30 shadow-lg">
-        {/* Tab 1: เช็คเวลา */}
-        <Link href="/employee" className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors">
-          <div className="w-8 h-8 flex items-center justify-center">
-            <Clock className="w-5 h-5" />
-          </div>
-          <span>เช็คเวลา</span>
-        </Link>
-
-        {/* Tab 2: ปฏิทิน */}
-        <Link href="/employee/stats" className="flex flex-col items-center gap-1 text-blue-600 font-bold text-xs">
-          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-xs">
-            <CalendarIcon className="w-4 h-4" />
-          </div>
-          <span>ปฏิทิน</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-        </Link>
-
-        {/* Tab 3: ยื่นใบลา */}
-        <Link href="/employee/leave" className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors">
-          <div className="w-8 h-8 flex items-center justify-center">
-            <FileText className="w-5 h-5" />
-          </div>
-          <span>ยื่นใบลา</span>
-        </Link>
-      </nav>
+      {/* SMART AUTO-HIDE BOTTOM NAVIGATION BAR */}
+      <EmployeeBottomNav currentTab="calendar" />
     </div>
   );
 }

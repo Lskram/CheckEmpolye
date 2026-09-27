@@ -223,7 +223,7 @@ export default function WebExecutiveDashboard() {
           violations.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
           prevDataRef.current.isFirstLoad = false;
         } else {
-          // 1. Detect New Advance Requests
+          // 1. Detect New Advance Requests & Status Changes
           advances.forEach((adv: any) => {
             const prevAdv = prevDataRef.current.advanceMap.get(adv.id);
             const emp = empMap.get(adv.employee_id) || {};
@@ -233,10 +233,22 @@ export default function WebExecutiveDashboard() {
             if (!prevAdv) {
               triggerNotification({
                 type: 'advance',
+                relatedId: adv.id,
+                status: adv.status,
                 title: `💵 มีคำขอเบิกเงินล่วงหน้าใหม่!`,
                 message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
                 targetTab: 'advances',
               });
+            } else if (prevAdv.status !== adv.status) {
+              // Status changed (e.g. APPROVED / REJECTED)
+              setNotificationsList((prevList) =>
+                prevList.map((n) =>
+                  n.relatedId === adv.id ? { ...n, read: true, status: adv.status } : n
+                )
+              );
+              if (activeToast?.relatedId === adv.id) {
+                setActiveToast(null);
+              }
             }
           });
 
@@ -252,6 +264,7 @@ export default function WebExecutiveDashboard() {
               const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
               triggerNotification({
                 type: 'checkin',
+                relatedId: log.id,
                 title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างานแล้ว`,
                 message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
                 targetTab: 'overview',
@@ -260,6 +273,7 @@ export default function WebExecutiveDashboard() {
               const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
               triggerNotification({
                 type: 'checkout',
+                relatedId: log.id,
                 title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงานแล้ว`,
                 message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
                 targetTab: 'overview',
@@ -277,10 +291,18 @@ export default function WebExecutiveDashboard() {
             if (!prevLv) {
               triggerNotification({
                 type: 'leave',
+                relatedId: lv.id,
+                status: lv.status,
                 title: `📄 มีการยื่นใบลาใหม่!`,
                 message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
                 targetTab: 'leaves',
               });
+            } else if (prevLv.status !== lv.status) {
+              setNotificationsList((prevList) =>
+                prevList.map((n) =>
+                  n.relatedId === lv.id ? { ...n, read: true, status: lv.status } : n
+                )
+              );
             }
           });
 
@@ -290,6 +312,7 @@ export default function WebExecutiveDashboard() {
             if (!prevV) {
               triggerNotification({
                 type: 'violation',
+                relatedId: v.id,
                 title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
                 message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
                 targetTab: 'violations',
@@ -392,6 +415,45 @@ export default function WebExecutiveDashboard() {
     setIsExecutiveUnlocked(false);
     setExecutivePinInput('');
     setExecutivePinError('');
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    setNotificationsList((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  };
+
+  const handleAdvanceActionCompleted = (id: string, newStatus: 'APPROVED' | 'REJECTED') => {
+    setNotificationsList((prev) =>
+      prev.map((n) => {
+        if (n.relatedId === id || n.id.includes(id)) {
+          return { ...n, read: true, status: newStatus };
+        }
+        return n;
+      })
+    );
+    if (activeToast?.relatedId === id) {
+      setActiveToast(null);
+    }
+    // Immediate optimistic update of pending counter
+    setAnalyticsData((prev: any) => {
+      if (!prev) return prev;
+      const updatedAdvances = (prev.salaryAdvanceRequests || []).map((a: any) =>
+        a.id === id ? { ...a, status: newStatus } : a
+      );
+      const newPendingCount = updatedAdvances.filter((a: any) => a.status === 'PENDING').length;
+      return {
+        ...prev,
+        salaryAdvanceRequests: updatedAdvances,
+        overview: {
+          ...prev.overview,
+          pendingAdvancesCount: newPendingCount,
+        },
+      };
+    });
+    loadDashboardData(true);
   };
 
   // CRUD Handlers
@@ -831,6 +893,8 @@ export default function WebExecutiveDashboard() {
             <NotificationCenter
               notifications={notificationsList}
               onClearAll={() => setNotificationsList([])}
+              onMarkAllAsRead={handleMarkAllAsRead}
+              onMarkAsRead={handleMarkAsRead}
               onSelectNotification={(notif) => {
                 if (notif.targetTab) {
                   setActiveTab(notif.targetTab as any);
@@ -1362,6 +1426,7 @@ export default function WebExecutiveDashboard() {
             requests={salaryAdvances}
             onRefresh={() => loadDashboardData(false)}
             reviewerId="00000000-0000-0000-0000-000000000000"
+            onActionCompleted={handleAdvanceActionCompleted}
           />
         )}
 
