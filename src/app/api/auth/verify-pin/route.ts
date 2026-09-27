@@ -8,7 +8,7 @@ export async function POST(request: Request) {
 
     if (!employeeId || !pinCode) {
       return NextResponse.json(
-        { success: false, message: 'กรุณากรอกรหัส PIN' },
+        { success: false, message: 'กรุณากรอกรหัส PIN ให้ครบ 4 หลัก' },
         { status: 400 }
       );
     }
@@ -16,15 +16,34 @@ export async function POST(request: Request) {
     const employee = await db.getEmployeeById(employeeId);
     if (!employee) {
       return NextResponse.json(
-        { success: false, code: 'EMPLOYEE_NOT_FOUND', message: 'ไม่พบบัญชีผู้ใช้ กรุณาเข้าสู่ระบบใหม่' },
+        { 
+          success: false, 
+          code: 'USER_NOT_FOUND', 
+          message: '❌ ไม่พบบัญชีผู้ใช้นี้ในระบบ กรุณาสลับบัญชีหรือเข้าสู่ระบบใหม่' 
+        },
         { status: 404 }
       );
     }
 
     if (employee.pin_hash !== pinCode.trim()) {
       return NextResponse.json(
-        { success: false, message: 'รหัส PIN ไม่ถูกต้อง' },
+        { 
+          success: false, 
+          code: 'INVALID_PIN', 
+          message: '❌ รหัส PIN 4 หลักไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' 
+        },
         { status: 401 }
+      );
+    }
+
+    if (!employee.is_active) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          code: 'ACCOUNT_SUSPENDED', 
+          message: '⚠️ บัญชีพนักงานนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ' 
+        },
+        { status: 403 }
       );
     }
 

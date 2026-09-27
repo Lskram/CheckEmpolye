@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db-store';
 import { isWithinGeofence } from '@/lib/geofence';
+import { sendLineCheckOutAlert, sendLineOutOfGeofenceAlert } from '@/lib/line';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,16 @@ export async function POST(request: Request) {
     const checkOutDate = simulatedTime ? new Date(simulatedTime) : new Date();
     const targetDateStr = getBangkokDateStr(checkOutDate);
 
+    // Format check-out time in Bangkok timezone
+    const timeFormatter = new Intl.DateTimeFormat('th-TH', {
+      timeZone: 'Asia/Bangkok',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    const checkOutTimeStr = timeFormatter.format(checkOutDate) + ' น.';
+
     // Find today's attendance log
     const logs = await db.getAttendanceLogs(200);
     const todayLog = logs.find(
@@ -47,6 +58,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const shortLogId = `#LOG-${todayLog.id.slice(0, 8).toUpperCase()}`;
+
     // Check if already checked out
     if (todayLog.check_out_time) {
       const existingOutTimeStr = new Date(todayLog.check_out_time).toLocaleTimeString('th-TH', {
@@ -60,9 +73,10 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         alreadyCheckedOut: true,
-        message: `คุณได้ลงเวลาออกงานของวันนี้ไปแล้วเมื่อเวลา ${existingOutTimeStr}`,
+        message: `คุณได้ลงเวลาออกงานของวันนี้ไปแล้วเมื่อเวลา ${existingOutTimeStr} [${shortLogId}]`,
         data: {
           id: todayLog.id,
+          logReference: shortLogId,
           checkInTime: new Date(todayLog.check_in_time).toLocaleTimeString('th-TH', {
             timeZone: 'Asia/Bangkok',
             hour: '2-digit',
@@ -90,30 +104,31 @@ export async function POST(request: Request) {
         employee_id: employee.id,
         violation_type: 'OUT_OF_GEOFENCE_BLOCKED',
         severity: 'LOW',
-        description: `พนักงาน ${employee.full_name} พยายามลงเวลาออกงานนอกรัศมีร้าน (${distance.toFixed(1)} เมตร)`,
+        description: `พนักงาน ${employee.full_name} (${employee.employee_code}) พยายามลงเวลาออกงานนอกรัศมีร้าน (${distance.toFixed(1)} เมตร ณ พิกัด ${latitude.toFixed(6)}, ${longitude.toFixed(6)})`,
         hwid: hwid || '',
+      });
+
+      await sendLineOutOfGeofenceAlert({
+        employeeCode: employee.employee_code,
+        fullName: employee.full_name,
+        nickname: employee.nickname,
+        attemptTime: checkOutTimeStr,
+        distance,
+        allowedRadius: radiusMeters,
+        latitude,
+        longitude,
       });
 
       return NextResponse.json(
         {
           success: false,
           code: 'OUT_OF_GEOFENCE_BLOCKED',
-          message: `คุณอยู่นอกพื้นที่ร้าน กรุณาขยับเข้ามาในรัศมีร้านเพื่อลงเวลาออกงาน (ห่าง ${distance.toFixed(1)} ม., กำหนด ${radiusMeters} ม.)`,
+          message: `คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} ม., กำหนด ${radiusMeters} ม.) ไม่อนุญาตให้ลงเวลาออกงาน`,
           distance,
         },
         { status: 400 }
       );
     }
-
-    // Format check-out time in Bangkok timezone
-    const timeFormatter = new Intl.DateTimeFormat('th-TH', {
-      timeZone: 'Asia/Bangkok',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
-    const checkOutTimeStr = timeFormatter.format(checkOutDate) + ' น.';
 
     // Calculate working duration
     const inTime = new Date(todayLog.check_in_time);
@@ -129,11 +144,22 @@ export async function POST(request: Request) {
       `${todayLog.notes || ''} | ออกงานเวลา ${checkOutTimeStr} (ระยะเวลาทำงาน ${durationStr})`
     );
 
+    // Dispatch LINE Check-Out notification with Log ID
+    await sendLineCheckOutAlert({
+      logId: todayLog.id,
+      employeeCode: employee.employee_code,
+      fullName: employee.full_name,
+      nickname: employee.nickname,
+      checkOutTime: checkOutTimeStr,
+      duration: durationStr,
+    });
+
     return NextResponse.json({
       success: true,
-      message: `ลงเวลาออกงานสำเร็จ (${checkOutTimeStr}) รวมเวลาทำงาน ${durationStr}`,
+      message: `ลงเวลาออกงานสำเร็จ [${shortLogId}] (${checkOutTimeStr}) รวมเวลาทำงาน ${durationStr}`,
       data: {
         id: todayLog.id,
+        logReference: shortLogId,
         checkInTime: new Date(todayLog.check_in_time).toLocaleTimeString('th-TH', {
           timeZone: 'Asia/Bangkok',
           hour: '2-digit',

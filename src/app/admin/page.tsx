@@ -119,6 +119,13 @@ export default function WebExecutiveDashboard() {
   });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState('');
+  const [liveNotification, setLiveNotification] = useState<{
+    id: string;
+    type: 'checkin' | 'violation' | 'leave';
+    title: string;
+    message: string;
+    time: string;
+  } | null>(null);
 
   // 1. Session Auth Guard Check
   useEffect(() => {
@@ -167,13 +174,37 @@ export default function WebExecutiveDashboard() {
     if (isSupabaseConfigured && supabase) {
       channel = supabase
         .channel('admin-realtime-room')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attendance_logs' }, (payload: any) => {
           loadDashboardData(true);
+          if (payload.new && payload.new.status !== 'OUT_OF_GEOFENCE_BLOCKED') {
+            const shortId = `#LOG-${payload.new.id.slice(0, 8).toUpperCase()}`;
+            setLiveNotification({
+              id: payload.new.id,
+              type: 'checkin',
+              title: `🔔 พนักงานลงเวลาสำเร็จ (${shortId})`,
+              message: `ระยะห่างร้าน ${Number(payload.new.distance_from_store || 0).toFixed(1)} ม. สถานะ: ${payload.new.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย'}`,
+              time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            });
+            setTimeout(() => setLiveNotification(null), 6000);
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'attendance_logs' }, () => {
+          loadDashboardData(true);
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'violation_logs' }, (payload: any) => {
+          loadDashboardData(true);
+          if (payload.new) {
+            setLiveNotification({
+              id: payload.new.id,
+              type: 'violation',
+              title: `🚨 ตรวจพบความผิดปกติ (${payload.new.violation_type})`,
+              message: payload.new.description,
+              time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            });
+            setTimeout(() => setLiveNotification(null), 8000);
+          }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
-          loadDashboardData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'violation_logs' }, () => {
           loadDashboardData(true);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
@@ -1451,6 +1482,34 @@ export default function WebExecutiveDashboard() {
                 {addLoading ? <span>กำลังบันทึกลง Supabase...</span> : <> <Plus className="w-4 h-4" /> <span>บันทึกและสร้างบัญชีพนักงาน</span> </>}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* LIVE FLOATING NOTIFICATION TOAST (Cross-Device Real-Time)     */}
+      {/* ------------------------------------------------------------- */}
+      {liveNotification && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full p-4 rounded-3xl bg-slate-900/95 text-white border border-slate-700 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                liveNotification.type === 'checkin' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+              }`}>
+                {liveNotification.type === 'checkin' ? <Check className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+              </div>
+              <div>
+                <div className="font-extrabold text-xs text-white">{liveNotification.title}</div>
+                <div className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">{liveNotification.message}</div>
+                <div className="text-[9px] text-slate-500 mt-1 font-mono">{liveNotification.time} น. • Supabase Realtime Live</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setLiveNotification(null)}
+              className="text-slate-400 hover:text-white text-xs p-1"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}

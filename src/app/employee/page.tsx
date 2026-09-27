@@ -22,7 +22,9 @@ import {
   LogOut,
   Navigation2,
   Radio,
-  Crosshair
+  Crosshair,
+  Lock,
+  Tag
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -92,8 +94,10 @@ export default function ExactEmployeeApp() {
       .then((resData) => {
         if (resData.success && resData.data?.todayLog) {
           const todayLog = resData.data.todayLog;
+          const shortLogId = todayLog.id ? `#LOG-${todayLog.id.slice(0, 8).toUpperCase()}` : null;
           setCheckInResult({
             id: todayLog.id,
+            logReference: shortLogId,
             status: todayLog.status,
             checkInTime: todayLog.checkInTime,
             checkOutTime: todayLog.checkOutTime || null,
@@ -273,6 +277,9 @@ export default function ExactEmployeeApp() {
     }
   }, [storeSettings, currentCoords, recalculateDistance]);
 
+  const allowedRadius = Number(storeSettings?.radius_meters) || 50;
+  const isInsideRadius = distance !== null && distance <= allowedRadius;
+
   // Logout Handler
   const handleLogout = () => {
     if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
@@ -281,14 +288,21 @@ export default function ExactEmployeeApp() {
     }
   };
 
-  // CHECK-IN HANDLER (Captures Fresh Hardware GPS on Tap)
+  // CHECK-IN HANDLER (Strict Geofence Enforcement + Live Satellite Fix)
   const handleCheckIn = async () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
-    setIsCheckingIn(true);
     setErrorMessage('');
 
+    // 1. Strict Client-side Geofence Blocking
+    if (distance !== null && distance > allowedRadius) {
+      setErrorMessage(`🚫 คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} เมตร เกินกำหนด ${allowedRadius} ม.) ไม่อนุญาตให้ลงเวลาเข้างาน`);
+      return;
+    }
+
+    setIsCheckingIn(true);
+
     try {
-      // 1. Fetch fresh live hardware satellite position on button press
+      // 2. Fetch fresh live hardware satellite position on button press
       let freshLat = currentCoords?.lat;
       let freshLng = currentCoords?.lng;
       let freshAcc = gpsAccuracy || 5;
@@ -349,14 +363,21 @@ export default function ExactEmployeeApp() {
     }
   };
 
-  // CHECK-OUT HANDLER (Captures Fresh Hardware GPS on Tap)
+  // CHECK-OUT HANDLER (Strict Geofence Enforcement + Live Satellite Fix)
   const handleCheckOut = async () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
-    setIsCheckingOut(true);
     setErrorMessage('');
 
+    // 1. Strict Client-side Geofence Blocking
+    if (distance !== null && distance > allowedRadius) {
+      setErrorMessage(`🚫 คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} เมตร เกินกำหนด ${allowedRadius} ม.) ไม่อนุญาตให้ลงเวลาออกงาน`);
+      return;
+    }
+
+    setIsCheckingOut(true);
+
     try {
-      // 1. Fetch fresh live hardware satellite position on button press
+      // 2. Fetch fresh live hardware satellite position on button press
       let freshLat = currentCoords?.lat;
       let freshLng = currentCoords?.lng;
       let freshAcc = gpsAccuracy || 5;
@@ -426,9 +447,6 @@ export default function ExactEmployeeApp() {
       </div>
     );
   }
-
-  const allowedRadius = Number(storeSettings?.radius_meters) || 50;
-  const isInsideRadius = distance !== null && distance <= allowedRadius;
 
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-20">
@@ -528,39 +546,57 @@ export default function ExactEmployeeApp() {
               whileTap={{ scale: 0.92 }}
               onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? handleCheckOut : undefined}
               disabled={isCheckingIn || isCheckingOut || (!!checkInResult && !!checkInResult.checkOutTime)}
-              className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center text-white ring-4 ring-white shadow-2xl transition-all ${
+              className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center text-white ring-4 shadow-2xl transition-all ${
                 !checkInResult
-                  ? 'bg-gradient-to-b from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] shadow-blue-600/50'
+                  ? isInsideRadius
+                    ? 'bg-gradient-to-b from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] ring-white shadow-blue-600/50'
+                    : 'bg-gradient-to-b from-slate-600 via-slate-700 to-slate-800 ring-rose-300 shadow-slate-700/50'
                   : !checkInResult.checkOutTime
-                    ? 'bg-gradient-to-b from-amber-500 via-orange-500 to-rose-600 shadow-orange-500/50'
-                    : 'bg-gradient-to-b from-emerald-500 to-teal-600 shadow-emerald-500/40'
+                    ? isInsideRadius
+                      ? 'bg-gradient-to-b from-amber-500 via-orange-500 to-rose-600 ring-white shadow-orange-500/50'
+                      : 'bg-gradient-to-b from-slate-600 via-slate-700 to-slate-800 ring-rose-300 shadow-slate-700/50'
+                    : 'bg-gradient-to-b from-emerald-500 to-teal-600 ring-white shadow-emerald-500/40'
               }`}
             >
               {isCheckingIn || isCheckingOut ? (
                 <RefreshCw className="w-7 h-7 animate-spin text-white" />
               ) : !checkInResult ? (
-                <div className="flex flex-col items-center justify-center">
-                  <svg
-                    className="w-8 h-8 text-white mb-0.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 11V3a1 1 0 0 0-2 0v9" />
-                    <path d="M10 8.5a1 1 0 0 1 2 0" />
-                    <path d="M14 9.5a1 1 0 0 1 2 0v2.5" />
-                    <path d="M18 11.5a1 1 0 0 1 2 0v3a8 8 0 1 1-16 0v-4" />
-                  </svg>
-                  <span className="text-xs font-bold tracking-tight">เข้างาน</span>
-                </div>
+                isInsideRadius ? (
+                  <div className="flex flex-col items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-white mb-0.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 11V3a1 1 0 0 0-2 0v9" />
+                      <path d="M10 8.5a1 1 0 0 1 2 0" />
+                      <path d="M14 9.5a1 1 0 0 1 2 0v2.5" />
+                      <path d="M18 11.5a1 1 0 0 1 2 0v3a8 8 0 1 1-16 0v-4" />
+                    </svg>
+                    <span className="text-xs font-bold tracking-tight">เข้างาน</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-rose-200">
+                    <Lock className="w-7 h-7 mb-0.5" />
+                    <span className="text-[10px] font-bold tracking-tight text-white">นอกพื้นที่</span>
+                  </div>
+                )
               ) : !checkInResult.checkOutTime ? (
-                <div className="flex flex-col items-center justify-center">
-                  <LogOut className="w-7 h-7 text-white mb-0.5" />
-                  <span className="text-xs font-bold tracking-tight">ออกงาน</span>
-                </div>
+                isInsideRadius ? (
+                  <div className="flex flex-col items-center justify-center">
+                    <LogOut className="w-7 h-7 text-white mb-0.5" />
+                    <span className="text-xs font-bold tracking-tight">ออกงาน</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-rose-200">
+                    <Lock className="w-7 h-7 mb-0.5" />
+                    <span className="text-[10px] font-bold tracking-tight text-white">นอกพื้นที่</span>
+                  </div>
+                )
               ) : (
                 <div className="flex flex-col items-center justify-center">
                   <CheckCircle2 className="w-7 h-7 text-white mb-0.5" />
@@ -618,7 +654,7 @@ export default function ExactEmployeeApp() {
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5">
               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs ${
-                isInsideRadius ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                isInsideRadius ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
               }`}>
                 <MapPin className="w-5 h-5" />
               </div>
@@ -641,7 +677,7 @@ export default function ExactEmployeeApp() {
 
             {/* Geofence Tag */}
             <span className={`px-2.5 py-1 rounded-full font-black text-[11px] shrink-0 ${
-              isInsideRadius ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+              isInsideRadius ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800 border border-rose-300'
             }`}>
               {isInsideRadius ? `● ในรัศมี ${allowedRadius}ม.` : `● นอกรัศมีร้าน`}
             </span>
@@ -727,8 +763,8 @@ export default function ExactEmployeeApp() {
               >
                 <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold">ไม่สามารถบันทึกเวลาได้</div>
-                  <div className="text-[11px] mt-0.5">{errorMessage}</div>
+                  <div className="font-bold">ไม่สามารถลงเวลาได้</div>
+                  <div className="text-[11px] mt-0.5 leading-relaxed">{errorMessage}</div>
                 </div>
               </motion.div>
             )}
@@ -750,8 +786,13 @@ export default function ExactEmployeeApp() {
                   </span>
                   <span className="font-mono">{checkInResult.checkInTime}</span>
                 </div>
-                <div className="text-[11px] text-slate-600 mt-1">
-                  เบี้ยขยันที่ได้รับวันนี้: <strong className="text-emerald-600 font-bold">+{checkInResult.allowance} บาท</strong>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-emerald-200/60 text-[11px]">
+                  <span>เบี้ยขยันวันนี้: <strong className="text-emerald-700 font-bold">+{checkInResult.allowance} บาท</strong></span>
+                  {checkInResult.logReference && (
+                    <span className="font-mono font-black px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-900">
+                      {checkInResult.logReference}
+                    </span>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -775,11 +816,16 @@ export default function ExactEmployeeApp() {
                       </span>
                       <span className="font-mono text-purple-700">{checkInResult.checkOutTime}</span>
                     </div>
-                    {checkInResult.workingDuration && (
-                      <div className="text-[11px] text-slate-600 mt-1">
-                        รวมระยะเวลาทำงาน: <strong className="text-purple-700 font-bold">{checkInResult.workingDuration}</strong>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-purple-200/60 text-[11px]">
+                      {checkInResult.workingDuration && (
+                        <span>รวมเวลาทำงาน: <strong className="text-purple-700 font-bold">{checkInResult.workingDuration}</strong></span>
+                      )}
+                      {checkInResult.logReference && (
+                        <span className="font-mono font-black px-2 py-0.5 rounded-md bg-purple-200/80 text-purple-900">
+                          {checkInResult.logReference}
+                        </span>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <div className="flex items-center justify-between">

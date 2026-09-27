@@ -90,6 +90,7 @@ flowchart TD
 | **REQ-011** | Reporting | ปุ่มส่งออกรายงาน Excel / CSV (Export Report UTF-8 with BOM สำหรับภาษาไทย) | ✅ เสร็จสิ้น | Admin Web Dashboard (`/admin`) |
 | **REQ-012** | Attendance | ระบบป้องกันการกดเช็คอินซ้ำในวันเดียวกัน (Daily Check-in Duplicate Prevention) | ✅ เสร็จสิ้น | API `/api/check-in` Backend Guard |
 | **REQ-018** | Geofence | ระบบพิกัดดาวเทียมฮาร์ดแวร์ความแม่นยำสูง และซิงค์จุดมาร์คร้านจากเว็บสู่มือถือแบบเรียลไทม์ (<100ms) | ✅ เสร็จสิ้น | Capacitor Geolocation / Supabase Realtime |
+| **REQ-019** | Geofence & Audit | ล็อกปุ่มเมื่ออยู่นอกพื้นที่ร้าน บันทึก Log พิกัดที่พยายามลงเวลา แจ้งเตือน Log ID ข้ามอุปกรณ์ และแจ้งเตือนรหัสผ่าน/บัญชีไม่ถูกต้อง | ✅ เสร็จสิ้น | API Check-in / Login / Web Toast / LINE |
 
 ---
 
@@ -117,6 +118,12 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-09-27] - Strict Geofence Lock, Location Audit & Log ID Alerts (Version 2.4)
+- ✅ **ล็อกปุ่มเช็คอินอัตโนมัติเมื่ออยู่นอกพื้นที่ร้าน**: ป้องกันการกดลงเวลาสำเร็จหากระยะห่างเกินรัศมีที่กำหนด
+- ✅ **ระบบบันทึก Log พิกัดที่พยายามลงเวลานอกร้าน**: บันทึก `latitude`, `longitude`, `distance` ลงในตาราง `violation_logs` พร้อมยิงแจ้งเตือนความปลอดภัยทันที
+- ✅ **ระบบส่งการแจ้งเตือนพร้อม Unique Log ID (`#LOG-XXXX`)**: แสดงรหัสบันทึกอ้างอิงทั้งบนมือถือพนักงาน, บน Toast หน้าเว็บผู้บริหาร และบน LINE Notify
+- ✅ **ข้อความแจ้งเตือนข้อผิดพลาดในการเข้าสู่ระบบอย่างชัดเจน**: ระบุชัดเจนกรณี `ไม่พบบัญชีพนักงานในระบบ` หรือ `รหัส PIN ไม่ถูกต้อง`
 
 ### 📌 [2026-09-27] - High-Precision Hardware Satellite GPS & Live Geofence Sync (Version 2.3)
 - ✅ **สร้างโมดูลระบบพิกัดฮาร์ดแวร์ดาวเทียม (`src/lib/location.ts`)**: เชื่อมต่อชิป GPS ของเครื่องผ่าน `@capacitor/geolocation` พร้อมเปิด `enableHighAccuracy: true`

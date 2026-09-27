@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db-store';
 import { isWithinGeofence } from '@/lib/geofence';
-import { sendLineLateAlert } from '@/lib/line';
+import { sendLineLateAlert, sendLineCheckInAlert, sendLineOutOfGeofenceAlert } from '@/lib/line';
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +29,16 @@ export async function POST(request: Request) {
 
     const checkInDate = simulatedTime ? new Date(simulatedTime) : new Date();
     const targetDateStr = getBangkokDateStr(checkInDate);
+
+    // Format to Asia/Bangkok time
+    const timeFormatter = new Intl.DateTimeFormat('th-TH', {
+      timeZone: 'Asia/Bangkok',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    const timeString = timeFormatter.format(checkInDate);
 
     // -------------------------------------------------------------
     // CHECKPOINT 0: DUPLICATE CHECK-IN PREVENTION
@@ -60,13 +70,16 @@ export async function POST(request: Request) {
           }) + ' น.'
         : null;
 
+      const shortLogId = `#LOG-${todayExistingLog.id.slice(0, 8).toUpperCase()}`;
+
       return NextResponse.json({
         success: true,
         alreadyCheckedIn: true,
         code: 'ALREADY_CHECKED_IN',
-        message: `คุณได้ลงเวลาเข้างานของวันนี้ไปแล้ว (${timeStr})`,
+        message: `คุณได้ลงเวลาเข้างานของวันนี้ไปแล้ว (${timeStr}) [${shortLogId}]`,
         data: {
           id: todayExistingLog.id,
+          logReference: shortLogId,
           status: todayExistingLog.status,
           checkInTime: timeStr,
           checkOutTime: checkOutTimeStr,
@@ -90,35 +103,36 @@ export async function POST(request: Request) {
     const { isInside, distance } = isWithinGeofence(userCoord, storeCoord, radiusMeters);
 
     if (!isInside) {
-      // Record failed check-in attempt into attendance & violation logs
-      await db.createAttendanceLog({
-        employee_id: employee.id,
-        check_in_time: new Date().toISOString(),
-        latitude,
-        longitude,
-        accuracy,
-        distance_from_store: distance,
-        hwid: hwid || 'UNKNOWN',
-        status: 'OUT_OF_GEOFENCE_BLOCKED',
-        allowance: 0,
-        notes: `อยู่นอกพื้นที่ร้าน (${distance} ม. เกินกำหนด ${radiusMeters} ม.)`,
-      });
-
+      // 1. Record Security Violation Log with exact GPS coordinates
       await db.createViolationLog({
         employee_id: employee.id,
         violation_type: 'OUT_OF_GEOFENCE_BLOCKED',
         severity: 'MEDIUM',
-        description: `พนักงาน ${employee.full_name} พยายามเช็คอินนอกรัศมีร้าน (${distance.toFixed(1)} เมตร ห่างจากร้าน)`,
+        description: `พนักงาน ${employee.full_name} (${employee.employee_code}) พยายามลงเวลาเข้างานนอกรัศมีร้าน (${distance.toFixed(1)} เมตร ณ พิกัด ${latitude.toFixed(6)}, ${longitude.toFixed(6)})`,
         hwid: hwid || '',
+      });
+
+      // 2. Dispatch LINE Out-of-Geofence Security Alert
+      await sendLineOutOfGeofenceAlert({
+        employeeCode: employee.employee_code,
+        fullName: employee.full_name,
+        nickname: employee.nickname,
+        attemptTime: timeString,
+        distance,
+        allowedRadius: radiusMeters,
+        latitude,
+        longitude,
       });
 
       return NextResponse.json(
         {
           success: false,
           code: 'OUT_OF_GEOFENCE_BLOCKED',
-          message: `คุณอยู่นอกพื้นที่ร้าน กรุณาขยับเข้ามาใกล้ร้านแล้วลองใหม่ (ระยะห่างปัจจุบัน: ${distance.toFixed(1)} ม., กำหนดไว้ไม่เกิน ${radiusMeters} ม.)`,
+          message: `คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} ม., กำหนดไว้ไม่เกิน ${radiusMeters} ม.) ไม่อนุญาตให้ลงเวลาเข้างาน`,
           distance,
           allowedRadius: radiusMeters,
+          latitude,
+          longitude,
         },
         { status: 400 }
       );
@@ -127,16 +141,6 @@ export async function POST(request: Request) {
     // -------------------------------------------------------------
     // CHECKPOINT 2: TIME CHECK & ALLOWANCE CALCULATION
     // -------------------------------------------------------------
-    // Format to Asia/Bangkok time
-    const timeFormatter = new Intl.DateTimeFormat('th-TH', {
-      timeZone: 'Asia/Bangkok',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
-    
-    const timeString = timeFormatter.format(checkInDate); // e.g. "07:45:00"
     const [hours, minutes] = timeString.split(':').map(Number);
     const totalMinutes = hours * 60 + minutes;
 
@@ -164,7 +168,23 @@ export async function POST(request: Request) {
         : `เช็คอินสำเร็จตรงเวลา ได้รับเบี้ยเลี้ยง ${allowance} บาท`,
     });
 
-    // If late, trigger LINE alert automatically
+    const shortLogId = `#LOG-${attendanceRecord.id.slice(0, 8).toUpperCase()}`;
+
+    // 3. Dispatch LINE Check-In Notification with unique Log ID
+    await sendLineCheckInAlert({
+      logId: attendanceRecord.id,
+      employeeCode: employee.employee_code,
+      fullName: employee.full_name,
+      nickname: employee.nickname,
+      checkInTime: timeString,
+      distance,
+      status,
+      allowance,
+      latitude,
+      longitude,
+    });
+
+    // If late, also trigger LINE late breakdown
     if (isLate) {
       const lateMinutes = totalMinutes - deadlineTotalMinutes;
       await sendLineLateAlert({
@@ -181,12 +201,13 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: isLate 
-        ? `เช็คอินสำเร็จ แต่สายกว่ากำหนด (${timeString} น.) ไม่ได้รับเบี้ยเลี้ยง` 
-        : `เช็คอินตรงเวลาสำเร็จ! (${timeString} น.) ได้รับเบี้ยเลี้ยง +${allowance} บาท`,
+        ? `เช็คอินสำเร็จ [${shortLogId}] แต่สายกว่ากำหนด (${timeString} น.) ไม่ได้รับเบี้ยเลี้ยง` 
+        : `เช็คอินตรงเวลาสำเร็จ! [${shortLogId}] (${timeString} น.) ได้รับเบี้ยเลี้ยง +${allowance} บาท`,
       data: {
         id: attendanceRecord.id,
+        logReference: shortLogId,
         status,
-        checkInTime: timeString,
+        checkInTime: timeString + ' น.',
         allowance,
         distance,
         isLate,

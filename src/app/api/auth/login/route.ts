@@ -16,7 +16,11 @@ export async function POST(request: Request) {
     const employee = await db.getEmployeeByCode(employeeCode);
     if (!employee) {
       return NextResponse.json(
-        { success: false, message: 'ไม่พบรหัสพนักงานในระบบ กรุณาตรวจสอบอีกครั้ง' },
+        { 
+          success: false, 
+          code: 'USER_NOT_FOUND', 
+          message: `❌ ไม่พบบัญชีพนักงานรหัส "${employeeCode.trim().toUpperCase()}" ในระบบ กรุณาตรวจสอบรหัสพนักงานอีกครั้ง หรือติดต่อผู้ดูแลระบบ` 
+        },
         { status: 404 }
       );
     }
@@ -33,14 +37,22 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json(
-        { success: false, message: 'รหัส PIN ไม่ถูกต้อง' },
+        { 
+          success: false, 
+          code: 'INVALID_PIN', 
+          message: '❌ รหัส PIN 4 หลักไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง' 
+        },
         { status: 401 }
       );
     }
 
     if (!employee.is_active) {
       return NextResponse.json(
-        { success: false, message: 'บัญชีพนักงานนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ' },
+        { 
+          success: false, 
+          code: 'ACCOUNT_SUSPENDED', 
+          message: '⚠️ บัญชีพนักงานนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ' 
+        },
         { status: 403 }
       );
     }
