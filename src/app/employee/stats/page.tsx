@@ -217,28 +217,31 @@ export default function EmployeeStatsPage() {
         </div>
       </main>
 
-      {/* 5-Tab Navigation matching Screenshot */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200/90 px-3 py-2 flex items-center justify-around z-30 shadow-lg">
-        <Link href="/employee" className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[10px] py-1">
-          <div className="w-6 h-6 flex items-center justify-center"><Clock className="w-4 h-4" /></div>
-          <span>เข้างาน</span>
+      {/* 3-Tab Clean Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-2.5 flex items-center justify-around z-30 shadow-lg">
+        {/* Tab 1: เช็คเวลา */}
+        <Link href="/employee" className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
+          </div>
+          <span>เช็คเวลา</span>
         </Link>
-        <Link href="/employee/stats" className="flex flex-col items-center gap-0.5 text-blue-600 font-bold text-[10px] py-1">
-          <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><CalendarIcon className="w-4 h-4" /></div>
+
+        {/* Tab 2: ปฏิทิน */}
+        <Link href="/employee/stats" className="flex flex-col items-center gap-1 text-blue-600 font-bold text-xs">
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shadow-xs">
+            <CalendarIcon className="w-4 h-4" />
+          </div>
           <span>ปฏิทิน</span>
-          <span className="w-1 h-1 rounded-full bg-blue-600"></span>
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
         </Link>
-        <Link href="/employee/stats" className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[10px] py-1">
-          <div className="w-6 h-6 flex items-center justify-center"><Coins className="w-4 h-4" /></div>
-          <span>เบี้ยเลี้ยง</span>
-        </Link>
-        <Link href="/employee/leave" className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[10px] py-1">
-          <div className="w-6 h-6 flex items-center justify-center"><FileText className="w-4 h-4" /></div>
-          <span>คำขอลา</span>
-        </Link>
-        <Link href="/admin" className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-600 text-[10px] py-1">
-          <div className="w-6 h-6 flex items-center justify-center"><Menu className="w-4 h-4" /></div>
-          <span>ผู้บริหาร</span>
+
+        {/* Tab 3: ยื่นใบลา */}
+        <Link href="/employee/leave" className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <FileText className="w-5 h-5" />
+          </div>
+          <span>ยื่นใบลา</span>
         </Link>
       </nav>
     </div>

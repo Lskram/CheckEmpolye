@@ -604,51 +604,41 @@ export default function ExactEmployeeApp() {
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. FIXED BOTTOM NAVIGATION BAR                                */}
+      {/* 3. FIXED BOTTOM NAVIGATION BAR (3 Clean Primary Tabs)         */}
       {/* ------------------------------------------------------------- */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2.5 flex items-center justify-around z-30 shadow-lg">
-        {/* Tab 1: เช็คเวลาทำงาน */}
-        <button 
-          onClick={() => setActiveNavTab('clock')}
-          className="flex flex-col items-center gap-1 text-blue-600 font-bold text-[10px]"
+      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-2.5 flex items-center justify-around z-30 shadow-lg">
+        {/* Tab 1: เช็คเวลา */}
+        <Link 
+          href="/employee"
+          className="flex flex-col items-center gap-1 text-blue-600 font-bold text-xs"
         >
-          <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs">
-            <Clock className="w-3.5 h-3.5" />
+          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs">
+            <Clock className="w-4 h-4" />
           </div>
           <span>เช็คเวลา</span>
-        </button>
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+        </Link>
 
         {/* Tab 2: ปฏิทิน */}
         <Link
           href="/employee/stats"
-          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 text-[10px]"
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors"
         >
-          <div className="w-6 h-6 flex items-center justify-center">
-            <Calendar className="w-4 h-4" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Calendar className="w-5 h-5" />
           </div>
           <span>ปฏิทิน</span>
         </Link>
 
-        {/* Tab 3: เบี้ยขยัน */}
-        <Link
-          href="/employee/stats"
-          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 text-[10px]"
-        >
-          <div className="w-6 h-6 flex items-center justify-center">
-            <CreditCard className="w-4 h-4" />
-          </div>
-          <span>เบี้ยขยัน</span>
-        </Link>
-
-        {/* Tab 4: ลางาน */}
+        {/* Tab 3: ยื่นใบลา */}
         <Link
           href="/employee/leave"
-          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 text-[10px]"
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 font-medium text-xs transition-colors"
         >
-          <div className="w-6 h-6 flex items-center justify-center">
-            <FileText className="w-4 h-4" />
+          <div className="w-8 h-8 flex items-center justify-center">
+            <FileText className="w-5 h-5" />
           </div>
-          <span>ลางาน</span>
+          <span>ยื่นใบลา</span>
         </Link>
       </div>
     </div>
