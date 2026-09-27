@@ -36,6 +36,7 @@ import { getDeviceHWID } from '@/lib/hwid';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { getLiveHardwarePosition, watchLivePosition, LiveLocationResult } from '@/lib/location';
 import { MobileNotificationService } from '@/lib/mobile-notifications';
+import { playWebAlertSound } from '@/lib/web-notifications';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function ExactEmployeeApp() {
@@ -84,6 +85,29 @@ export default function ExactEmployeeApp() {
   const [checkInResult, setCheckInResult] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [activeHistoryTab, setActiveHistoryTab] = useState<'in' | 'out' | 'leave'>('in');
+
+  // In-App Floating Notification Banner State
+  const [mobileToast, setMobileToast] = useState<{
+    type: 'checkin' | 'checkout';
+    title: string;
+    message: string;
+    isLate?: boolean;
+    timeStr: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (mobileToast) {
+      const timer = setTimeout(() => {
+        setMobileToast(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [mobileToast]);
+
+  // Request Notification Permissions on Mount
+  useEffect(() => {
+    MobileNotificationService.requestPermission();
+  }, []);
 
   // Safeguard: Check-out Confirmation Modal
   const [showCheckOutConfirmModal, setShowCheckOutConfirmModal] = useState(false);
@@ -420,6 +444,14 @@ export default function ExactEmployeeApp() {
       }
 
       setCheckInResult(data.data);
+      playWebAlertSound('checkin');
+      setMobileToast({
+        type: 'checkin',
+        title: data.data.status === 'PRESENT' ? '✅ ลงชื่อเข้างานสำเร็จแล้ว (ตรงเวลา)' : '⚠️ บันทึกเวลาเข้างานแล้ว (มาสาย)',
+        message: `บันทึกลงระบบสำเร็จ เวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '(+50฿ เบี้ยขยัน)' : ''}`,
+        isLate: data.data.status !== 'PRESENT',
+        timeStr: data.data.checkInTime || time.hhmm,
+      });
       MobileNotificationService.showCheckInSuccess(
         data.data.checkInTime || time.hhmm,
         data.data.status !== 'PRESENT',
@@ -511,6 +543,14 @@ export default function ExactEmployeeApp() {
         rawCheckOutTime: data.data.rawCheckOutTime,
       }));
 
+      playWebAlertSound('checkout');
+      setMobileToast({
+        type: 'checkout',
+        title: '🏁 ลงชื่อออกงานสำเร็จแล้ว!',
+        message: `บันทึกเวลาออกงานสำเร็จ เวลา ${data.data.checkOutTime || time.hhmm} น. ${data.data.workHours ? `(รวมทำงาน ${Number(data.data.workHours).toFixed(1)} ชม.)` : 'ขอบคุณสำหรับการทำงานวันนี้ครับ'}`,
+        timeStr: data.data.checkOutTime || time.hhmm,
+      });
+
       MobileNotificationService.showCheckOutSuccess(
         data.data.checkOutTime || time.hhmm,
         data.data.workHours
@@ -538,7 +578,61 @@ export default function ExactEmployeeApp() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-20">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-20 relative">
+      
+      {/* ------------------------------------------------------------- */}
+      {/* 0. IN-APP FLOATING NOTIFICATION BANNER (Top Slide Down)       */}
+      {/* ------------------------------------------------------------- */}
+      <AnimatePresence>
+        {mobileToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -30, scale: 0.95 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="fixed top-3 left-3 right-3 z-50 max-w-md mx-auto"
+          >
+            <div
+              className={`p-4 rounded-3xl shadow-2xl backdrop-blur-xl border flex items-start gap-3.5 text-white ${
+                mobileToast.type === 'checkin'
+                  ? mobileToast.isLate
+                    ? 'bg-amber-600/95 border-amber-400/50 shadow-amber-900/40'
+                    : 'bg-emerald-600/95 border-emerald-400/50 shadow-emerald-900/40'
+                  : 'bg-gradient-to-r from-blue-600/95 to-indigo-700/95 border-blue-400/50 shadow-blue-900/40'
+              }`}
+            >
+              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                <CheckCircle2 className="w-6 h-6 text-white" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1">
+                  <h4 className="font-black text-xs tracking-tight text-white leading-tight">
+                    {mobileToast.title}
+                  </h4>
+                  <span className="font-mono text-[10px] bg-black/20 px-2 py-0.5 rounded-full text-white/90 shrink-0">
+                    {mobileToast.timeStr} น.
+                  </span>
+                </div>
+                <p className="text-[11px] text-white/90 mt-1 leading-snug font-medium">
+                  {mobileToast.message}
+                </p>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/20 text-[10px] font-bold">
+                  <span>✓ บันทึกลงฐานข้อมูลสำเร็จ</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setMobileToast(null)}
+                className="p-1 rounded-xl hover:bg-white/20 text-white/70 hover:text-white transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP HEADER (Blue Brand Theme)                              */}
       {/* ------------------------------------------------------------- */}
