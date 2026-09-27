@@ -889,6 +889,12 @@ export default function MobileExecutiveApp() {
                       store_lng: lng
                     }));
                   }}
+                  onStoreNameChange={(name) => {
+                    setStoreSettingsForm((prev: any) => ({
+                      ...prev,
+                      store_name: name
+                    }));
+                  }}
                   onRadiusChange={(r) => {
                     setStoreSettingsForm((prev: any) => ({
                       ...prev,

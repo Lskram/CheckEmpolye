@@ -1366,6 +1366,12 @@ export default function WebExecutiveDashboard() {
                       store_lng: lng
                     }));
                   }}
+                  onStoreNameChange={(name) => {
+                    setStoreSettingsForm((prev: any) => ({
+                      ...prev,
+                      store_name: name
+                    }));
+                  }}
                   onRadiusChange={(r) => {
                     setStoreSettingsForm((prev: any) => ({
                       ...prev,

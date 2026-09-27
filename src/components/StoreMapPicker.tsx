@@ -16,7 +16,9 @@ import {
   Copy,
   ExternalLink,
   Map as MapIcon,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles,
+  Edit3
 } from 'lucide-react';
 
 interface StoreMapPickerProps {
@@ -25,6 +27,7 @@ interface StoreMapPickerProps {
   radius: number;
   storeName?: string;
   onChange: (lat: number, lng: number) => void;
+  onStoreNameChange?: (name: string) => void;
   onRadiusChange?: (radius: number) => void;
   onSave?: () => void;
   isSaving?: boolean;
@@ -48,6 +51,7 @@ export default function StoreMapPicker({
   radius = 50,
   storeName = 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS',
   onChange,
+  onStoreNameChange,
   onRadiusChange,
   onSave,
   isSaving = false,
@@ -61,6 +65,11 @@ export default function StoreMapPicker({
   const [localLatInput, setLocalLatInput] = useState<string>(Number(lat || 15.110412).toFixed(6));
   const [localLngInput, setLocalLngInput] = useState<string>(Number(lng || 104.358434).toFixed(6));
   const [copiedCoords, setCopiedCoords] = useState(false);
+
+  // Reverse Geocode & Place Name State
+  const [detectedPlaceName, setDetectedPlaceName] = useState<string>(storeName || '');
+  const [detectedAddress, setDetectedAddress] = useState<string>('');
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
   const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,6 +86,13 @@ export default function StoreMapPicker({
     }
   }, [radius]);
 
+  // Sync store name when props change externally
+  useEffect(() => {
+    if (storeName && storeName !== detectedPlaceName) {
+      setDetectedPlaceName(storeName);
+    }
+  }, [storeName]);
+
   // Sync local lat/lng inputs when props change externally
   useEffect(() => {
     const pLat = Number(lat);
@@ -86,6 +102,54 @@ export default function StoreMapPicker({
       setLocalLngInput(pLng.toFixed(6));
     }
   }, [lat, lng]);
+
+  // Reverse Geocode Fetcher
+  const fetchReverseGeocode = useCallback(async (targetLat: number, targetLng: number, autoUpdateName = true) => {
+    setIsReverseGeocoding(true);
+    try {
+      const res = await fetch(`/api/geocoding/reverse?lat=${targetLat}&lng=${targetLng}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        const place = json.data.placeName || 'จุดเช็คอินพิกัด';
+        const address = json.data.formattedAddress || '';
+        setDetectedPlaceName(place);
+        setDetectedAddress(address);
+        if (autoUpdateName && onStoreNameChange) {
+          onStoreNameChange(place);
+        }
+        setCustomStatusMsg(`📍 ตรวจพบ: ${place}`);
+        setTimeout(() => setCustomStatusMsg(''), 3500);
+      }
+    } catch (err) {
+      console.warn('Reverse geocoding error:', err);
+    } finally {
+      setIsReverseGeocoding(false);
+    }
+  }, [onStoreNameChange]);
+
+  // Create Custom Leaflet Marker Icon with Dynamic Title
+  const createMarkerIcon = (L: any, name: string) => {
+    const displayName = name || 'จุดเช็คอินร้าน';
+    return L.divIcon({
+      className: 'custom-leaflet-marker',
+      html: `
+        <div style="position: relative; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
+          <div style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 5px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; box-shadow: 0 4px 14px rgba(37,99,235,0.45); border: 2px solid white; white-space: nowrap; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; max-width: 240px; overflow: hidden; text-overflow: ellipsis;">
+            <span>📍 ${displayName}</span>
+          </div>
+          <!-- Radar Beacon Center Dot -->
+          <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 32px; height: 32px; background: rgba(37, 99, 235, 0.35); border-radius: 50%; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="width: 22px; height: 22px; background: #2563eb; border: 3px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 2;">
+              <div style="width: 6px; height: 6px; background: #ffffff; border-radius: 50%; transform: rotate(45deg);"></div>
+            </div>
+          </div>
+        </div>
+      `,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+    });
+  };
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -118,28 +182,8 @@ export default function StoreMapPicker({
         maxZoom: 19,
       }).addTo(map);
 
-      // High-Visibility Animated Center Marker
-      const centerIcon = L.divIcon({
-        className: 'custom-leaflet-marker',
-        html: `
-          <div style="position: relative; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
-            <div style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 5px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; box-shadow: 0 4px 14px rgba(37,99,235,0.45); border: 2px solid white; white-space: nowrap; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-              <span>📍 ${storeName || 'จุดเช็คอินร้าน'}</span>
-            </div>
-            <!-- Radar Beacon Center Dot -->
-            <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-              <div style="position: absolute; width: 32px; height: 32px; background: rgba(37, 99, 235, 0.35); border-radius: 50%; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-              <div style="width: 22px; height: 22px; background: #2563eb; border: 3px solid white; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 2;">
-                <div style="width: 6px; height: 6px; background: #ffffff; border-radius: 50%; transform: rotate(45deg);"></div>
-              </div>
-            </div>
-          </div>
-        `,
-        iconSize: [0, 0],
-        iconAnchor: [0, 0],
-      });
-
       // Draggable Marker
+      const centerIcon = createMarkerIcon(L, storeName || detectedPlaceName);
       const marker = L.marker([initialLat, initialLng], {
         draggable: true,
         icon: centerIcon,
@@ -164,6 +208,7 @@ export default function StoreMapPicker({
         setLocalLatInput(newLat.toFixed(6));
         setLocalLngInput(newLng.toFixed(6));
         onChange(newLat, newLng);
+        fetchReverseGeocode(newLat, newLng, true);
       });
 
       // Update when user clicks anywhere on map
@@ -176,6 +221,7 @@ export default function StoreMapPicker({
         setLocalLatInput(newLat.toFixed(6));
         setLocalLngInput(newLng.toFixed(6));
         onChange(newLat, newLng);
+        fetchReverseGeocode(newLat, newLng, true);
       });
 
       mapInstanceRef.current = map;
@@ -215,6 +261,17 @@ export default function StoreMapPicker({
     };
   }, []);
 
+  // Update marker icon when storeName or detectedPlaceName changes
+  useEffect(() => {
+    async function updateIcon() {
+      if (!markerRef.current) return;
+      const L = (await import('leaflet')).default;
+      const name = detectedPlaceName || storeName || 'จุดเช็คอินร้าน';
+      markerRef.current.setIcon(createMarkerIcon(L, name));
+    }
+    updateIcon();
+  }, [detectedPlaceName, storeName]);
+
   // Update map visual coordinates when lat/lng props change
   useEffect(() => {
     if (!mapInstanceRef.current || !markerRef.current || !circleRef.current) return;
@@ -234,7 +291,7 @@ export default function StoreMapPicker({
   }, [selectedRadius]);
 
   // Direct Coordinates update from input fields
-  const applyManualCoordinates = (newLatStr: string, newLngStr: string) => {
+  const applyManualCoordinates = (newLatStr: string, newLngStr: string, shouldReverseGeocode = true) => {
     const parsedLat = parseFloat(newLatStr);
     const parsedLng = parseFloat(newLngStr);
 
@@ -261,8 +318,9 @@ export default function StoreMapPicker({
       circleRef.current.setLatLng([roundedLat, roundedLng]);
     }
 
-    setCustomStatusMsg(`📍 ปักหมุดพิกัด: ${roundedLat}, ${roundedLng}`);
-    setTimeout(() => setCustomStatusMsg(''), 3000);
+    if (shouldReverseGeocode) {
+      fetchReverseGeocode(roundedLat, roundedLng, true);
+    }
   };
 
   // Instant Regex coordinate detector when typing or pasting in search box
@@ -274,7 +332,7 @@ export default function StoreMapPicker({
     if (coordMatch) {
       const latVal = parseFloat(coordMatch[1]);
       const lngVal = parseFloat(coordMatch[3]);
-      applyManualCoordinates(latVal.toString(), lngVal.toString());
+      applyManualCoordinates(latVal.toString(), lngVal.toString(), true);
       return true;
     }
 
@@ -283,7 +341,7 @@ export default function StoreMapPicker({
     if (atMatch) {
       const latVal = parseFloat(atMatch[1]);
       const lngVal = parseFloat(atMatch[2]);
-      applyManualCoordinates(latVal.toString(), lngVal.toString());
+      applyManualCoordinates(latVal.toString(), lngVal.toString(), true);
       return true;
     }
 
@@ -292,7 +350,7 @@ export default function StoreMapPicker({
     if (qMatch) {
       const latVal = parseFloat(qMatch[1]);
       const lngVal = parseFloat(qMatch[2]);
-      applyManualCoordinates(latVal.toString(), lngVal.toString());
+      applyManualCoordinates(latVal.toString(), lngVal.toString(), true);
       return true;
     }
 
@@ -347,21 +405,39 @@ export default function StoreMapPicker({
     setSearchQuery(item.title);
     setIsDropdownOpen(false);
 
+    // Apply place name from search
+    const chosenName = item.title || 'จุดเช็คอิน';
+    setDetectedPlaceName(chosenName);
+    setDetectedAddress(item.fullAddress || '');
+    if (onStoreNameChange) {
+      onStoreNameChange(chosenName);
+    }
+
     if (mapInstanceRef.current && markerRef.current && circleRef.current) {
       mapInstanceRef.current.flyTo([newLat, newLng], 18, { duration: 1.2 });
       markerRef.current.setLatLng([newLat, newLng]);
       circleRef.current.setLatLng([newLat, newLng]);
     }
+
+    setCustomStatusMsg(`📍 เลือกสถานที่: ${chosenName}`);
+    setTimeout(() => setCustomStatusMsg(''), 3500);
   };
 
   // Quick preset: สีแสงยางยนต์ (Official Branch)
   const handleSetSisaengBranch = () => {
     const branchLat = 15.110412;
     const branchLng = 104.358434;
+    const branchName = 'สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)';
     setLocalLatInput(branchLat.toFixed(6));
     setLocalLngInput(branchLng.toFixed(6));
     onChange(branchLat, branchLng);
-    setSearchQuery('สีแสงยางยนต์ (Sisaeng Yangyont)');
+    setSearchQuery(branchName);
+    setDetectedPlaceName(branchName);
+    setDetectedAddress('ถนนอุบล บ้านหนองตะมะ อ.เมืองศรีสะเกษ จ.ศรีสะเกษ 33000');
+    if (onStoreNameChange) {
+      onStoreNameChange(branchName);
+    }
+
     if (mapInstanceRef.current && markerRef.current && circleRef.current) {
       mapInstanceRef.current.flyTo([branchLat, branchLng], 18, { duration: 1.2 });
       markerRef.current.setLatLng([branchLat, branchLng]);
@@ -396,8 +472,7 @@ export default function StoreMapPicker({
           circleRef.current.setLatLng([userLat, userLng]);
         }
 
-        setCustomStatusMsg(`📍 ปักหมุดพิกัด GPS อุปกรณ์ของคุณสำเร็จ: ${userLat}, ${userLng}`);
-        setTimeout(() => setCustomStatusMsg(''), 3000);
+        fetchReverseGeocode(userLat, userLng, true);
       },
       (err) => {
         setIsLocating(false);
@@ -441,7 +516,7 @@ export default function StoreMapPicker({
               onFocus={() => {
                 if (searchResults.length > 0) setIsDropdownOpen(true);
               }}
-              placeholder="🔍 ค้นหาสถานที่, จังหวัด หรือวางลิงก์ Google Maps / พิกัดตัวเลข"
+              placeholder="🔍 ค้นหาสถานที่จริง, อำเภอ/จังหวัด หรือวางลิงก์ Google Maps / พิกัด"
               className="w-full pl-9 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 font-medium transition-all shadow-xs"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -505,7 +580,7 @@ export default function StoreMapPicker({
           <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden max-h-72 overflow-y-auto divide-y divide-slate-100">
             <div className="px-3 py-2 bg-slate-50 text-[11px] font-bold text-slate-500 flex items-center justify-between">
               <span>ผลการค้นหาสถานที่ ({searchResults.length} รายการ)</span>
-              <span className="text-[10px] text-blue-600 font-medium">คลิกเพื่อปักหมุดทันที</span>
+              <span className="text-[10px] text-blue-600 font-medium">คลิกเพื่อปักหมุดและบันทึกชื่อทันที</span>
             </div>
 
             {searchResults.map((item) => (
@@ -548,6 +623,65 @@ export default function StoreMapPicker({
       </div>
 
       {/* ------------------------------------------------------------- */}
+      {/* DETECTED LOCATION & SMART NAME SYNC CARD                      */}
+      {/* ------------------------------------------------------------- */}
+      <div className="p-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/90 to-sky-50/90 border border-blue-200/90 rounded-2xl shadow-xs space-y-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Sparkles className="w-4 h-4 text-amber-300" />
+            </div>
+            <div>
+              <span className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                <span>ชื่อสถานที่ / จุดเช็คอินที่ตรวจพบ</span>
+                <span className="text-[10px] text-blue-600 bg-white/80 border border-blue-200 px-2 py-0.2 rounded-full font-bold">
+                  Auto-Geocode
+                </span>
+              </span>
+              <p className="text-[10px] text-slate-500">ระบบถอดชื่อสถานที่จริงจากจุดมาร์คให้อัตโนมัติ (แก้ไขเพิ่มเติมได้)</p>
+            </div>
+          </div>
+
+          {isReverseGeocoding ? (
+            <span className="text-[11px] font-bold text-blue-600 flex items-center gap-1 animate-pulse">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+              <span>กำลังดึงชื่อสถานที่จริง...</span>
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 flex items-center gap-1">
+              <Check className="w-3 h-3 text-emerald-600" />
+              <span>พร้อมอัปเดตลง Cloud</span>
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="relative">
+            <input
+              type="text"
+              value={detectedPlaceName || storeName}
+              onChange={(e) => {
+                setDetectedPlaceName(e.target.value);
+                if (onStoreNameChange) {
+                  onStoreNameChange(e.target.value);
+                }
+              }}
+              placeholder="เช่น สีแสงยางยนต์, บ้านพักพนักงาน, จุดเช็คอิน ต.เมืองใต้"
+              className="w-full pl-3 pr-8 py-2 bg-white border border-blue-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-xs"
+            />
+            <Edit3 className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {detectedAddress && (
+            <div className="text-[11px] text-slate-600 font-medium flex items-center gap-1.5 px-1 truncate">
+              <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="truncate">{detectedAddress}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------- */}
       {/* INTERACTIVE LEAFLET MAP CONTAINER                             */}
       {/* ------------------------------------------------------------- */}
       <div className="relative w-full h-84 sm:h-96 rounded-3xl overflow-hidden border-2 border-slate-200 shadow-inner bg-slate-100">
@@ -556,14 +690,14 @@ export default function StoreMapPicker({
         {/* Top Floating Helper Banner */}
         <div className="absolute top-3 left-3 z-20 bg-slate-900/90 backdrop-blur-xs text-white px-3.5 py-1.5 rounded-2xl text-[11px] font-semibold flex items-center gap-1.5 shadow-lg border border-white/10 pointer-events-none">
           <MapPin className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-          <span>คลิกบนแผนที่ หรือลากหมุด เพื่อกำหนดจุดร้านค้า</span>
+          <span>คลิกบนแผนที่ หรือลากหมุด เพื่อกำหนดจุดเช็คอินใหม่</span>
         </div>
 
         {/* Dynamic Status Toast Banner */}
         {customStatusMsg && (
-          <div className="absolute top-3 right-14 z-20 bg-emerald-600 text-white px-3.5 py-1.5 rounded-2xl text-[11px] font-bold flex items-center gap-1.5 shadow-lg animate-fade-in border border-emerald-400">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{customStatusMsg}</span>
+          <div className="absolute top-3 right-14 z-20 bg-emerald-600 text-white px-3.5 py-1.5 rounded-2xl text-[11px] font-bold flex items-center gap-1.5 shadow-lg animate-fade-in border border-emerald-400 max-w-xs truncate">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{customStatusMsg}</span>
           </div>
         )}
 
@@ -604,7 +738,7 @@ export default function StoreMapPicker({
               <Compass className="w-4 h-4" />
             </div>
             <div>
-              <span className="font-bold text-slate-800 text-xs">พิกัด GPS ของร้าน (ละติจูด, ลองจิจูด)</span>
+              <span className="font-bold text-slate-800 text-xs">พิกัด GPS ของจุดเช็คอิน (ละติจูด, ลองจิจูด)</span>
               <p className="text-[10px] text-slate-500">สามารถพิมพ์หรือวางตัวเลขพิกัดเพื่อปักหมุดตรงนี้ได้ทันที</p>
             </div>
           </div>
@@ -646,11 +780,11 @@ export default function StoreMapPicker({
               step="0.000001"
               value={localLatInput}
               onChange={(e) => setLocalLatInput(e.target.value)}
-              onBlur={() => applyManualCoordinates(localLatInput, localLngInput)}
+              onBlur={() => applyManualCoordinates(localLatInput, localLngInput, true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  applyManualCoordinates(localLatInput, localLngInput);
+                  applyManualCoordinates(localLatInput, localLngInput, true);
                 }
               }}
               placeholder="เช่น 15.110412"
@@ -667,11 +801,11 @@ export default function StoreMapPicker({
               step="0.000001"
               value={localLngInput}
               onChange={(e) => setLocalLngInput(e.target.value)}
-              onBlur={() => applyManualCoordinates(localLatInput, localLngInput)}
+              onBlur={() => applyManualCoordinates(localLatInput, localLngInput, true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  applyManualCoordinates(localLatInput, localLngInput);
+                  applyManualCoordinates(localLatInput, localLngInput, true);
                 }
               }}
               placeholder="เช่น 104.358434"
@@ -680,7 +814,7 @@ export default function StoreMapPicker({
           </div>
         </div>
 
-        {/* Radius preset pills */}
+        {/* Radius preset pills & Save Button */}
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-bold text-slate-500 mr-1">เลือกรัศมีอนุญาต:</span>
@@ -703,7 +837,7 @@ export default function StoreMapPicker({
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => applyManualCoordinates(localLatInput, localLngInput)}
+              onClick={() => applyManualCoordinates(localLatInput, localLngInput, true)}
               className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 shadow-xs"
             >
               <MapPin className="w-3.5 h-3.5 text-amber-400" />
@@ -714,7 +848,7 @@ export default function StoreMapPicker({
               <button
                 type="button"
                 onClick={() => {
-                  applyManualCoordinates(localLatInput, localLngInput);
+                  applyManualCoordinates(localLatInput, localLngInput, false);
                   onSave();
                 }}
                 disabled={isSaving}
@@ -725,7 +859,7 @@ export default function StoreMapPicker({
                 ) : (
                   <Check className="w-3.5 h-3.5 text-emerald-300" />
                 )}
-                <span>{isSaving ? 'กำลังบันทึกลง Cloud...' : '💾 บันทึกจุดนี้ทันที'}</span>
+                <span>{isSaving ? 'กำลังบันทึกลง Cloud...' : '💾 บันทึกจุดนี้และอัปเดตให้พนักงานทันที'}</span>
               </button>
             )}
           </div>
