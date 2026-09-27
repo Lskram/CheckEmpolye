@@ -10,6 +10,7 @@ import {
   Coins, 
   Clock, 
   ShieldCheck, 
+  ShieldAlert,
   AlertTriangle, 
   CheckCircle2, 
   XCircle, 
@@ -37,6 +38,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import SecurityLogsViewer from '@/components/SecurityLogsViewer';
 
 const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
   ssr: false,
@@ -66,8 +68,8 @@ interface StaffItem {
 export default function MobileExecutiveApp() {
   const router = useRouter();
 
-  // Navigation Tabs: overview, staff, leaves, settings
-  const [activeTab, setActiveTab] = useState<'overview' | 'staff' | 'leaves' | 'settings'>('overview');
+  // Navigation Tabs: overview, staff, leaves, violations, settings
+  const [activeTab, setActiveTab] = useState<'overview' | 'staff' | 'leaves' | 'violations' | 'settings'>('overview');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
@@ -445,6 +447,7 @@ export default function MobileExecutiveApp() {
 
   const leaveRequests = analyticsData?.leaveRequests || [];
   const violationLogs = analyticsData?.violationLogs || [];
+  const unresolvedViolationsCount = (violationLogs || []).filter((v: any) => !v.is_resolved).length;
 
   // Export CSV
   const handleExportCSV = () => {
@@ -917,13 +920,19 @@ export default function MobileExecutiveApp() {
             </div>
 
             {/* Security Logs */}
-            <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>บันทึกความปลอดภัย (Security Logs)</span>
+            <div 
+              onClick={() => setActiveTab('violations')}
+              className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-2 cursor-pointer hover:border-slate-300 transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                  <ShieldAlert className="w-4 h-4 text-rose-600" />
+                  <span>บันทึกความปลอดภัย & ป้องกันทุจริต</span>
+                </div>
+                <span className="text-[10px] font-bold text-blue-600">ดูทั้งหมด →</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 text-[11px] text-slate-500 text-center">
-                {violationLogs.length === 0 ? 'ไม่มีประวัติความผิดปกติ ทุกอย่างปลอดภัย 100%' : `พบ ${violationLogs.length} รายการ`}
+                {violationLogs.length === 0 ? 'ไม่มีประวัติความผิดปกติ ทุกอย่างปลอดภัย 100%' : `พบ ${violationLogs.length} รายการ (${unresolvedViolationsCount} รอดำเนินการ)`}
               </div>
             </div>
 
@@ -937,6 +946,15 @@ export default function MobileExecutiveApp() {
             </button>
           </div>
         )}
+
+        {/* TAB 4: VIOLATIONS & SECURITY LOGS */}
+        {activeTab === 'violations' && (
+          <SecurityLogsViewer
+            logs={violationLogs}
+            onRefresh={() => loadData(false)}
+            isMobileCompact={true}
+          />
+        )}
       </div>
 
       {/* ------------------------------------------------------------- */}
@@ -948,6 +966,7 @@ export default function MobileExecutiveApp() {
             { id: 'overview', label: 'ภาพรวม', icon: TrendingUp },
             { id: 'staff', label: 'ลูกน้อง', icon: Users },
             { id: 'leaves', label: 'ใบลา', icon: Calendar, badge: pendingLeavesCount },
+            { id: 'violations', label: 'ความปลอดภัย', icon: ShieldAlert, badge: unresolvedViolationsCount },
             { id: 'settings', label: 'ตั้งค่า', icon: Settings },
           ].map((tab) => {
             const Icon = tab.icon;

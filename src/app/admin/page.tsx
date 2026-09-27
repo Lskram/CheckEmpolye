@@ -34,6 +34,7 @@ import {
   Radio
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import SecurityLogsViewer from '@/components/SecurityLogsViewer';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   ssr: false,
@@ -772,7 +773,7 @@ export default function WebExecutiveDashboard() {
               { id: 'overview', label: '📈 ภาพรวม & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
               { id: 'employees', label: '👥 จัดการพนักงาน', icon: Users, color: 'bg-sky-500' },
               { id: 'leaves', label: '📅 อนุมัติใบลา', icon: Calendar, badge: pendingLeavesCount, color: 'bg-amber-500' },
-              { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: violationLogs.length, color: 'bg-red-500' },
+              { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: violationLogs.filter((v: any) => !v.is_resolved).length, color: 'bg-red-500' },
               { id: 'settings', label: '⚙️ ตั้งค่าระบบ', icon: Settings, color: 'bg-slate-700' },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -1217,56 +1218,12 @@ export default function WebExecutiveDashboard() {
           </div>
         )}
 
-        {/* TAB 4: VIOLATIONS */}
+        {/* TAB 4: VIOLATIONS & SECURITY LOGS */}
         {activeTab === 'violations' && (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <div>
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-rose-500" />
-                <span>บันทึกความปลอดภัย & ป้องกันทุจริต (Security Logs)</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                ตรวจจับการใช้ Fake GPS, Mock Location, หรือการพยายามเช็คอินนอกพื้นที่
-              </p>
-            </div>
-
-            {violationLogs.length === 0 ? (
-              <div className="py-12 px-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
-                ✓ ไม่พบประวัติความผิดปกติ ทุกอย่างปลอดภัย 100%
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                      <th className="py-2.5 px-3">เวลาที่เกิดเหตุ</th>
-                      <th className="py-2.5 px-3">พนักงาน</th>
-                      <th className="py-2.5 px-3">ประเภทความผิดปกติ</th>
-                      <th className="py-2.5 px-3">รายละเอียด</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {violationLogs.map((v: any) => (
-                      <tr key={v.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-3 font-mono text-slate-500">
-                          {new Date(v.created_at).toLocaleString('th-TH')}
-                        </td>
-                        <td className="py-3 px-3 font-bold text-slate-900">
-                          {v.employees?.full_name || v.employees?.employee_code || '-'}
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-rose-100 text-rose-700">
-                            {v.violation_type}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-slate-600">{v.details || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <SecurityLogsViewer
+            logs={violationLogs}
+            onRefresh={() => loadDashboardData(false)}
+          />
         )}
 
         {/* TAB 5: SETTINGS */}

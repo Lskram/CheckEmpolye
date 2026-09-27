@@ -469,5 +469,16 @@ export const db = {
       return true;
     }
     return false;
+  },
+
+  async resolveAllViolations(): Promise<boolean> {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('violation_logs').update({ is_resolved: true }).eq('is_resolved', false);
+      return !error;
+    }
+    mockViolationLogs.forEach((v) => {
+      v.is_resolved = true;
+    });
+    return true;
   }
 };
