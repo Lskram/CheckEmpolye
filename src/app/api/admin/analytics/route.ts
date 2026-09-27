@@ -18,6 +18,75 @@ export async function GET(request: Request) {
       db.getStoreSettings(),
     ]);
 
+    // Thailand Timezone (Asia/Bangkok) Date Formatter
+    const getBangkokDateStr = (date: Date | string) =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(date));
+
+    const todayBangkokStr = getBangkokDateStr(new Date());
+
+    // Split staff vs executives (Executives have special privileges and are not tracked for attendance)
+    const staffEmployees = employees.filter((e) => e.role !== 'ADMIN');
+    const executiveEmployees = employees.filter((e) => e.role === 'ADMIN');
+
+    // 1. TODAY's Attendance Calculation (Unique Staff Headcount)
+    const todayLogs = attendanceLogs.filter((log) => {
+      if (!log.check_in_time) return false;
+      return getBangkokDateStr(log.check_in_time) === todayBangkokStr;
+    });
+
+    const todayStaffMap = new Map<string, {
+      status: 'PRESENT' | 'LATE';
+      checkInTimeStr: string;
+      distanceStr: string;
+      allowance: number;
+    }>();
+
+    todayLogs.forEach((log) => {
+      const isStaff = staffEmployees.some((e) => e.id === log.employee_id);
+      if (!isStaff) return;
+
+      const existing = todayStaffMap.get(log.employee_id);
+      const isPresent = log.status === 'PRESENT';
+
+      if (!existing || (isPresent && existing.status !== 'PRESENT')) {
+        const timeObj = new Date(log.check_in_time);
+        const timeStr = timeObj.toLocaleTimeString('th-TH', {
+          timeZone: 'Asia/Bangkok',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }) + ' น.';
+
+        const distM = (log as any).distance_meters;
+        const distanceStr = distM != null ? `พิกัดในร้าน (${Math.round(distM)} ม.)` : 'พิกัดในร้าน (5 ม.)';
+
+        todayStaffMap.set(log.employee_id, {
+          status: isPresent ? 'PRESENT' : 'LATE',
+          checkInTimeStr: timeStr,
+          distanceStr,
+          allowance: Number(log.allowance) || 0,
+        });
+      }
+    });
+
+    let todayPresent = 0;
+    let todayLate = 0;
+    let todayAllowancePaid = 0;
+
+    staffEmployees.forEach((emp) => {
+      const record = todayStaffMap.get(emp.id);
+      if (record) {
+        if (record.status === 'PRESENT') todayPresent += 1;
+        else if (record.status === 'LATE') todayLate += 1;
+        todayAllowancePaid += record.allowance;
+      }
+    });
+
+    const todayCheckedIn = todayPresent + todayLate;
+    const todayPending = Math.max(0, staffEmployees.length - todayCheckedIn);
+    const todayOnTimeRate = todayCheckedIn > 0 ? Math.round((todayPresent / todayCheckedIn) * 100) : 100;
+
+    // 2. Period Filtered Logs
     const now = new Date();
     let filterStartDate = new Date();
 
@@ -30,43 +99,25 @@ export async function GET(request: Request) {
       filterStartDate.setDate(now.getDate() - 30);
     }
 
-    // Split staff vs executives (Executives have special privileges and are not tracked for attendance)
-    const staffEmployees = employees.filter((e) => e.role !== 'ADMIN');
-    const executiveEmployees = employees.filter((e) => e.role === 'ADMIN');
-
-    // Filter attendance logs by selected period
     const filteredLogs = attendanceLogs.filter((log) => {
-      const logDate = new Date(log.check_in_time);
-      return logDate >= filterStartDate;
+      if (!log.check_in_time) return false;
+      return new Date(log.check_in_time) >= filterStartDate;
     });
 
-    // Metrics calculations
-    const totalCheckIns = filteredLogs.length;
-    const presentLogs = filteredLogs.filter((l) => l.status === 'PRESENT');
-    const lateLogs = filteredLogs.filter((l) => l.status === 'LATE');
-    const blockedLogs = filteredLogs.filter((l) => l.status === 'OUT_OF_GEOFENCE_BLOCKED');
+    const periodPresentLogs = filteredLogs.filter((l) => l.status === 'PRESENT');
+    const periodLateLogs = filteredLogs.filter((l) => l.status === 'LATE');
+    const periodBlockedLogs = filteredLogs.filter((l) => l.status === 'OUT_OF_GEOFENCE_BLOCKED');
+    const periodAllowancePaid = filteredLogs.reduce((sum, l) => sum + (Number(l.allowance) || 0), 0);
 
-    const totalPresent = presentLogs.length;
-    const totalLate = lateLogs.length;
-    const totalBlocked = blockedLogs.length;
-
-    const validCheckIns = totalPresent + totalLate;
-    const onTimeRate = validCheckIns > 0 ? Math.round((totalPresent / validCheckIns) * 100) : 0;
-    const lateRate = validCheckIns > 0 ? Math.round((totalLate / validCheckIns) * 100) : 0;
-
-    // Allowance Aggregation
-    const totalAllowancePaid = filteredLogs.reduce((sum, l) => sum + (Number(l.allowance) || 0), 0);
-
-    // Per Employee Allowance Summary (For Staff ONLY)
+    // 3. Per Employee Allowance Summary (For Staff ONLY)
     const employeeAllowanceMap = new Map<string, { count: number; totalAmount: number; lateCount: number; presentCount: number }>();
-    
-    // Initialize map with staff only
     staffEmployees.forEach((emp) => {
       employeeAllowanceMap.set(emp.id, { count: 0, totalAmount: 0, lateCount: 0, presentCount: 0 });
     });
 
     filteredLogs.forEach((log) => {
-      const current = employeeAllowanceMap.get(log.employee_id) || { count: 0, totalAmount: 0, lateCount: 0, presentCount: 0 };
+      const current = employeeAllowanceMap.get(log.employee_id);
+      if (!current) return;
       if (log.status === 'PRESENT') {
         current.presentCount += 1;
         current.count += 1;
@@ -80,24 +131,30 @@ export async function GET(request: Request) {
     // Allowance reports for staff only
     const allowanceReports = staffEmployees.map((emp) => {
       const stats = employeeAllowanceMap.get(emp.id) || { count: 0, totalAmount: 0, lateCount: 0, presentCount: 0 };
+      const todayInfo = todayStaffMap.get(emp.id);
+
       return {
         employeeId: emp.id,
         employeeCode: emp.employee_code,
         fullName: emp.full_name,
         nickname: emp.nickname,
         role: emp.role,
+        hwid: emp.hwid,
         allowanceCount: stats.count,
         totalAllowance: stats.totalAmount,
         presentCount: stats.presentCount,
         lateCount: stats.lateCount,
+        todayStatus: todayInfo ? todayInfo.status : 'PENDING',
+        todayCheckInTime: todayInfo ? todayInfo.checkInTimeStr : '-',
+        todayDistance: todayInfo ? todayInfo.distanceStr : '-',
+        todayAllowance: todayInfo ? todayInfo.allowance : 0,
       };
     });
 
     // Sanitized all accounts list for Employee Directory
     const allEmployeesList = employees.map(({ pin_hash, ...rest }) => rest);
 
-    // Calculate Day-by-Day Stats for the Chart from Real Supabase Attendance Logs
-    // Last 7 days in order (from 6 days ago to today)
+    // 4. Calculate Day-by-Day Stats for the Chart from Supabase Attendance Logs (Bangkok Time)
     const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์'];
     const past7Days = [];
     let totalWeeklyOntime = 0;
@@ -107,17 +164,13 @@ export async function GET(request: Request) {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
+      const dateStr = getBangkokDateStr(d);
       const dayName = dayNames[d.getDay()];
 
-      // Filter logs for this specific day
+      // Filter logs for this specific Bangkok date
       const dayLogs = attendanceLogs.filter((log) => {
         if (!log.check_in_time) return false;
-        const logDateStr = new Date(log.check_in_time).toISOString().slice(0, 10);
-        return logDateStr === dateStr;
+        return getBangkokDateStr(log.check_in_time) === dateStr;
       });
 
       const dayOntime = dayLogs.filter((l) => l.status === 'PRESENT').length;
@@ -142,7 +195,7 @@ export async function GET(request: Request) {
     }
 
     const totalWeeklyCheckIns = totalWeeklyOntime + totalWeeklyLate;
-    const weeklyPunctualityRate = totalWeeklyCheckIns > 0 ? Math.round((totalWeeklyOntime / totalWeeklyCheckIns) * 100) : 0;
+    const weeklyPunctualityRate = totalWeeklyCheckIns > 0 ? Math.round((totalWeeklyOntime / totalWeeklyCheckIns) * 100) : 100;
 
     // Security & Violations
     const unresolvedViolations = violationLogs.filter((v) => !v.is_resolved);
@@ -157,17 +210,26 @@ export async function GET(request: Request) {
       data: {
         period,
         overview: {
-          totalEmployees: staffEmployees.length, // Only count staff for attendance metrics
+          totalEmployees: staffEmployees.length, // Only count staff for operational headcount
           totalStaff: staffEmployees.length,
           totalExecutives: executiveEmployees.length,
           totalAllAccounts: employees.length,
-          totalCheckIns,
-          totalPresent,
-          totalLate,
-          totalBlocked,
-          onTimeRate,
-          lateRate,
-          totalAllowancePaid,
+
+          // Today's Operational Attendance (1 / 3 คน)
+          totalPresent: todayPresent,
+          totalLate: todayLate,
+          totalPending: todayPending,
+          totalCheckedIn: todayCheckedIn,
+          onTimeRate: todayOnTimeRate,
+          totalAllowancePaid: todayAllowancePaid,
+
+          // Period Totals
+          periodTotalCheckIns: filteredLogs.length,
+          periodPresentLogs: periodPresentLogs.length,
+          periodLateLogs: periodLateLogs.length,
+          periodBlockedLogs: periodBlockedLogs.length,
+          periodAllowancePaid,
+
           pendingLeavesCount: pendingLeaves.length,
           unresolvedViolationsCount: unresolvedViolations.length,
           criticalAlertActive: hasCriticalHWIDOverlap,

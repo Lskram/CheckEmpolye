@@ -345,9 +345,9 @@ export default function MobileExecutiveApp() {
     .filter((emp: any) => emp.role !== 'ADMIN');
 
   const formattedStaff: StaffItem[] = rawStaffList.map((emp: any): StaffItem => {
-    const isPresent = emp.presentCount > 0;
-    const isLate = emp.lateCount > 0;
-    const status: 'PRESENT' | 'LATE' | 'PENDING' = isPresent ? 'PRESENT' : isLate ? 'LATE' : 'PENDING';
+    const status: 'PRESENT' | 'LATE' | 'PENDING' = emp.todayStatus || (emp.presentCount > 0 ? 'PRESENT' : emp.lateCount > 0 ? 'LATE' : 'PENDING');
+    const isPresent = status === 'PRESENT';
+    const isLate = status === 'LATE';
     return {
       id: emp.employeeId,
       code: emp.employeeCode,
@@ -355,11 +355,11 @@ export default function MobileExecutiveApp() {
       nickname: emp.nickname || '-',
       role: emp.role === 'SUPERVISOR' ? 'หัวหน้างาน (Supervisor)' : 'พนักงาน (Staff)',
       status,
-      allowance: emp.totalAllowance || 0,
+      allowance: emp.todayAllowance !== undefined ? emp.todayAllowance : (emp.totalAllowance || 0),
       hwid: emp.hwid || null,
       statusLabel: isPresent ? 'ตรงเวลา (+50฿)' : isLate ? 'มาสาย (>08:00)' : 'ยังไม่ลงเวลา',
-      checkInTimeStr: isPresent ? '07:45 น.' : isLate ? '08:15 น.' : '-',
-      distanceStr: isPresent || isLate ? 'ในร้าน (5 ม.)' : '-',
+      checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45 น.' : isLate ? '08:15 น.' : '-'),
+      distanceStr: emp.todayDistance && emp.todayDistance !== '-' ? emp.todayDistance : (isPresent || isLate ? 'ในร้าน (5 ม.)' : '-'),
       badgeColor: isPresent ? 'bg-emerald-100 text-emerald-800' : isLate ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
     };
   });
