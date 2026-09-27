@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const employee = await db.getEmployeeById(employeeId);
     if (!employee) {
       return NextResponse.json(
-        { success: false, message: 'ไม่พบบัญชีผู้ใช้ กรุณาเข้าสู่ระบบใหม่' },
+        { success: false, code: 'EMPLOYEE_NOT_FOUND', message: 'ไม่พบบัญชีผู้ใช้ กรุณาเข้าสู่ระบบใหม่' },
         { status: 404 }
       );
     }

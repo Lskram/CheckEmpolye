@@ -146,6 +146,10 @@ export default function EmployeeLoginPage() {
         setErrorMsg(data.message || 'รหัส PIN ไม่ถูกต้อง');
         setPinCode('');
         setIsLoading(false);
+        if (data.code === 'EMPLOYEE_NOT_FOUND' || res.status === 404) {
+          localStorage.removeItem('attendance_employee_profile');
+          setIsFirstTimeMode(true);
+        }
         return;
       }
 
