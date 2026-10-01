@@ -96,6 +96,7 @@ export default function WebExecutiveDashboard() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(false);
+  const [mounted, setMounted] = useState(false);
 
   // 3D Chart Toggle
   const [is3DMode, setIs3DMode] = useState<boolean>(true);
@@ -201,6 +202,7 @@ export default function WebExecutiveDashboard() {
     if (savedDiscord) {
       setDiscordWebhookUrl(savedDiscord);
     }
+    setMounted(true);
   }, []);
 
   // 2. Data Fetching & Smart Diff Detection (100% Reliable Dual-Engine)
@@ -766,6 +768,20 @@ export default function WebExecutiveDashboard() {
     link.click();
     document.body.removeChild(link);
   };
+
+  // -------------------------------------------------------------
+  // HYDRATION GUARD
+  // -------------------------------------------------------------
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#070a12] flex items-center justify-center text-slate-400 text-xs font-bold font-mono">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+          <span>กำลังโหลดระบบศูนย์ควบคุม...</span>
+        </div>
+      </div>
+    );
+  }
 
   // -------------------------------------------------------------
   // FALLBACK WEB LOGIN (SI01 / 5101)

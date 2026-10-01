@@ -84,6 +84,7 @@ export default function MobileExecutiveApp() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExecutiveUnlocked, setIsExecutiveUnlocked] = useState<boolean>(false);
+  const [mounted, setMounted] = useState(false);
 
   // Executive Login Fallback State
   const [executiveCodeInput, setExecutiveCodeInput] = useState('');
@@ -196,6 +197,7 @@ export default function MobileExecutiveApp() {
     if (savedToken === 'true') {
       setIsExecutiveUnlocked(true);
     }
+    setMounted(true);
   }, []);
 
   // Data Fetching & Smart Diff Detection (Realtime Audio & Toast)
@@ -584,6 +586,20 @@ export default function MobileExecutiveApp() {
     link.click();
     document.body.removeChild(link);
   };
+
+  // -------------------------------------------------------------
+  // HYDRATION GUARD
+  // -------------------------------------------------------------
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[#070a12] flex items-center justify-center text-slate-400 text-xs font-bold font-mono">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+          <span>กำลังโหลดระบบผู้บริหาร...</span>
+        </div>
+      </div>
+    );
+  }
 
   // -------------------------------------------------------------
   // FALLBACK LOGIN
