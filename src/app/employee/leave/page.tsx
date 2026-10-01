@@ -24,6 +24,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAppTheme } from '@/lib/theme';
 import { saveOfflineAction } from '@/lib/offline-sync';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
+import NetworkGuard from '@/components/NetworkGuard';
 
 export default function EmployeeLeavePage() {
   const router = useRouter();
@@ -206,6 +207,9 @@ export default function EmployeeLeavePage() {
       isDark ? 'bg-[#090d16] text-slate-100' : 'bg-[#eef2f7] text-slate-800'
     }`}>
       
+      {/* Network Guard */}
+      <NetworkGuard />
+
       {/* Header */}
       <header className={`px-4 pt-4 pb-3 flex items-center justify-between sticky top-0 z-30 transition-colors ${
         isDark ? 'bg-[#0f1626]/90 border-b border-white/5 backdrop-blur-xl' : 'bg-white/90 border-b border-slate-200 backdrop-blur-xl shadow-xs'

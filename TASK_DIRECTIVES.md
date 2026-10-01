@@ -41,15 +41,15 @@ npm run report:discord "DevMobile: ทดสอบระบบ Mobile PWA คร
 DevWeb ต้องเข้าตรวจสอบระบบหลังบ้าน (`src/app/admin/` และ `src/app/executive/`) ให้ทำงานสอดคล้องกับฐานข้อมูลจริงของร้าน:
 
 ### 🔍 Checklist & Acceptance Criteria:
-- [ ] **1. Real-Time Attendance Stream**:
+- [x] **1. Real-Time Attendance Stream**:
   - ยืนยันการทำงานของ Supabase Postgres Changes Subscription (<100ms instant broadcast)
   - แดชบอร์ดสรุปยอด (`totalPresent`, `totalLate`, `pendingCount`) อัปเดตสดเมื่อมีพนักงานเช็คอิน
-- [ ] **2. 3D WebGL & 2D Fallback**:
+- [x] **2. 3D WebGL & 2D Fallback**:
   - ตรวจสอบ `ThreeBarChart3D.tsx` และ `ThreeDonut3D.tsx` ให้แสดงผลสวยงามและมี 2D Fallback ป้องกัน Crash
-- [ ] **3. Employee Management & Reset HWID**:
+- [x] **3. Employee Management & Reset HWID**:
   - แสดงรายชื่อพนักงาน 3 ท่าน (`SI01`, `01`, `02`)
   - ปุ่ม "ปลดล็อกอุปกรณ์ (Reset HWID)" ใช้งานได้จริงเมื่อแอดมินต้องการรีเซ็ตเครื่องให้พนักงาน
-- [ ] **4. Request Approvals & Agent War Room**:
+- [x] **4. Request Approvals & Agent War Room**:
   - ตรวจสอบระบบอนุมัติใบลาและเบิกเงิน พร้อมระบบแจ้งเตือนเสียงและ Toast
   - ตรวจสอบหน้าใหม่ `/admin/war-room` ในการรับสารและโต้ตอบกับท่านประธานและ Tech Lead
 

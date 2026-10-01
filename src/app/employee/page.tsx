@@ -55,6 +55,7 @@ import {
   getPendingOfflineActions 
 } from '@/lib/offline-sync';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
+import NetworkGuard from '@/components/NetworkGuard';
 
 export default function ExactEmployeeApp() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export default function ExactEmployeeApp() {
 
   // In-App Floating Notification Banner State
   const [mobileToast, setMobileToast] = useState<{
-    type: 'checkin' | 'checkout';
+    type: 'checkin' | 'checkout' | 'warning';
     title: string;
     message: string;
     isLate?: boolean;
@@ -433,6 +434,33 @@ export default function ExactEmployeeApp() {
         return;
       }
 
+      // Check Geofence Radius
+      const radius = Number(storeSettings?.radius_meters) || 50;
+      const storeLat = Number(storeSettings?.store_lat);
+      const storeLng = Number(storeSettings?.store_lng);
+      let calculatedDist = distance;
+      if (calculatedDist === null && !isNaN(storeLat) && !isNaN(storeLng)) {
+        calculatedDist = calculateHaversineDistance(
+          { latitude: freshLat, longitude: freshLng },
+          { latitude: storeLat, longitude: storeLng }
+        );
+      }
+
+      if (calculatedDist !== null && calculatedDist > radius) {
+        const outMsg = `🚫 อยู่นอกพื้นที่ร้าน! คุณอยู่ห่างจากร้าน ${calculatedDist.toFixed(0)} เมตร (รัศมีที่อนุญาตไม่เกิน ${radius} เมตร) ไม่สามารถลงเวลาได้`;
+        setErrorMessage(outMsg);
+        playWebAlertSound('violation');
+        setMobileToast({
+          type: 'warning',
+          title: '🚫 อยู่นอกพื้นที่ร้าน!',
+          message: `คุณอยู่ห่างจากร้าน ${calculatedDist.toFixed(0)} ม. (รัศมีที่อนุญาต ${radius} ม.) ไม่อนุญาตให้ลงชื่อเข้างาน`,
+          timeStr: time.hhmm,
+        });
+        MobileNotificationService.showGeofenceWarning(calculatedDist, radius);
+        setIsCheckingIn(false);
+        return;
+      }
+
       const empId = employee.id || employee.employeeId;
       const payload = {
         employeeId: empId,
@@ -453,7 +481,7 @@ export default function ExactEmployeeApp() {
           rawCheckOutTime: null,
           checkInTime: time.hhmm + ' น. (ออฟไลน์)',
           allowance: 50,
-          distance: distance || 0,
+          distance: calculatedDist || 0,
           isLate: false,
           employeeName: employee.fullName || employee.full_name,
         };
@@ -480,6 +508,13 @@ export default function ExactEmployeeApp() {
 
         if (!res.ok || !data.success) {
           setErrorMessage(data.message || 'การลงเวลาถูกปฏิเสธ');
+          playWebAlertSound('violation');
+          setMobileToast({
+            type: 'warning',
+            title: '🚫 การลงเวลาถูกปฏิเสธ',
+            message: data.message || 'ไม่สามารถลงเวลาเข้างานได้ กรุณาตรวจสอบตำแหน่ง',
+            timeStr: time.hhmm,
+          });
           setIsCheckingIn(false);
           return;
         }
@@ -489,8 +524,8 @@ export default function ExactEmployeeApp() {
 
         setMobileToast({
           type: 'checkin',
-          title: data.data.status === 'PRESENT' ? '✅ ลงชื่อเข้างานสำเร็จ (ตรงเวลา)' : '⚠️ บันทึกเวลาเข้างานแล้ว (มาสาย)',
-          message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '(+50฿ เบี้ยขยัน)' : ''}`,
+          title: data.data.status === 'PRESENT' ? '🎉 ลงชื่อเข้างานเรียบร้อย (ตรงเวลา)' : '⚠️ ลงชื่อเข้างานเรียบร้อย (มาสาย)',
+          message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '• รับเบี้ยขยัน +50฿' : ''} • ข้อมูลซิงค์เข้าฐานข้อมูลเรียบร้อย`,
           isLate: data.data.status !== 'PRESENT',
           timeStr: data.data.checkInTime || time.hhmm,
         });
@@ -737,6 +772,9 @@ export default function ExactEmployeeApp() {
         </div>
       )}
 
+      {/* CONTINUOUS INTERNET CONNECTION GUARD & AUTO-ALERT */}
+      <NetworkGuard />
+
       {/* ------------------------------------------------------------- */}
       {/* IN-APP FLOATING NOTIFICATION BANNER                           */}
       {/* ------------------------------------------------------------- */}
@@ -751,15 +789,21 @@ export default function ExactEmployeeApp() {
           >
             <div
               className={`p-4 rounded-3xl shadow-2xl backdrop-blur-2xl border flex items-start gap-3.5 text-white ${
-                mobileToast.type === 'checkin'
-                  ? mobileToast.isLate
-                    ? 'bg-amber-600/90 border-amber-400/40 shadow-amber-950/60'
-                    : 'bg-emerald-600/90 border-emerald-400/40 shadow-emerald-950/60'
-                  : 'bg-gradient-to-r from-blue-600/90 to-indigo-700/90 border-blue-400/40 shadow-blue-950/60'
+                mobileToast.type === 'warning'
+                  ? 'bg-rose-600/95 border-rose-400/50 shadow-rose-950/80 animate-pulse'
+                  : mobileToast.type === 'checkin'
+                    ? mobileToast.isLate
+                      ? 'bg-amber-600/90 border-amber-400/40 shadow-amber-950/60'
+                      : 'bg-emerald-600/90 border-emerald-400/40 shadow-emerald-950/60'
+                    : 'bg-gradient-to-r from-blue-600/90 to-indigo-700/90 border-blue-400/40 shadow-blue-950/60'
               }`}
             >
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
-                <CheckCircle2 className="w-6 h-6 text-white" />
+                {mobileToast.type === 'warning' ? (
+                  <AlertCircle className="w-6 h-6 text-white" />
+                ) : (
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                )}
               </div>
 
               <div className="flex-1 min-w-0">

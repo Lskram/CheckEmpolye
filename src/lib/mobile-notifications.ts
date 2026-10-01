@@ -120,4 +120,57 @@ export const MobileNotificationService = {
       console.warn('Check-out notification error:', e);
     }
   },
+
+  // 4. Instant Offline / Internet Disconnection Warning Notification
+  async showOfflineWarning() {
+    const title = '⚠️ ขาดการเชื่อมต่ออินเทอร์เน็ต';
+    const body = 'กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อบันทึกเวลาและตรวจสอบความปลอดภัย';
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Math.floor(Math.random() * 100000),
+              title,
+              body,
+              schedule: { at: new Date(Date.now() + 300) },
+              sound: 'beep.wav',
+            },
+          ],
+        });
+      } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      }
+    } catch (e) {
+      console.warn('Offline notification error:', e);
+    }
+  },
+
+  // 5. Instant Geofence Out-of-Range Warning Notification
+  async showGeofenceWarning(distance: number, allowedRadius: number) {
+    const title = '🚫 อยู่นอกพื้นที่ร้าน!';
+    const body = `คุณอยู่ห่างจากร้าน ${distance.toFixed(0)} ม. (กำหนดไม่เกิน ${allowedRadius} ม.) ไม่สามารถลงเวลาได้`;
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Math.floor(Math.random() * 100000),
+              title,
+              body,
+              schedule: { at: new Date(Date.now() + 300) },
+              sound: 'beep.wav',
+            },
+          ],
+        });
+      } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      }
+    } catch (e) {
+      console.warn('Geofence notification error:', e);
+    }
+  },
 };
+

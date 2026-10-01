@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { getDeviceHWID } from '@/lib/hwid';
 import { useAppTheme } from '@/lib/theme';
+import NetworkGuard from '@/components/NetworkGuard';
 
 export default function EmployeeLoginPage() {
   const router = useRouter();
@@ -225,6 +226,9 @@ export default function EmployeeLoginPage() {
     <div className={`min-h-screen w-full flex flex-col justify-between p-4 sm:p-6 transition-colors duration-300 font-sans ${
       isDark ? 'bg-[#090d16] text-slate-100' : 'bg-[#eef2f7] text-slate-800'
     }`}>
+      {/* Continuous Network Connection Guard */}
+      <NetworkGuard />
+
       {/* Top Header */}
       <div className="max-w-sm w-full mx-auto flex items-center justify-between pt-2">
         <div className="flex items-center gap-2">
