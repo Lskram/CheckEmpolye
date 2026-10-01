@@ -104,6 +104,7 @@ flowchart TD
 | **REQ-030** | UI & Consistency | ปรับปรุงหน้าปฏิทินและสถิติ (`/employee/stats`) ให้เหมือนและสอดคล้องกับหน้าอื่นๆ ทั้งระบบ (ปุ่มย้อนกลับ ArrowLeft ใน Header, การ์ดสรุปยอด Hero Summary Banner ประจำเดือนพร้อม Month Switcher ในตัว, และแคปซูลวันที่ Glassmorphism) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/stats`) |
 | **REQ-031** | UI & Attendance Tracking | ปรับลดความทึบของ Dark Overlay ทุกหน้าให้โปร่งแสง ~30% แสดงภาพพื้นหลังชัดเจนสวยงาม และเพิ่มตัวนับยอดวันเข้างานสะสมประจำเดือนในหน้าขอเบิกเงิน (`/employee/advance`) พร้อมระบบรีเซ็ตนับใหม่ทุกวันที่ 1 ของเดือน | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-032** | UI & Branding | แทนที่ไอคอนโล่เดิมด้านซ้ายบนของหน้าหลัก (`/employee`) ด้วยภาพโลโก้ทางการ "สีแสงยางยนต์ (Sisaeng Yang Yont Sisaket)" ลายแถบสปอร์ตสีแดง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
+| **REQ-033** | UI & Navigation | ย้าย Avatar โปรไฟล์พนักงานจากส่วนหัวด้านบน ลงมาประจำที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar แทนที่เข็มนาฬิกาเดิม พร้อมแสดงรหัสพนักงาน | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx` & `/employee`) |
 
 ---
 
@@ -131,6 +132,17 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Profile Avatar Relocation to Bottom Nav Center Action Button (Version 3.22)
+- ✅ **Bottom Navigation Center Profile Button (`src/components/EmployeeBottomNav.tsx`)**:
+  - ย้าย Avatar วงกลมโปรไฟล์พนักงานลงมาประจำที่ปุ่มตรงกลางด้านล่างของ Bottom Nav Bar (แทนที่ไอคอนเข็มนาฬิกาเดิม)
+  - แสดงตัวอักษรย่อชื่อเล่น/ชื่อพนักงาน (เช่น `ฟห`, `สม`, `SI`) บนวงแหวนเรืองแสงสีนีออน Gradient 3D
+  - มีป้ายแคปซูลรหัสพนักงาน (เช่น `02`, `01`, `SI01`) ติดอยู่ด้านล่างอย่างคมชัด
+  - กดแล้วเปิดกลับสู่หน้าหลัก / หน้าลงเวลาเข้างานทันที
+- ✅ **Top Header Cleanup (`src/app/employee/page.tsx`)**:
+  - ถอดรอยบากวงกลม Avatar ที่ลอยอยู่ตรงกลางหัวแอปออก เพื่อให้ส่วนหัวโปร่ง สะอาดตา แสดงภาพพื้นหลังและโลโก้ร้านได้อย่างเต็มพื้นที่
+- ✅ **Production Verification**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - Official Sisaeng Store Logo Integration (Version 3.21)
 - ✅ **Header Logo Integration (`src/app/employee/page.tsx`)**:

@@ -13,9 +13,22 @@ interface EmployeeBottomNavProps {
 export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps) {
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(true);
+  const [employee, setEmployee] = useState<any>(null);
   const lastScrollY = useRef(0);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
   const { isDark, toggleTheme } = useAppTheme();
+
+  // Load employee profile for center avatar badge
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('attendance_employee_profile');
+      if (saved) {
+        setEmployee(JSON.parse(saved));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   // Determine active tab
   const active = currentTab || (
@@ -109,23 +122,30 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
             <span className="text-[10px] mt-0.5 font-medium">ปฏิทิน</span>
           </Link>
 
-          {/* Center Raised Neumorphic Action Button */}
+          {/* Center Raised Profile Avatar Action Button */}
           <div className="relative -top-5 mx-1 flex flex-col items-center">
             <Link
               href="/employee"
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-90 cursor-pointer ${
                 isDark 
-                  ? 'neumorph-btn-raised-dark text-blue-400 border-2 border-blue-500/40' 
-                  : 'neumorph-btn-raised-light text-blue-600 border-2 border-blue-400/40'
+                  ? 'neumorph-btn-raised-dark text-blue-400 border-2 border-blue-500/40 shadow-xl shadow-blue-950/60' 
+                  : 'neumorph-btn-raised-light text-blue-600 border-2 border-blue-400/40 shadow-lg shadow-blue-200/60'
               }`}
-              title="เช็คอินด่วน / หน้าหลัก"
+              title="โปรไฟล์พนักงาน / หน้าหลัก"
             >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                isDark ? 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/40' : 'bg-gradient-to-tr from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-xs uppercase shadow-md ${
+                isDark 
+                  ? 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-blue-500/40 ring-2 ring-white/20' 
+                  : 'bg-gradient-to-tr from-blue-500 via-indigo-500 to-sky-400 text-white shadow-blue-500/30 ring-2 ring-white/80'
               }`}>
-                <Clock className="w-5 h-5 animate-pulse" />
+                {employee?.nickname ? employee.nickname.slice(0, 2) : (employee?.full_name || employee?.fullName ? (employee.full_name || employee.fullName).slice(0, 2) : (employee?.employee_code || employee?.employeeCode ? (employee.employee_code || employee.employeeCode) : 'EM'))}
               </div>
             </Link>
+            <span className={`text-[9px] font-bold font-mono px-1.5 py-0.2 rounded-full -mt-1.5 relative z-10 shadow-sm ${
+              isDark ? 'bg-slate-900/95 text-blue-300 border border-blue-400/40' : 'bg-white/95 text-blue-600 border border-blue-300'
+            }`}>
+              {employee?.employee_code || employee?.employeeCode || 'ME'}
+            </span>
           </div>
 
           {/* Tab 3: Leave */}

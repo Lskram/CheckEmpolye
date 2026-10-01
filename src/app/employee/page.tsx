@@ -869,28 +869,19 @@ export default function ExactEmployeeApp() {
 
         <div className="max-w-md mx-auto px-4 relative z-10">
           
-          {/* Top Row with Profile Dome Center */}
-          <div className="flex items-center justify-between relative">
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between relative py-1">
             
             {/* Left: Official Sisaeng Store Logo */}
             <div className="flex items-center gap-2">
               <img 
                 src="/images/store-logo.png" 
                 alt="สีแสงยางยนต์ (Sisaeng Yang Yont)" 
-                className="h-7 w-auto max-w-[110px] object-contain drop-shadow-md"
+                className="h-8 w-auto max-w-[120px] object-contain drop-shadow-md"
               />
               <div>
                 <div className="text-[10px] font-bold text-blue-300 tracking-wider">YOKOHAMA NAYA</div>
                 <div className="text-xs font-black text-white leading-none">สีแสงยางยนต์</div>
-              </div>
-            </div>
-
-            {/* Center Dome Profile Avatar Notch */}
-            <div className="relative -top-2 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-xl shadow-blue-500/40 flex items-center justify-center ring-2 ring-white/20">
-                <div className="w-full h-full rounded-full bg-slate-900/90 backdrop-blur-md flex items-center justify-center font-black text-xs text-white uppercase">
-                  {employee?.nickname ? employee.nickname.slice(0, 2) : (employee?.full_name ? employee.full_name.slice(0, 2) : 'EM')}
-                </div>
               </div>
             </div>
 
@@ -911,16 +902,6 @@ export default function ExactEmployeeApp() {
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
-          </div>
-
-          {/* User Name & Code Subtitle */}
-          <div className="text-center mt-1">
-            <span className="text-xs font-extrabold text-white tracking-wide drop-shadow-md">
-              {employee?.full_name || employee?.fullName || 'พนักงานปฏิบัติการ'}
-            </span>
-            <span className="ml-1.5 font-mono text-[10px] px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/40 backdrop-blur-md shadow-sm">
-              {employee?.employee_code || employee?.employeeCode || 'EMP001'}
-            </span>
           </div>
 
           {/* ========================================================= */}
