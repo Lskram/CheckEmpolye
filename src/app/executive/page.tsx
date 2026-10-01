@@ -37,7 +37,8 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Bot
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
@@ -675,6 +676,14 @@ export default function MobileExecutiveApp() {
               <span>{timeStr.dateThai}</span>
             </div>
             <div className="flex items-center gap-2">
+              <Link
+                href="/admin/war-room"
+                className="p-1.5 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs flex items-center gap-1 font-bold hover:bg-blue-500/30 transition-all"
+                title="เปิดห้องสนทนา Agent War Room"
+              >
+                <Bot className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-[10px]">War Room</span>
+              </Link>
               <NotificationCenter
                 notifications={notificationsList}
                 onClearAll={() => setNotificationsList([])}

@@ -38,7 +38,9 @@ import {
   XCircle,
   Smartphone,
   ChevronRight,
-  Activity
+  Activity,
+  Bot,
+  MessageSquare
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
@@ -974,6 +976,16 @@ export default function WebExecutiveDashboard() {
               <Box className="w-3.5 h-3.5" />
               <span>{is3DMode ? '3D WebGL' : '2D Chart'}</span>
             </button>
+
+            {/* Agent War Room & Discord Hub */}
+            <Link
+              href="/admin/war-room"
+              className="px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              title="เปิดห้องสนทนา Agent War Room"
+            >
+              <Bot className="w-3.5 h-3.5 text-blue-400" />
+              <span className="hidden sm:inline">Agent War Room</span>
+            </Link>
 
             {/* Export CSV */}
             <button
