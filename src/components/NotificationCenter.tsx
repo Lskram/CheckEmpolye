@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Bell, 
   Check, 
@@ -44,8 +45,10 @@ export default function NotificationCenter({
 }: NotificationCenterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasDesktopPerm, setHasDesktopPerm] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setHasDesktopPerm(Notification.permission === 'granted');
     }
@@ -250,8 +253,13 @@ export default function NotificationCenter({
       {/* ------------------------------------------------------------- */}
       {/* 3. PROMINENT FLOATING TOAST POPUP (With Quick Actions)        */}
       {/* ------------------------------------------------------------- */}
-      {activeToast && (
-        <div className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm p-4 rounded-2xl sm:rounded-3xl bg-slate-900/95 text-white border border-slate-700 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-300">
+      {mounted && activeToast && typeof document !== 'undefined' && createPortal(
+        <aside
+          role="status"
+          aria-live="polite"
+          aria-label="Live notification alert"
+          className="fixed top-5 right-4 sm:top-6 sm:right-6 z-[99999] w-[calc(100vw-2rem)] sm:w-96 max-w-sm p-4 rounded-2xl sm:rounded-3xl bg-slate-900/98 text-white border border-slate-700/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto"
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <div
@@ -286,7 +294,7 @@ export default function NotificationCenter({
                         onSelectNotification(activeToast);
                         onDismissToast();
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] shadow-sm flex items-center gap-1"
+                      className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] shadow-sm flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
                     >
                       ดูคำขอ <ArrowRight className="w-3 h-3" />
                     </button>
@@ -297,12 +305,13 @@ export default function NotificationCenter({
 
             <button
               onClick={onDismissToast}
-              className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-        </div>
+        </aside>,
+        document.body
       )}
     </>
   );
