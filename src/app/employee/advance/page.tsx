@@ -26,11 +26,14 @@ import { useAppTheme } from '@/lib/theme';
 import { saveOfflineAction } from '@/lib/offline-sync';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 import NetworkGuard from '@/components/NetworkGuard';
+import CashAdvanceReceiptModal from '@/components/CashAdvanceReceiptModal';
 
 export default function EmployeeSalaryAdvancePage() {
   const router = useRouter();
   const { isDark, toggleTheme } = useAppTheme();
   const [employee, setEmployee] = useState<any>(null);
+  const [receiptItem, setReceiptItem] = useState<SalaryAdvanceRequest | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   // Form State
   const [amount, setAmount] = useState<string>('1000');
@@ -474,7 +477,7 @@ export default function EmployeeSalaryAdvancePage() {
               requests.map((item) => (
                 <div
                   key={item.id}
-                  className={`p-3 rounded-2xl flex items-center justify-between transition-all ${
+                  className={`p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-all ${
                     isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
                   }`}
                 >
@@ -491,8 +494,25 @@ export default function EmployeeSalaryAdvancePage() {
                       </div>
                     )}
                   </div>
-                  <div>
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
                     {getStatusBadge(item.status)}
+                    {item.status === 'APPROVED' && (
+                      <button
+                        onClick={() => {
+                          const fullItem: SalaryAdvanceRequest = {
+                            ...item,
+                            employee: item.employee || employee
+                          };
+                          setReceiptItem(fullItem);
+                          setIsReceiptOpen(true);
+                        }}
+                        className="px-2.5 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                        title="ดูใบสำคัญจ่ายเงิน / สั่งพิมพ์ A4"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>ใบสำคัญรับเงิน</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -501,6 +521,16 @@ export default function EmployeeSalaryAdvancePage() {
         </div>
 
       </main>
+
+      {/* Official Print-Ready Receipt Modal */}
+      <CashAdvanceReceiptModal
+        request={receiptItem}
+        isOpen={isReceiptOpen}
+        onClose={() => {
+          setIsReceiptOpen(false);
+          setReceiptItem(null);
+        }}
+      />
 
       {/* SMART AUTO-HIDE BOTTOM NAVIGATION BAR */}
       <EmployeeBottomNav currentTab="advance" />
