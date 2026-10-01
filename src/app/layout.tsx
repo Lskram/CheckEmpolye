@@ -34,7 +34,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       </head>
-      <body className="min-h-screen bg-[#F8F9FB] text-slate-900 antialiased overflow-x-hidden">
+      <body className="min-h-screen bg-black text-white antialiased overflow-x-hidden vercel-bg selection:bg-white selection:text-black font-sans">
         {children}
         <script
           dangerouslySetInnerHTML={{

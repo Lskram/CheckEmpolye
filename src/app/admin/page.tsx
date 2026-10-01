@@ -60,6 +60,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
 import SalaryAdvanceManager from '@/components/SalaryAdvanceManager';
 import NotificationCenter from '@/components/NotificationCenter';
+import ExecutiveAnalyticsDashboard from '@/components/ExecutiveAnalyticsDashboard';
 import { WebNotification, playWebAlertSound, showBrowserDesktopNotification } from '@/lib/web-notifications';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
@@ -750,64 +751,66 @@ export default function WebExecutiveDashboard() {
   ];
 
   // -------------------------------------------------------------
-  // 1. EXECUTIVE AUTH LOCK SCREEN (Hostinger SaaS Clean White Auth)
+  // 1. EXECUTIVE AUTH LOCK SCREEN (Vercel Style Deep Obsidian)
   // -------------------------------------------------------------
   if (!isExecutiveUnlocked) {
     return (
-      <div className="min-h-screen bg-[#F8F9FB] text-slate-900 font-sans flex flex-col justify-between p-4 sm:p-8 select-none relative">
-        <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4">
+      <div className="min-h-screen bg-black text-white font-sans flex flex-col justify-between p-4 sm:p-8 select-none relative vercel-bg">
+        <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4 border-b border-neutral-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[#673DE6] text-white flex items-center justify-center font-black text-xl shadow-md">
-              SY
+            <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center font-black text-xl shadow-md">
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 75 65">
+                <path d="M37.5 0L75 65H0z" />
+              </svg>
             </div>
             <div>
-              <div className="font-extrabold text-base sm:text-lg text-slate-900">สีแสงยางยนต์ YOKOHAMA</div>
-              <div className="text-xs sm:text-sm font-semibold text-slate-500">Cloud Attendance Control Center</div>
+              <div className="font-bold text-base sm:text-lg text-white">สีแสงยางยนต์ YOKOHAMA</div>
+              <div className="text-xs font-mono text-neutral-400">Executive Console Gate // Vercel</div>
             </div>
           </div>
-          <Link href="/" className="text-sm font-bold text-slate-700 hover:text-[#673DE6] transition-colors flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 shadow-sm">
-            ← กลับหน้าหลัก
+          <Link href="/" className="text-xs font-mono font-bold text-neutral-400 hover:text-white transition-colors flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 border border-neutral-800">
+            ← หน้าหลัก Portal
           </Link>
         </header>
 
         <main className="flex-1 flex items-center justify-center py-10">
-          <div className="max-w-lg w-full bg-white rounded-2xl p-8 sm:p-10 space-y-7 shadow-xl border-2 border-slate-300">
+          <div className="max-w-lg w-full vercel-card p-8 sm:p-10 space-y-7 shadow-2xl border border-neutral-800 bg-[#0a0a0a]">
             <div className="text-center space-y-2">
-              <div className="w-16 h-16 rounded-2xl dark-slate-texture text-[#673DE6] border border-slate-700 flex items-center justify-center mx-auto text-2xl font-bold shadow-md">
-                <Lock className="w-8 h-8 text-purple-400" />
+              <div className="w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 text-white flex items-center justify-center mx-auto text-2xl font-bold shadow-inner">
+                <Lock className="w-6 h-6 text-neutral-200" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">เข้าสู่ระบบผู้บริหาร (Host Console)</h2>
-              <p className="text-sm font-medium text-slate-600">กรุณาระบุรหัสผู้บริหารและ PIN เพื่อเข้าสู่แผงควบคุมหลัก</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">เข้าสู่ระบบผู้บริหาร (Console)</h2>
+              <p className="text-xs font-mono text-neutral-400">กรุณาระบุรหัสผู้บริหารและ PIN เพื่อเข้าสู่แผงควบคุมหลัก</p>
             </div>
 
             {executivePinError && (
-              <div className="p-4 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-800 text-sm font-bold flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 shrink-0 text-rose-600" />
+              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono font-bold flex items-center gap-3">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
                 <span>{executivePinError}</span>
               </div>
             )}
 
-            <form onSubmit={handleExecutiveLogin} className="space-y-5">
+            <form onSubmit={handleExecutiveLogin} className="space-y-5 font-mono text-xs">
               <div className="space-y-1.5">
-                <label className="block text-sm font-black text-slate-800">รหัสผู้บริหาร (Executive Code)</label>
+                <label className="block font-bold text-neutral-300">รหัสผู้บริหาร (Executive Code)</label>
                 <input
                   type="text"
                   value={executiveCodeInput}
                   onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
                   placeholder="เช่น SI01 (หรือเว้นว่างได้)"
-                  className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl text-slate-900 font-mono font-bold text-base focus:outline-none focus:border-[#673DE6] focus:ring-4 focus:ring-[#673DE6]/20 transition-all"
+                  className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white font-mono font-bold text-sm focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-sm font-black text-slate-800">รหัส PIN หรือ Password</label>
+                  <label className="block font-bold text-neutral-300">รหัส PIN หรือ Password</label>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5"
+                    className="text-xs font-mono text-neutral-400 hover:text-white flex items-center gap-1.5"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4 text-[#673DE6]" />}
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-neutral-400" />}
                     <span>{showPassword ? 'ซ่อนรหัส' : 'แสดงรหัส'}</span>
                   </button>
                 </div>
@@ -816,18 +819,18 @@ export default function WebExecutiveDashboard() {
                   value={executivePinInput}
                   onChange={(e) => setExecutivePinInput(e.target.value)}
                   placeholder="•••• (รหัสเริ่มต้น: 1234)"
-                  className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl text-slate-900 text-base font-mono font-bold tracking-widest focus:outline-none focus:border-[#673DE6] focus:ring-4 focus:ring-[#673DE6]/20 transition-all"
+                  className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-sm font-mono font-bold tracking-widest focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all"
                   required
                 />
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <label className="flex items-center gap-2.5 text-sm font-semibold text-slate-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs font-mono text-neutral-400 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rememberSession}
                     onChange={(e) => setRememberSession(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-[#673DE6] focus:ring-[#673DE6]"
+                    className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 text-white focus:ring-white"
                   />
                   <span>จดจำการเข้าสู่ระบบบนเครื่องนี้</span>
                 </label>
@@ -835,82 +838,68 @@ export default function WebExecutiveDashboard() {
 
               <button
                 type="submit"
-                className="w-full py-4 rounded-xl hostinger-purple-btn font-black text-base shadow-lg shadow-purple-600/30 active:scale-[0.98] flex items-center justify-center gap-2.5 tracking-wide"
+                className="w-full py-3.5 rounded-full vercel-btn-primary font-bold text-sm shadow-lg shadow-white/10 active:scale-[0.98] flex items-center justify-center gap-2 tracking-wide font-mono"
               >
-                <span>เข้าสู่ระบบแดชบอร์ด (Log in)</span>
-                <ArrowRight className="w-5 h-5" />
+                <span>เข้าสู่ระบบแดชบอร์ด (Unlock)</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </form>
           </div>
         </main>
 
-        <footer className="max-w-5xl mx-auto w-full text-center py-3 text-xs sm:text-sm font-medium text-slate-500">
-          © สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS) — Smart Cloud Attendance Platform
+        <footer className="max-w-5xl mx-auto w-full text-center py-4 text-xs font-mono text-neutral-500 border-t border-neutral-800/80">
+          ▲ Powered by Vercel Design System • สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)
         </footer>
       </div>
     );
   }
 
   // -------------------------------------------------------------
-  // 2. MAIN HOSTINGER hPANEL / CLOUD SAAS CONSOLE DASHBOARD
+  // 2. MAIN VERCEL PROJECT CONSOLE DASHBOARD
   // -------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-[#F8F9FB] text-slate-900 font-sans flex flex-col antialiased">
+    <div className="min-h-screen bg-black text-white font-sans flex flex-col antialiased vercel-bg selection:bg-white selection:text-black">
       
       {/* ----------------------------------------------------------- */}
-      {/* TOP HEADER BAR (Dark Slate Texture & High Legibility)       */}
+      {/* TOP HEADER BAR (Vercel Project Header & Breadcrumbs)        */}
       {/* ----------------------------------------------------------- */}
-      <header className="dark-slate-texture border-b border-slate-800 h-16 sticky top-0 z-40 px-5 sm:px-7 flex items-center justify-between shadow-md">
+      <header className="border-b border-neutral-800/80 backdrop-blur-md h-16 sticky top-0 z-40 px-6 flex items-center justify-between bg-black/80">
         
-        {/* Left: Brand Monogram + Status Badge */}
-        <div className="flex items-center gap-3.5">
+        {/* Left: Vercel Logo + Project Breadcrumb */}
+        <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-[#673DE6] text-white flex items-center justify-center font-black text-base shadow-md group-hover:scale-105 transition-all">
-              SY
+            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black group-hover:scale-105 transition-all">
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 75 65">
+                <path d="M37.5 0L75 65H0z" />
+              </svg>
             </div>
-            <div className="hidden sm:block">
-              <span className="font-black text-base text-white tracking-tight">
-                สีแสงยางยนต์
-              </span>
-              <span className="block text-[11px] font-bold text-slate-400">YOKOHAMA NAYA</span>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono">
+              <span className="text-neutral-400 hover:text-white">สีแสงยางยนต์</span>
+              <span className="text-neutral-600">/</span>
+              <span className="font-bold text-white">attendance-console</span>
             </div>
           </Link>
 
-          {/* Referral / Live Status Pill */}
-          <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/90 border border-slate-700 text-purple-200 text-xs sm:text-sm font-bold shadow-inner">
-            <span className="text-[#a855f7]">⚡</span>
-            <span>สาขาศรีสะเกษ</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-emerald-400 font-mono text-xs font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Cloud Live 24ms
-            </span>
+          {/* Live Status Pill */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-950 border border-neutral-800 text-xs font-mono text-neutral-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-emerald-400 font-bold">● Production</span>
+            <span className="text-neutral-600">•</span>
+            <span className="text-neutral-400">24ms</span>
           </div>
         </div>
 
-        {/* Right Tools: Ask AI, Search, Notifications, Avatar */}
-        <div className="flex items-center gap-3">
+        {/* Right Tools: Ask AI, Notifications, Avatar */}
+        <div className="flex items-center gap-3 font-mono text-xs">
           
           {/* Ask AI / Discord War Room Pill */}
           <Link
             href="/admin/war-room"
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/90 hover:bg-slate-700 text-white border border-slate-700 text-xs sm:text-sm font-bold shadow-sm transition-all"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 font-bold shadow-sm transition-all"
           >
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="hidden md:inline">Ask AI Assistant</span>
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden md:inline">War Room AI</span>
           </Link>
-
-          {/* Search Button */}
-          <button
-            onClick={() => {
-              const el = document.getElementById('search-input-field');
-              el?.focus();
-            }}
-            className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-            title="ค้นหา"
-          >
-            <Search className="w-4 h-4" />
-          </button>
 
           {/* Live Notification Center (Web Audio Synthesizer) */}
           <NotificationCenter
@@ -928,663 +917,437 @@ export default function WebExecutiveDashboard() {
           />
 
           {/* User Profile Avatar / Logout */}
-          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+          <div className="flex items-center gap-2.5 pl-2 border-l border-neutral-800">
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2.5 p-1.5 rounded-full hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-2 p-1.5 rounded-full hover:bg-neutral-900 transition-colors"
               title="ออกจากระบบ"
             >
-              <div className="w-9 h-9 rounded-full bg-purple-950 text-purple-300 font-black text-sm flex items-center justify-center border border-purple-700">
+              <div className="w-7 h-7 rounded-full bg-neutral-800 text-white font-black text-xs flex items-center justify-center border border-neutral-700">
                 👑
               </div>
-              <span className="text-sm font-bold text-slate-200 hidden lg:inline">ท่านประธาน</span>
-              <LogOut className="w-4 h-4 text-slate-400 hover:text-rose-400" />
+              <span className="font-bold text-neutral-300 hidden lg:inline">ท่านประธาน</span>
+              <LogOut className="w-3.5 h-3.5 text-neutral-500 hover:text-rose-400" />
             </button>
           </div>
         </div>
       </header>
 
       {/* ----------------------------------------------------------- */}
-      {/* BODY WITH DUAL-SIDEBAR AND MAIN WORKSPACE                   */}
+      {/* VERCEL PROJECT NAVIGATION TABS BAR                          */}
       {/* ----------------------------------------------------------- */}
-      <div className="flex-1 flex overflow-hidden">
-
-        {/* 1. SLIM FAR-LEFT ICON BAR (76px with Dark Slate Texture) */}
-        <aside className="w-20 shrink-0 dark-slate-texture border-r border-slate-800 flex flex-col items-center py-4 gap-3 select-none">
-          {[
-            { id: 'overview', label: 'ภาพรวม', icon: BarChart3 },
-            { id: 'employees', label: 'พนักงาน', icon: Users, badge: totalEmployees },
-            { id: 'advances', label: 'เบิกเงิน', icon: Coins, badge: pendingAdvancesCount },
-            { id: 'leaves', label: 'การลา', icon: Calendar, badge: pendingLeavesCount },
-            { id: 'violations', label: 'ความปลอดภัย', icon: Shield },
-            { id: 'settings', label: 'ตั้งค่าร้าน', icon: Settings },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id as any);
-                  setSubTab('applications');
-                }}
-                className={`relative w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                  isActive
-                    ? 'bg-[#673DE6] text-white font-black shadow-lg shadow-purple-900/50 border border-purple-400/30 scale-105'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
-                title={item.label}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-[11px] font-bold mt-1 tracking-tight">{item.label}</span>
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-slate-900" />
-                )}
-              </button>
-            );
-          })}
-
-          <div className="mt-auto pt-4 border-t border-slate-800 w-full flex flex-col items-center gap-2">
-            <Link
-              href="/admin/war-room"
-              className="w-12 h-12 rounded-2xl flex flex-col items-center justify-center text-purple-400 bg-slate-800/80 hover:bg-purple-900/40 hover:text-purple-300 transition-colors border border-slate-700"
-              title="AI Agent War Room"
+      <div className="border-b border-neutral-800/80 px-6 flex items-center gap-1 overflow-x-auto select-none bg-neutral-950/40 font-mono text-xs">
+        {[
+          { id: 'overview', label: 'Overview // ภาพรวม', icon: BarChart3 },
+          { id: 'employees', label: 'Workforce // พนักงาน', icon: Users, badge: totalEmployees },
+          { id: 'advances', label: 'Salary Advances // เบิกเงิน', icon: Coins, badge: pendingAdvancesCount },
+          { id: 'leaves', label: 'Leaves // การลา', icon: Calendar, badge: pendingLeavesCount },
+          { id: 'violations', label: 'Security // HWID Logs', icon: Shield },
+          { id: 'settings', label: 'Store & Geofence // พิกัด', icon: Settings },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id as any);
+                setSubTab('applications');
+              }}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 font-bold transition-all shrink-0 ${
+                isActive
+                  ? 'border-white text-white'
+                  : 'border-transparent text-neutral-400 hover:text-white hover:border-neutral-700'
+              }`}
             >
-              <Bot className="w-5 h-5" />
-              <span className="text-[10px] font-bold">AI Room</span>
-            </Link>
-          </div>
-        </aside>
+              <Icon className="w-3.5 h-3.5" />
+              <span>{item.label}</span>
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-neutral-800 border border-neutral-700 text-white text-[10px]">
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-        {/* 2. SUB-SIDEBAR (240px High Legibility) */}
-        <aside className="w-64 shrink-0 bg-slate-100/95 border-r border-slate-300 p-4 space-y-4 hidden md:block overflow-y-auto select-none">
+      {/* ----------------------------------------------------------- */}
+      {/* MAIN WORKSPACE CANVAS (Vercel Deep Obsidian)                */}
+      {/* ----------------------------------------------------------- */}
+      <div className="flex-1 p-6 sm:p-8 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
+
+        {/* Léo Parpeix / Vercel Header Action Ribbon */}
+        <div className="border-b border-neutral-800 pb-5 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
-            <div className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2.5 px-1">
-              {activeTab === 'overview' && 'เมนูหลัก • แดชบอร์ด'}
-              {activeTab === 'employees' && 'การจัดการพนักงาน'}
-              {activeTab === 'advances' && 'ระบบเบิกเงินล่วงหน้า'}
-              {activeTab === 'leaves' && 'ระบบจัดการใบลา'}
-              {activeTab === 'violations' && 'ความปลอดภัย & HWID'}
-              {activeTab === 'settings' && 'ตั้งค่าร้าน & แผนที่'}
-            </div>
-
-            <div className="space-y-1.5">
-              <button
-                onClick={() => setSubTab('applications')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-bold transition-colors ${
-                  subTab === 'applications' ? 'bg-white text-slate-900 shadow-sm border border-slate-300 font-extrabold' : 'text-slate-700 hover:bg-slate-200/80'
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <Server className="w-4 h-4 text-purple-700" />
-                  <span>รายชื่อลงเวลา (Roster)</span>
-                </span>
-                <ChevronDown className="w-4 h-4 text-slate-500" />
-              </button>
-
-              {subTab === 'applications' && (
-                <div className="pl-6 pr-2 py-1.5 space-y-1 text-sm">
-                  <button
-                    onClick={() => setStatusFilter('all')}
-                    className={`w-full text-left py-1.5 px-3 rounded-lg font-bold transition-colors ${
-                      statusFilter === 'all' ? 'text-[#673DE6] bg-purple-100/80' : 'text-slate-700 hover:text-slate-900'
-                    }`}
-                  >
-                    • ทั้งหมด ({totalEmployees})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('present')}
-                    className={`w-full text-left py-1.5 px-3 rounded-lg font-bold transition-colors ${
-                      statusFilter === 'present' ? 'text-emerald-800 bg-emerald-100/80' : 'text-slate-700 hover:text-slate-900'
-                    }`}
-                  >
-                    • ตรงเวลา ({totalPresent})
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter('late')}
-                    className={`w-full text-left py-1.5 px-3 rounded-lg font-bold transition-colors ${
-                      statusFilter === 'late' ? 'text-amber-800 bg-amber-100/80' : 'text-slate-700 hover:text-slate-900'
-                    }`}
-                  >
-                    • มาสาย ({totalLate})
-                  </button>
-                </div>
-              )}
-
-              <button
-                onClick={() => {
-                  setActiveTab('settings');
-                  setSubTab('geofence');
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-bold transition-colors ${
-                  activeTab === 'settings' ? 'bg-white text-slate-900 shadow-sm border border-slate-300 font-extrabold' : 'text-slate-700 hover:bg-slate-200/80'
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <MapPin className="w-4 h-4 text-purple-700" />
-                  <span>พิกัดร้าน & Geofence</span>
-                </span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab('advances');
-                  setSubTab('advances');
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-bold transition-colors ${
-                  activeTab === 'advances' ? 'bg-white text-slate-900 shadow-sm border border-slate-300 font-extrabold' : 'text-slate-700 hover:bg-slate-200/80'
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <Coins className="w-4 h-4 text-purple-700" />
-                  <span>คำขอเบิกเงิน</span>
-                </span>
-                {pendingAdvancesCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-xs font-black">
-                    {pendingAdvancesCount}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab('leaves');
-                  setSubTab('leaves');
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-bold transition-colors ${
-                  activeTab === 'leaves' ? 'bg-white text-slate-900 shadow-sm border border-slate-300 font-extrabold' : 'text-slate-700 hover:bg-slate-200/80'
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <Calendar className="w-4 h-4 text-purple-700" />
-                  <span>คำขอลาหยุด</span>
-                </span>
-                {pendingLeavesCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-xs font-black">
-                    {pendingLeavesCount}
-                  </span>
-                )}
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveTab('violations');
-                  setSubTab('security');
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-bold transition-colors ${
-                  activeTab === 'violations' ? 'bg-white text-slate-900 shadow-sm border border-slate-300 font-extrabold' : 'text-slate-700 hover:bg-slate-200/80'
-                }`}
-              >
-                <span className="flex items-center gap-2.5">
-                  <Shield className="w-4 h-4 text-purple-700" />
-                  <span>ความปลอดภัย HWID</span>
-                </span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-300">
-            <div className="text-xs font-black text-slate-500 uppercase tracking-wider mb-2.5 px-1">ระบบตรวจสอบสด (Telemetry)</div>
-            <div className="p-4 bg-white rounded-xl border border-slate-300 space-y-2.5 text-sm font-bold shadow-xs">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Supabase DB</span>
-                <span className="font-extrabold text-emerald-700 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  Connected
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">รัศมี Geofence</span>
-                <span className="font-mono text-slate-900 font-black">{storeSettingsForm.radius_meters || 50} ม.</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">ความตรงต่อเวลา</span>
-                <span className="font-mono text-[#673DE6] font-black text-base">{onTimePercent}%</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* 3. MAIN WORKSPACE CANVAS */}
-        <main className="flex-1 p-5 sm:p-7 lg:p-9 overflow-y-auto space-y-7">
-
-          {/* Breadcrumb Navigation (Large & Crystal Clear) */}
-          <nav className="flex items-center gap-2.5 text-sm text-slate-600 font-bold">
-            <Link href="/" className="hover:text-purple-700 flex items-center gap-1.5">
-              <Globe className="w-4 h-4 text-purple-600" />
-              <span>HQ</span>
-            </Link>
-            <span>&gt;</span>
-            <span className="hover:text-slate-900 cursor-pointer">ศรีสะเกษ (Sisaket Store)</span>
-            <span>&gt;</span>
-            <span className="font-mono text-slate-600">srv-sisaeng.cloud</span>
-            <span>&gt;</span>
-            <span className="text-slate-900 font-black px-2.5 py-1 rounded-lg bg-slate-200/80">
-              {activeTab === 'overview' && 'ระบบลงเวลาพนักงาน (Staff Manager)'}
-              {activeTab === 'employees' && 'ทะเบียนพนักงาน (Master Roster)'}
-              {activeTab === 'advances' && 'อนุมัติเบิกเงินด่วน (Advance Requests)'}
-              {activeTab === 'leaves' && 'อนุมัติใบลา (Leave Requests)'}
-              {activeTab === 'violations' && 'บันทึกความปลอดภัย (Security Audit)'}
-              {activeTab === 'settings' && 'นโยบายร้าน & Geofence (Store Policy)'}
+            <span className="text-xs font-mono text-neutral-400 block mb-1">
+              PROJECT // yokohama-attendance-engine • {storeSettingsForm.store_name}
             </span>
-          </nav>
-
-          {/* Top Title & Action Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                {activeTab === 'overview' && 'Staff & Attendance Manager'}
-                {activeTab === 'employees' && 'Employee Management'}
-                {activeTab === 'advances' && 'Salary Advance Manager'}
-                {activeTab === 'leaves' && 'Leave Requests'}
-                {activeTab === 'violations' && 'Security & Violation Logs'}
-                {activeTab === 'settings' && 'Store Settings & Geofence'}
-              </h1>
-              <p className="text-sm sm:text-base font-semibold text-slate-600 mt-1">
-                {storeSettingsForm.store_name} • เข้างาน {storeSettingsForm.standard_time?.substring(0, 5)} น. (ตัดสาย {storeSettingsForm.late_deadline?.substring(0, 5)} น.)
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Web Console / 3D Toggle */}
-              <button
-                onClick={() => setIs3DMode(!is3DMode)}
-                className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-300 text-sm font-bold shadow-sm transition-all flex items-center gap-2"
-              >
-                <Box className="w-4 h-4 text-purple-600" />
-                <span>{is3DMode ? 'มุมมอง 2D' : '3D WebGL'}</span>
-              </button>
-
-              {/* Export CSV */}
-              <button
-                onClick={handleExportCSV}
-                className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-300 text-sm font-bold shadow-sm transition-all flex items-center gap-2"
-              >
-                <Download className="w-4 h-4 text-purple-600" />
-                <span>ส่งออก CSV</span>
-              </button>
-
-              {/* Compose / Add Employee (High Contrast Dark Slate Pill) */}
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-5 py-2.5 rounded-xl dark-slate-texture hover:bg-slate-800 text-white text-sm font-black transition-all shadow-md flex items-center gap-2 border border-slate-700"
-              >
-                <Plus className="w-5 h-5 text-purple-400" />
-                <span>+ เพิ่มพนักงาน</span>
-              </button>
-            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase">
+              {activeTab === 'overview' && 'STAFF & ATTENDANCE'}
+              {activeTab === 'employees' && 'EMPLOYEE MANAGEMENT'}
+              {activeTab === 'advances' && 'SALARY ADVANCE MANAGER'}
+              {activeTab === 'leaves' && 'LEAVE REQUESTS HUB'}
+              {activeTab === 'violations' && 'SECURITY & VIOLATIONS'}
+              {activeTab === 'settings' && 'STORE POLICY & GEOFENCE'}
+            </h1>
+            <p className="text-xs font-mono text-neutral-400 mt-1 uppercase">
+              STANDARD: {storeSettingsForm.standard_time?.substring(0, 5)} • LATE CUTOFF: {storeSettingsForm.late_deadline?.substring(0, 5)} • GEOFENCE: {storeSettingsForm.radius_meters || 50}M
+            </p>
           </div>
 
-          {/* ========================================================= */}
-          {/* TAB 1: OVERVIEW & HOSTINGER TABLE CONTAINER               */}
-          {/* ========================================================= */}
-          {activeTab === 'overview' && (
-            <div className="space-y-7">
+          <div className="flex items-center gap-3 shrink-0 font-mono text-xs">
+            {/* 3D WebGL Hologram Toggle */}
+            <button
+              onClick={() => setIs3DMode(!is3DMode)}
+              className="px-4 py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 font-bold transition-all flex items-center gap-2"
+            >
+              <Box className="w-3.5 h-3.5 text-blue-400" />
+              <span>{is3DMode ? '2D View' : '3D Hologram ↗'}</span>
+            </button>
 
-              {/* Top 4 KPI Metrics (Large Readable Cards for 35+) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="hostinger-card p-6 space-y-3 border-2 border-slate-300">
-                  <div className="flex items-center justify-between text-sm text-slate-700 font-extrabold">
-                    <span>ยอดเบี้ยขยันวันนี้</span>
-                    <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black">
-                      +{storeSettingsForm.allowance_amount || 50}฿/คน
+            {/* Export CSV */}
+            <button
+              onClick={handleExportCSV}
+              className="px-4 py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 font-bold transition-all flex items-center gap-2"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Export CSV 📥</span>
+            </button>
+
+            {/* Add Employee (Vercel White Pill) */}
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-5 py-2.5 vercel-btn-primary font-bold transition-all flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4 text-black" />
+              <span>+ เพิ่มพนักงาน</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* TAB 1: OVERVIEW & ANALYTICS DASHBOARD CONTAINER           */}
+        {/* ========================================================= */}
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+
+            {/* 1. EXECUTIVE ANALYTICS GRAPH DASHBOARD (Sparklines, Stacked Bar & Donut) */}
+            <ExecutiveAnalyticsDashboard 
+              overview={overview} 
+              weeklyStats={weeklyData} 
+              employees={analyticsData?.employees || []} 
+              attendanceLogs={analyticsData?.attendanceLogs || []} 
+              salaryAdvances={salaryAdvances} 
+              leaveRequests={leaveRequests}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+
+            {/* 2. 3D WebGL Chart Hologram (Optional Toggle) */}
+            {is3DMode && (
+              <div className="vercel-card p-6 space-y-4">
+                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                  <div>
+                    <span className="text-xs font-mono text-blue-400">
+                      3D SPATIAL DATA // WEBGL INTERACTIVE
                     </span>
+                    <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                      <Box className="w-5 h-5 text-purple-400" />
+                      <span>ATTENDANCE HOLOGRAM VISUALIZER</span>
+                    </h3>
                   </div>
-                  <div className="text-4xl font-black font-mono text-slate-900">
-                    {totalAllowancePaid} <span className="text-sm font-bold text-slate-500">บาท</span>
-                  </div>
-                  <div className="text-sm text-emerald-700 font-bold flex items-center gap-1.5">
-                    <span>ตรงเวลาสะสม {totalPresent} คน</span>
-                  </div>
+                  <span className="text-xs font-mono font-bold text-neutral-500">
+                    🖱️ DRAG TO ROTATE 360°
+                  </span>
+                </div>
+                <ThreeBarChart3D data={weeklyData} />
+              </div>
+            )}
+
+            {/* 3. VERCEL WORKFORCE CATALOG & ATTENDANCE ROSTER */}
+            <div className="vercel-card overflow-hidden">
+              <div className="p-6 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-950/80">
+                <div>
+                  <span className="text-xs font-mono text-purple-400 font-bold">INDEX // 01 • REAL-TIME WORKFORCE CATALOG</span>
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">STAFF APPLICATIONS & CHECK-INS</h2>
+                  <p className="text-xs font-mono text-neutral-400 mt-0.5">ตารางรายชื่อและการลงเวลาพนักงานประจำสาขา</p>
                 </div>
 
-                <div className="hostinger-card p-6 space-y-3 border-2 border-slate-300">
-                  <div className="flex items-center justify-between text-sm text-slate-700 font-extrabold">
-                    <span>พนักงานเข้างาน</span>
-                    <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-900 border border-blue-300 text-xs font-black">
-                      {totalPresent + totalLate} / {totalEmployees} คน
-                    </span>
-                  </div>
-                  <div className="text-4xl font-black font-mono text-slate-900">
-                    {totalPresent + totalLate} <span className="text-sm font-bold text-slate-500">/ {totalEmployees}</span>
-                  </div>
-                  <div className="text-xs sm:text-sm font-bold text-slate-600">
-                    {totalPresent} ตรงเวลา • {totalLate} สาย • {pendingCount} ยังไม่ลง
-                  </div>
-                </div>
-
-                <div className="hostinger-card p-6 space-y-3 border-2 border-slate-300">
-                  <div className="flex items-center justify-between text-sm text-slate-700 font-extrabold">
-                    <span>ความตรงต่อเวลา</span>
-                    <span className="px-2.5 py-1 rounded-full bg-purple-100 text-[#581c87] border border-purple-300 text-xs font-black">
-                      เป้าหมาย &gt;90%
-                    </span>
-                  </div>
-                  <div className="text-4xl font-black font-mono text-slate-900">
-                    {onTimePercent}%
-                  </div>
-                  <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-[#673DE6] h-full rounded-full" style={{ width: `${Math.max(onTimePercent, 5)}%` }} />
-                  </div>
-                </div>
-
-                <div className="hostinger-card p-6 space-y-3 border-2 border-slate-300">
-                  <div className="flex items-center justify-between text-sm text-slate-700 font-extrabold">
-                    <span>คำขอรออนุมัติ</span>
-                    <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black">
-                      ด่วน
-                    </span>
-                  </div>
-                  <div className="text-4xl font-black font-mono text-slate-900">
-                    {pendingAdvancesCount + pendingLeavesCount} <span className="text-sm font-bold text-slate-500">รายการ</span>
-                  </div>
-                  <div className="text-xs sm:text-sm font-bold text-slate-600">
-                    {pendingAdvancesCount} เบิกเงิน • {pendingLeavesCount} ใบลา
-                  </div>
+                {/* Filter Search Input */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500" />
+                  <input
+                    id="search-input-field"
+                    type="text"
+                    placeholder="SEARCH STAFF, ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-4 py-2 rounded-full border border-neutral-800 text-xs bg-black text-white placeholder:text-neutral-500 focus:outline-none focus:border-white w-64 font-mono font-bold transition-all shadow-xs uppercase"
+                  />
                 </div>
               </div>
 
-              {/* 3D WebGL Chart if enabled */}
-              {is3DMode && (
-                <div className="hostinger-card p-6 space-y-4 border-2 border-slate-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
-                        <Box className="w-5 h-5 text-[#673DE6]" />
-                        <span>3D WebGL Attendance Hologram</span>
-                      </h3>
-                      <p className="text-sm font-medium text-slate-600">กราฟแท่ง 3 มิติแสดงสถิติความตรงต่อเวลาประจำสัปดาห์</p>
-                    </div>
-                  </div>
-                  <ThreeBarChart3D data={weeklyData} />
-                </div>
-              )}
-
-              {/* MAIN HOSTINGER CARD: STAFF APPLICATION LIST (Docker Manager Layout) */}
-              <div className="hostinger-card overflow-hidden border-2 border-slate-300 shadow-md">
-                <div className="p-6 border-b-2 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/90">
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900">Staff check-ins & applications</h2>
-                    <p className="text-sm font-semibold text-slate-600 mt-0.5">รายชื่อและการลงเวลาของพนักงานประจำสาขา</p>
-                  </div>
-
-                  {/* Filter Search Input */}
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      id="search-input-field"
-                      type="text"
-                      placeholder="ค้นหาชื่อ, รหัส..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 pr-4 py-2.5 rounded-xl border-2 border-slate-300 text-sm bg-white text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-[#673DE6] w-64 font-bold transition-all shadow-xs"
-                    />
-                  </div>
-                </div>
-
-                {/* Table (Exact Hostinger Columns: Application name | Status | Access | Guide | Action) */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b-2 border-slate-300 bg-slate-100 text-slate-800 text-sm font-black uppercase tracking-wider">
-                        <th className="py-4 px-5">Application name ↕</th>
-                        <th className="py-4 px-5">Status ↕</th>
-                        <th className="py-4 px-5">Access</th>
-                        <th className="py-4 px-5">Guide</th>
-                        <th className="py-4 px-5 text-right">Action</th>
+              {/* Table (Vercel Style Grid) */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono text-xs">
+                  <thead>
+                    <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 uppercase tracking-wider">
+                      <th className="py-3.5 px-5 font-bold">APPLICATION / STAFF</th>
+                      <th className="py-3.5 px-5 font-bold">STATUS</th>
+                      <th className="py-3.5 px-5 font-bold">TELEMETRY</th>
+                      <th className="py-3.5 px-5 font-bold">ROLE & DEVICE</th>
+                      <th className="py-3.5 px-5 text-right font-bold">ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-800 bg-black/40">
+                    {filteredStaff.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-sm text-neutral-500 font-bold">
+                          ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไข
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 text-sm">
-                      {filteredStaff.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center text-base text-slate-500 font-bold">
-                            ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไข
+                    ) : (
+                      filteredStaff.map((emp, idx) => (
+                        <tr key={emp.id} className="editorial-row group">
+                          
+                          {/* 1. Index & Name */}
+                          <td className="py-3.5 px-5">
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono text-xs font-bold text-neutral-500 select-none">
+                                [{String(idx + 1).padStart(2, '0')}]
+                              </span>
+                              <div>
+                                <div className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                                  <span>{emp.name}</span>
+                                  <span className="text-neutral-500 text-xs">({emp.nickname})</span>
+                                </div>
+                                <div className="text-[11px] text-neutral-500 font-mono">
+                                  CODE: {emp.code}
+                                </div>
+                              </div>
+                            </div>
                           </td>
+
+                          {/* 2. Status */}
+                          <td className="py-3.5 px-5">
+                            {emp.status === 'PRESENT' && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold font-mono">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>ตรงเวลา (+50฿)</span>
+                              </span>
+                            )}
+                            {emp.status === 'LATE' && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[11px] font-bold font-mono">
+                                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                                <span>มาสาย (Late)</span>
+                              </span>
+                            )}
+                            {emp.status === 'PENDING' && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700 text-[11px] font-bold font-mono">
+                                <span className="w-2 h-2 rounded-full bg-neutral-500" />
+                                <span>ยังไม่ลงเวลา</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* 3. Access Telemetry */}
+                          <td className="py-3.5 px-5">
+                            <div className="space-y-0.5">
+                              <div className="text-xs font-bold text-blue-400 font-mono">
+                                IN: {emp.checkInTimeStr}
+                              </div>
+                              <div className="text-neutral-500 font-mono text-[11px]">
+                                DIST: {emp.distanceStr}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 4. Guide Role & HWID */}
+                          <td className="py-3.5 px-5">
+                            <div className="space-y-0.5">
+                              <div className="text-xs font-bold text-neutral-300">
+                                {emp.role}
+                              </div>
+                              <div className="text-[11px] font-mono text-neutral-500 uppercase">
+                                HWID: {emp.hwid ? 'LOCKED ✓' : 'UNBOUND'}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 5. Action */}
+                          <td className="py-3.5 px-5 text-right">
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                onClick={() => handleResetHWID(emp.id, emp.name)}
+                                className="px-3 py-1 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 text-xs font-bold font-mono transition-all"
+                                title="ปลดล็อกอุปกรณ์ (Reset HWID)"
+                              >
+                                Reset HWID
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
+                                className="p-1.5 rounded-md hover:bg-rose-500/10 text-neutral-500 hover:text-rose-400 transition-colors"
+                                title="ลบพนักงาน"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+
                         </tr>
-                      ) : (
-                        filteredStaff.map((emp) => (
-                          <tr key={emp.id} className="hostinger-table-row">
-                            
-                            {/* 1. Application Name (Chevron + Name + Code) */}
-                            <td className="py-4 px-5">
-                              <div className="flex items-center gap-3">
-                                <ChevronDown className="w-5 h-5 text-slate-500 shrink-0 cursor-pointer" />
-                                <div>
-                                  <div className="font-black text-base sm:text-lg text-slate-900 hover:text-[#673DE6] cursor-pointer">
-                                    {emp.name} ({emp.nickname})
-                                  </div>
-                                  <div className="text-xs sm:text-sm text-slate-600 font-mono font-bold">
-                                    1 check-in • {emp.code}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                            {/* 2. Status (Hostinger Green Running Pill with Solid Dot) */}
-                            <td className="py-4 px-5">
-                              {emp.status === 'PRESENT' && (
-                                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-sm font-black">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                                  <span>Running ({emp.statusLabel})</span>
-                                </span>
-                              )}
-                              {emp.status === 'LATE' && (
-                                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-sm font-black">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-amber-600" />
-                                  <span>Late (มาสาย)</span>
-                                </span>
-                              )}
-                              {emp.status === 'PENDING' && (
-                                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 text-sm font-bold">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                                  <span>Not checked-in</span>
-                                </span>
-                              )}
-                            </td>
+            {/* 4. SECONDARY SECTION: ADVANCES & GEOFENCE */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Card 1: 1-Click Salary Advance Approvals */}
+              <div className="vercel-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-800 text-amber-400 flex items-center justify-center font-bold">
+                      <Coins className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-white">คำขอเบิกเงินด่วนรออนุมัติ</h3>
+                      <p className="text-xs font-mono text-neutral-400">หักลบในรอบเงินเดือนอัตโนมัติ</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono text-xs font-bold">
+                    {salaryAdvances.filter((a: any) => a.status === 'PENDING').length} รายการ
+                  </span>
+                </div>
 
-                            {/* 3. Access (Open / Terminal style links) */}
-                            <td className="py-4 px-5">
-                              <div className="space-y-0.5">
-                                <div className="text-base font-black text-[#673DE6] hover:underline cursor-pointer flex items-center gap-1.5">
-                                  <span>เข้า: {emp.checkInTimeStr} น.</span>
-                                  <ExternalLink className="w-4 h-4" />
-                                </div>
-                                <div className="text-slate-600 font-mono text-xs sm:text-sm font-bold">
-                                  ระยะห่าง: {emp.distanceStr}
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* 4. Guide (Documentation / Role) */}
-                            <td className="py-4 px-5">
-                              <div className="space-y-0.5">
-                                <div className="text-base font-bold text-slate-800">
-                                  {emp.role}
-                                </div>
-                                <div className="text-xs sm:text-sm text-slate-500 font-semibold">
-                                  อุปกรณ์: {emp.hwid ? 'ผูกแล้ว' : 'ยังไม่ผูก'}
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* 5. Action (Hostinger Manage Button + ...) */}
-                            <td className="py-4 px-5 text-right">
-                              <div className="inline-flex items-center gap-2">
-                                <button
-                                  onClick={() => handleResetHWID(emp.id, emp.name)}
-                                  className="px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-black shadow-sm transition-all"
-                                  title="ปลดล็อกอุปกรณ์ (Reset HWID)"
-                                >
-                                  Manage
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
-                                  className="p-2 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors"
-                                  title="ลบพนักงาน"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                <div className="space-y-2.5 max-h-52 overflow-y-auto">
+                  {salaryAdvances.filter((a: any) => a.status === 'PENDING').length === 0 ? (
+                    <div className="p-6 text-center text-xs font-mono text-neutral-500 bg-black/40 rounded-xl border border-dashed border-neutral-800">
+                      ไม่มีรายการขอเบิกเงินที่ค้างอยู่
+                    </div>
+                  ) : (
+                    salaryAdvances.filter((a: any) => a.status === 'PENDING').map((adv: any) => (
+                      <div key={adv.id} className="p-3.5 bg-black/60 rounded-xl border border-neutral-800 flex items-center justify-between gap-3 font-mono text-xs">
+                        <div>
+                          <div className="font-bold text-white">
+                            {adv.employee?.full_name || 'พนักงาน'} ({Number(adv.amount).toLocaleString()}฿)
+                          </div>
+                          <div className="text-neutral-400 truncate max-w-[200px] text-[11px]">{adv.reason || '-'}</div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOptimisticAdvanceAction(adv.id, 'APPROVED')}
+                            className="px-3 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                          >
+                            อนุมัติ
+                          </button>
+                          <button
+                            onClick={() => handleOptimisticAdvanceAction(adv.id, 'REJECTED')}
+                            className="px-3 py-1 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 font-bold"
+                          >
+                            ปฏิเสธ
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
-              {/* SECONDARY HOSTINGER SECTION: STORE POLICY & GEOFENCE CREDITS */}
-              <div className="space-y-4">
+              {/* Card 2: Leaflet Geofence Map Summary */}
+              <div className="vercel-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900">Manage your branch policies & geofencing</h2>
-                    <p className="text-sm font-semibold text-slate-600">ควบคุมรัศมี GPS และอนุมัติคำขอเบิกเงินด่วน</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-800 text-purple-400 flex items-center justify-center font-bold">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-white">Geofence Radar ({storeSettingsForm.radius_meters || 50}m)</h3>
+                      <p className="text-xs font-mono text-neutral-400">{storeSettingsForm.store_name}</p>
+                    </div>
                   </div>
-                  <ChevronDown className="w-5 h-5 text-slate-500 cursor-pointer" />
+                  <button
+                    onClick={() => {
+                      setActiveTab('settings');
+                      setSubTab('geofence');
+                    }}
+                    className="text-xs font-mono text-purple-400 font-bold hover:underline"
+                  >
+                    [ ปรับพิกัด → ]
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Card 1: 1-Click Salary Advance Approvals */}
-                  <div className="hostinger-card p-6 space-y-4 border-2 border-slate-300">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-black">
-                          <Coins className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-black text-base text-slate-900">คำขอเบิกเงินด่วนรออนุมัติ</h3>
-                          <p className="text-xs sm:text-sm font-medium text-slate-500">หักลบในรอบเงินเดือนอัตโนมัติ</p>
-                        </div>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-amber-200 text-amber-950 font-mono text-sm font-black">
-                        {salaryAdvances.filter((a: any) => a.status === 'PENDING').length} รายการ
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5 max-h-52 overflow-y-auto">
-                      {salaryAdvances.filter((a: any) => a.status === 'PENDING').length === 0 ? (
-                        <div className="p-6 text-center text-sm text-slate-500 bg-slate-50 rounded-xl border-2 border-dashed border-slate-300 font-bold">
-                          ไม่มีรายการขอเบิกเงินที่ค้างอยู่
-                        </div>
-                      ) : (
-                        salaryAdvances.filter((a: any) => a.status === 'PENDING').map((adv: any) => (
-                          <div key={adv.id} className="p-4 bg-slate-50 rounded-xl border border-slate-300 flex items-center justify-between gap-3">
-                            <div>
-                              <div className="font-black text-sm sm:text-base text-slate-900">
-                                {adv.employee?.full_name || 'พนักงาน'} ({Number(adv.amount).toLocaleString()}฿)
-                              </div>
-                              <div className="text-xs sm:text-sm text-slate-600 truncate max-w-[220px] font-medium">{adv.reason || '-'}</div>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => handleOptimisticAdvanceAction(adv.id, 'APPROVED')}
-                                className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-xs"
-                              >
-                                อนุมัติ
-                              </button>
-                              <button
-                                onClick={() => handleOptimisticAdvanceAction(adv.id, 'REJECTED')}
-                                className="px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-100 text-slate-700 border-2 border-slate-300 font-black text-xs sm:text-sm"
-                              >
-                                ปฏิเสธ
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Card 2: Leaflet Geofence Map Summary */}
-                  <div className="hostinger-card p-6 space-y-4 border-2 border-slate-300">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-purple-100 text-[#673DE6] flex items-center justify-center font-black">
-                          <MapPin className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="font-black text-base text-slate-900">Geofence Location ({storeSettingsForm.radius_meters || 50}m)</h3>
-                          <p className="text-xs sm:text-sm font-medium text-slate-500">{storeSettingsForm.store_name}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setActiveTab('settings');
-                          setSubTab('geofence');
-                        }}
-                        className="text-sm text-[#673DE6] font-extrabold hover:underline"
-                      >
-                        ปรับพิกัด →
-                      </button>
-                    </div>
-
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-300 text-sm space-y-2 font-mono text-slate-700 font-bold">
-                      <div>Lat: {Number(storeSettingsForm.store_lat || 15.110481).toFixed(6)}</div>
-                      <div>Lng: {Number(storeSettingsForm.store_lng || 104.358552).toFixed(6)}</div>
-                      <div className="text-emerald-700 font-sans font-black text-sm">● ซิงค์พิกัดกับมือถือพนักงานแบบ Real-time</div>
-                    </div>
+                <div className="p-4 bg-black/60 rounded-xl border border-neutral-800 text-xs space-y-2 font-mono text-neutral-300">
+                  <div>Lat: {Number(storeSettingsForm.store_lat || 15.110481).toFixed(6)}</div>
+                  <div>Lng: {Number(storeSettingsForm.store_lng || 104.358552).toFixed(6)}</div>
+                  <div className="text-emerald-400 font-sans font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    ซิงค์พิกัดกับมือถือพนักงานแบบ Real-time
                   </div>
                 </div>
               </div>
 
             </div>
-          )}
+          </div>
+        )}
 
           {/* ========================================================= */}
           {/* TAB 2: EMPLOYEES                                          */}
           {/* ========================================================= */}
           {activeTab === 'employees' && (
-            <div className="hostinger-card p-6 sm:p-8 space-y-5 border-2 border-slate-300">
+            <div className="vercel-card p-6 sm:p-8 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900">จัดการบัญชีพนักงาน</h2>
-                  <p className="text-sm font-semibold text-slate-600">เพิ่ม, ลบ, หรือปลดล็อกอุปกรณ์ประจำตัวพนักงาน (Reset HWID)</p>
+                  <h2 className="text-xl sm:text-2xl font-black text-white">จัดการบัญชีพนักงาน</h2>
+                  <p className="text-xs font-mono text-neutral-400 mt-0.5">เพิ่ม, ลบ, หรือปลดล็อกอุปกรณ์ประจำตัวพนักงาน (Reset HWID)</p>
                 </div>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="px-5 py-2.5 rounded-xl bg-[#673DE6] hover:bg-[#5025d1] text-white text-sm font-black transition-all shadow-md flex items-center gap-2"
+                  className="px-5 py-2.5 vercel-btn-primary text-xs font-mono font-bold flex items-center gap-2"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-4 h-4 text-black" />
                   <span>+ เพิ่มพนักงาน</span>
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
+              <div className="overflow-x-auto rounded-xl border border-neutral-800">
+                <table className="w-full text-left font-mono text-xs">
                   <thead>
-                    <tr className="border-b-2 border-slate-300 bg-slate-100 text-slate-800 text-sm font-black uppercase tracking-wider">
-                      <th className="py-4 px-4">พนักงาน</th>
-                      <th className="py-4 px-4">รหัสพนักงาน</th>
-                      <th className="py-4 px-4">ตำแหน่ง</th>
-                      <th className="py-4 px-4">อุปกรณ์ประจำตัว (HWID)</th>
-                      <th className="py-4 px-4 text-right">การดำเนินการ</th>
+                    <tr className="border-b border-neutral-800 bg-neutral-950 text-neutral-400 uppercase tracking-wider">
+                      <th className="py-3.5 px-4 font-bold">พนักงาน</th>
+                      <th className="py-3.5 px-4 font-bold">รหัสพนักงาน</th>
+                      <th className="py-3.5 px-4 font-bold">ตำแหน่ง</th>
+                      <th className="py-3.5 px-4 font-bold">HWID Lock</th>
+                      <th className="py-3.5 px-4 text-right font-bold">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 text-sm">
+                  <tbody className="divide-y divide-neutral-800 bg-black/40">
                     {formattedStaff.map((emp) => (
-                      <tr key={emp.id} className="hostinger-table-row">
-                        <td className="py-4 px-4 font-black text-base text-slate-900">
+                      <tr key={emp.id} className="editorial-row hover:bg-neutral-900/60">
+                        <td className="py-3.5 px-4 font-bold text-sm text-white">
                           {emp.name} ({emp.nickname})
                         </td>
-                        <td className="py-4 px-4 font-mono font-black text-[#673DE6] text-base">{emp.code}</td>
-                        <td className="py-4 px-4 font-bold text-slate-800">{emp.role}</td>
-                        <td className="py-4 px-4 font-mono text-slate-600 font-bold text-xs sm:text-sm">
-                          {emp.hwid || <span className="text-slate-400">ยังไม่ผูก</span>}
+                        <td className="py-3.5 px-4 font-bold text-blue-400">{emp.code}</td>
+                        <td className="py-3.5 px-4 text-neutral-300">{emp.role}</td>
+                        <td className="py-3.5 px-4 text-neutral-400 text-xs">
+                          {emp.hwid ? (
+                            <span className="text-emerald-400 font-bold">{emp.hwid}</span>
+                          ) : (
+                            <span className="text-neutral-500">ยังไม่ผูกเครื่อง</span>
+                          )}
                         </td>
-                        <td className="py-4 px-4 text-right space-x-2">
+                        <td className="py-3.5 px-4 text-right space-x-2">
                           <button
                             onClick={() => handleResetHWID(emp.id, emp.name)}
-                            className="px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-xs"
+                            className="px-3 py-1.5 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 font-bold"
                           >
                             Reset HWID
                           </button>
                           <button
                             onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
-                            className="px-4 py-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs sm:text-sm border border-rose-200"
+                            className="px-3 py-1.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold"
                           >
                             ลบ
                           </button>
@@ -1601,55 +1364,55 @@ export default function WebExecutiveDashboard() {
           {/* TAB 3: LEAVE REQUESTS                                     */}
           {/* ========================================================= */}
           {activeTab === 'leaves' && (
-            <div className="hostinger-card p-6 sm:p-8 space-y-5 border-2 border-slate-300">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900">อนุมัติคำขอลางาน</h2>
+            <div className="vercel-card p-6 sm:p-8 space-y-6">
+              <h2 className="text-xl sm:text-2xl font-black text-white">อนุมัติคำขอลางาน</h2>
               {leaveRequests.length === 0 ? (
-                <div className="py-14 text-center text-slate-500 text-base font-bold bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300">
+                <div className="py-14 text-center text-neutral-500 text-xs font-mono bg-black/40 rounded-xl border border-dashed border-neutral-800">
                   ไม่มีรายการขอลางานในขณะนี้
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
+                <div className="overflow-x-auto rounded-xl border border-neutral-800">
+                  <table className="w-full text-left font-mono text-xs">
                     <thead>
-                      <tr className="border-b-2 border-slate-300 bg-slate-100 text-slate-800 text-sm font-black uppercase tracking-wider">
-                        <th className="py-4 px-4">พนักงาน</th>
-                        <th className="py-4 px-4">ประเภทการลา</th>
-                        <th className="py-4 px-4">วันที่ลา</th>
-                        <th className="py-4 px-4">เหตุผล</th>
-                        <th className="py-4 px-4">สถานะ</th>
-                        <th className="py-4 px-4 text-right">การอนุมัติ</th>
+                      <tr className="border-b border-neutral-800 bg-neutral-950 text-neutral-400 uppercase tracking-wider">
+                        <th className="py-3.5 px-4 font-bold">พนักงาน</th>
+                        <th className="py-3.5 px-4 font-bold">ประเภท</th>
+                        <th className="py-3.5 px-4 font-bold">วันที่ลา</th>
+                        <th className="py-3.5 px-4 font-bold">เหตุผล</th>
+                        <th className="py-3.5 px-4 font-bold">สถานะ</th>
+                        <th className="py-3.5 px-4 text-right font-bold">การอนุมัติ</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 text-sm">
+                    <tbody className="divide-y divide-neutral-800 bg-black/40">
                       {leaveRequests.map((req: any) => (
-                        <tr key={req.id} className="hostinger-table-row">
-                          <td className="py-4 px-4 font-black text-base text-slate-900">
+                        <tr key={req.id} className="editorial-row hover:bg-neutral-900/60">
+                          <td className="py-3.5 px-4 font-bold text-white">
                             {req.employee?.full_name || 'พนักงาน'}
                           </td>
-                          <td className="py-4 px-4 font-bold text-slate-800">
+                          <td className="py-3.5 px-4 text-neutral-300">
                             {req.leave_type === 'SICK' ? 'ลาป่วย 🩺' : req.leave_type === 'BUSINESS' ? 'ลากิจ 💼' : 'พักร้อน 🏖️'}
                           </td>
-                          <td className="py-4 px-4 font-mono font-bold text-slate-700">{req.start_date} ({req.days_count || 1} วัน)</td>
-                          <td className="py-4 px-4 text-slate-600 font-medium">{req.reason || '-'}</td>
-                          <td className="py-4 px-4">
-                            <span className={`px-3 py-1 rounded-full text-xs font-black ${
-                              req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : req.status === 'REJECTED' ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                          <td className="py-3.5 px-4 text-neutral-400">{req.start_date} ({req.days_count || 1} วัน)</td>
+                          <td className="py-3.5 px-4 text-neutral-400">{req.reason || '-'}</td>
+                          <td className="py-3.5 px-4">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                              req.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : req.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                             }`}>
                               {req.status === 'APPROVED' ? 'อนุมัติแล้ว' : req.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'}
                             </span>
                           </td>
-                          <td className="py-4 px-4 text-right space-x-2">
+                          <td className="py-3.5 px-4 text-right space-x-2">
                             {req.status === 'PENDING' && (
                               <>
                                 <button
                                   onClick={() => handleLeaveAction(req.id, 'APPROVED')}
-                                  className="px-4 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-xs"
+                                  className="px-3 py-1 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
                                 >
                                   อนุมัติ
                                 </button>
                                 <button
                                   onClick={() => handleLeaveAction(req.id, 'REJECTED')}
-                                  className="px-4 py-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-xs"
+                                  className="px-3 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-bold"
                                 >
                                   ปฏิเสธ
                                 </button>
@@ -1669,7 +1432,7 @@ export default function WebExecutiveDashboard() {
           {/* TAB 4: SALARY ADVANCES                                    */}
           {/* ========================================================= */}
           {activeTab === 'advances' && (
-            <div className="hostinger-card p-6 sm:p-8 space-y-5 border-2 border-slate-300">
+            <div className="vercel-card p-6 sm:p-8 space-y-6">
               <SalaryAdvanceManager 
                 requests={salaryAdvances}
                 onRefresh={() => loadDashboardData(true)}
@@ -1683,7 +1446,7 @@ export default function WebExecutiveDashboard() {
           {/* TAB 5: VIOLATIONS & SECURITY                              */}
           {/* ========================================================= */}
           {activeTab === 'violations' && (
-            <div className="hostinger-card p-6 sm:p-8 space-y-5 border-2 border-slate-300">
+            <div className="vercel-card p-6 sm:p-8 space-y-6">
               <SecurityLogsViewer 
                 logs={violationLogs}
                 onRefresh={() => loadDashboardData(true)}
@@ -1698,14 +1461,14 @@ export default function WebExecutiveDashboard() {
             <div className="space-y-7">
               
               {/* Geofence Map Card */}
-              <div className="hostinger-card p-6 sm:p-8 space-y-5 border-2 border-slate-300">
+              <div className="vercel-card p-6 sm:p-8 space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
-                      <MapPin className="w-6 h-6 text-[#673DE6]" />
+                    <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
+                      <MapPin className="w-6 h-6 text-purple-400" />
                       <span>พิกัดร้านและ Geofence (Leaflet Map)</span>
                     </h2>
-                    <p className="text-sm font-semibold text-slate-600">คลิกหรือลากหมุดบนแผนที่เพื่ออัปเดตจุดลงเวลาของพนักงาน</p>
+                    <p className="text-xs font-mono text-neutral-400 mt-0.5">คลิกหรือลากหมุดบนแผนที่เพื่ออัปเดตจุดลงเวลาของพนักงาน</p>
                   </div>
                 </div>
 
@@ -1739,45 +1502,45 @@ export default function WebExecutiveDashboard() {
               </div>
 
               {/* Attendance Shift Policies Card */}
-              <div className="hostinger-card p-6 sm:p-8 space-y-5 border-2 border-slate-300">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
-                  <Clock className="w-6 h-6 text-[#673DE6]" />
+              <div className="vercel-card p-6 sm:p-8 space-y-6">
+                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
+                  <Clock className="w-6 h-6 text-purple-400" />
                   <span>นโยบายเวลาเข้างานและเบี้ยขยัน</span>
                 </h2>
 
                 {settingsMsg && (
-                  <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-emerald-900 text-sm font-black">
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
                     {settingsMsg}
                   </div>
                 )}
 
-                <form onSubmit={handleSaveSettings} className="space-y-5">
+                <form onSubmit={handleSaveSettings} className="space-y-5 font-mono text-xs">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     <div>
-                      <label className="block text-sm font-black text-slate-800 mb-1.5">เวลาเข้างานปกติ</label>
+                      <label className="block font-bold text-neutral-300 mb-1.5">เวลาเข้างานปกติ</label>
                       <input
                         type="time"
                         value={storeSettingsForm.standard_time || '07:40:00'}
                         onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
-                        className="w-full p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl text-base font-mono font-bold text-slate-900 focus:border-[#673DE6]"
+                        className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-sm font-bold text-white focus:border-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-black text-slate-800 mb-1.5">เวลาตัดสาย (Grace Period)</label>
+                      <label className="block font-bold text-neutral-300 mb-1.5">เวลาตัดสาย (Grace Period)</label>
                       <input
                         type="time"
                         value={storeSettingsForm.late_deadline || '08:00:00'}
                         onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
-                        className="w-full p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl text-base font-mono font-bold text-slate-900 focus:border-[#673DE6]"
+                        className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-sm font-bold text-white focus:border-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-black text-slate-800 mb-1.5">เบี้ยขยันต่อวัน (บาท)</label>
+                      <label className="block font-bold text-neutral-300 mb-1.5">เบี้ยขยันต่อวัน (บาท)</label>
                       <input
                         type="number"
                         value={storeSettingsForm.allowance_amount || 50}
                         onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
-                        className="w-full p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl text-base font-mono font-bold text-slate-900 focus:border-[#673DE6]"
+                        className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-sm font-bold text-white focus:border-white"
                       />
                     </div>
                   </div>
@@ -1785,9 +1548,9 @@ export default function WebExecutiveDashboard() {
                   <button
                     type="submit"
                     disabled={settingsLoading}
-                    className="px-7 py-3 rounded-xl hostinger-purple-btn font-black text-sm shadow-md shadow-purple-600/30"
+                    className="px-6 py-3 vercel-btn-primary text-xs font-bold"
                   >
-                    {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+                    {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า (Save Changes)'}
                   </button>
                 </form>
               </div>
@@ -1795,67 +1558,66 @@ export default function WebExecutiveDashboard() {
             </div>
           )}
 
-        </main>
-      </div>
+        </div>
 
-      {/* ADD EMPLOYEE MODAL */}
+      {/* ADD EMPLOYEE MODAL (Vercel Style) */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="max-w-lg w-full p-8 rounded-2xl bg-white border-2 border-slate-300 shadow-2xl space-y-5">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="max-w-lg w-full p-8 rounded-2xl vercel-card bg-[#0a0a0a] border border-neutral-800 shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-xl text-slate-900">เพิ่มพนักงานใหม่</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-700 text-lg font-black">
+              <h3 className="font-bold text-lg text-white">เพิ่มพนักงานใหม่</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-neutral-400 hover:text-white text-base font-bold">
                 ✕
               </button>
             </div>
 
             {addMsg && (
-              <div className="p-3.5 rounded-xl bg-purple-50 border-2 border-purple-200 text-[#673DE6] text-sm font-bold">
+              <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold">
                 {addMsg}
               </div>
             )}
 
-            <form onSubmit={handleCreateEmployee} className="space-y-4 text-sm">
+            <form onSubmit={handleCreateEmployee} className="space-y-4 text-xs font-mono">
               <div>
-                <label className="block font-black text-slate-800 mb-1.5">รหัสพนักงาน *</label>
+                <label className="block font-bold text-neutral-300 mb-1.5">รหัสพนักงาน *</label>
                 <input
                   type="text"
                   value={newCode}
                   onChange={(e) => setNewCode(e.target.value.toUpperCase())}
                   placeholder="เช่น EMP-003"
-                  className="w-full p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl font-black font-mono text-base focus:border-[#673DE6]"
+                  className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl font-bold text-white focus:border-white"
                   required
                 />
               </div>
               <div>
-                <label className="block font-black text-slate-800 mb-1.5">ชื่อ-นามสกุล *</label>
+                <label className="block font-bold text-neutral-300 mb-1.5">ชื่อ-นามสกุล *</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="เช่น สมชาย สายใจดี"
-                  className="w-full p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-base focus:border-[#673DE6]"
+                  className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl font-bold text-white focus:border-white"
                   required
                 />
               </div>
               <div>
-                <label className="block font-black text-slate-800 mb-1.5">ชื่อเล่น</label>
+                <label className="block font-bold text-neutral-300 mb-1.5">ชื่อเล่น</label>
                 <input
                   type="text"
                   value={newNick}
                   onChange={(e) => setNewNick(e.target.value)}
                   placeholder="เช่น ชาย"
-                  className="w-full p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-base focus:border-[#673DE6]"
+                  className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl font-bold text-white focus:border-white"
                 />
               </div>
               <div>
-                <label className="block font-black text-slate-800 mb-1.5">รหัส PIN / รหัสผ่าน *</label>
+                <label className="block font-bold text-neutral-300 mb-1.5">รหัส PIN / รหัสผ่าน *</label>
                 <input
                   type="password"
                   value={newPin}
                   onChange={(e) => setNewPin(e.target.value)}
                   placeholder="1234"
-                  className="w-full p-3.5 bg-slate-50 border-2 border-slate-300 rounded-xl font-mono text-center font-black tracking-widest text-lg focus:border-[#673DE6]"
+                  className="w-full p-3 bg-neutral-950 border border-neutral-800 rounded-xl font-bold text-center tracking-widest text-base text-white focus:border-white"
                   required
                 />
               </div>
@@ -1864,14 +1626,14 @@ export default function WebExecutiveDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-sm"
+                  className="px-4 py-2 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-bold text-xs"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   disabled={addLoading}
-                  className="px-6 py-2.5 rounded-xl hostinger-purple-btn font-black text-sm shadow-md"
+                  className="px-5 py-2 vercel-btn-primary font-bold text-xs"
                 >
                   {addLoading ? 'กำลังสร้าง...' : 'สร้างพนักงาน'}
                 </button>
