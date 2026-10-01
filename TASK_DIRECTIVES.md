@@ -1,34 +1,51 @@
 # 📋 Task Directives from Tech Lead
-**Project**: ระบบบันทึกเวลาทำงานและจัดการสาขา ร้านสีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)
+**Project**: ระบบบันทึกเวลาทำงานและจัดการสาขา ร้านสีแสงยานยนต์ (YOKOHAMA NAYA COSMIS)
 **Date**: 2026-10-01
-**Status**: 🚨 HIGH PRIORITY BUG FIX & ERROR RESOLUTION
+**Status**: 🚀 LIVE SUPABASE DATA SYNC & ZERO-MISMATCH ENFORCEMENT
+
+---
+
+## 📱 Directive for `DevMobile AI` (Mobile PWA & Android Engineer)
+
+### 🎯 Objective: ตรวจสอบและเชื่อมโยงระบบ Mobile เข้ากับฐานข้อมูลจริง (Supabase Live)
+ทาง Tech Lead ได้ปรับปรุง Database Layer ให้ดึงข้อมูลสดจากตาราง Supabase เรียบร้อยแล้ว DevMobile ต้องปฏิบัติตามข้อกำหนดดังต่อไปนี้:
+
+### 🔑 บัญชีพนักงานจริงในฐานข้อมูล Supabase สำหรับการทดสอบ:
+1. **รหัสพนักงาน: `01`** (ชื่อ: `ฟหกหฟก`, ชื่อเล่น: `ฟหกฟหก`, บทบาท: `STAFF`, PIN: `11`)
+2. **รหัสพนักงาน: `02`** (ชื่อ: `ฟหก`, ชื่อเล่น: `ฟหก`, บทบาท: `STAFF`, PIN: `02`)
+3. **รหัสพนักงาน: `SI01`** (ชื่อ: `ผู้บริหารสูงสุด`, ชื่อเล่น: `ท่านประธาน`, บทบาท: `ADMIN`, PIN: `5101`)
+
+### 🔍 Checklist ที่ DevMobile ต้องตรวจสอบใน Mobile Client (`src/app/employee/`):
+1. **Login & Auto Lookup**:
+   - เมื่อกรอกรหัสพนักงาน `01` หรือ `02` ต้องแสดงชื่อและข้อมูลสดจาก Supabase ทันที
+   - การส่ง Payload Login รองรับทั้ง `{ employeeCode, pin, hwid }` และ `{ employeeCode, pinCode, hwid }`
+2. **Hardware Geofencing**:
+   - พิกัดร้านที่ดึงสดจาก DB: `Lat: 15.110481, Lng: 104.358552`, รัศมี `50 เมตร`
+   - เช็คอินผ่านเมื่ออยู่ในรัศมี และถูกบล็อกพร้อมแจ้งเตือน LINE Security Alert เมื่ออยู่นอกพื้นที่
+3. **Hardware Device Binding (HWID Guard)**:
+   - ป้องกันการลงเวลาแทนกัน 1 บัญชีต่อ 1 เครื่อง หากนำไปล็อกอินเครื่องอื่น ระบบจะบล็อกและบันทึกประวัติการฝ่าฝืนลง `violation_logs`
 
 ---
 
 ## 💻 Directive for `DevWeb AI` (Web Admin & Dashboard Engineer)
 
-### 🎯 Objective: ตรวจสอบและแก้ไข Runtime Error หน้าเว็บแอดมิน / แดชบอร์ด
-ท่านประธานได้เข้าทดสอบหน้าเว็บและแจ้งว่าพบ Error เกิดขึ้นบนหน้าจอ
-
-### 🔍 Checklist จุดที่ DevWeb ต้องตรวจสอบและแก้ไขทันที:
-1. **Hydration & SSR Safety**:
-   - ตรวจสอบ `localStorage` และ `window` object ใน `src/app/admin/page.tsx` และ `src/app/executive/page.tsx` ต้องอยู่ภายใต้ `useEffect` หรือ `typeof window !== 'undefined'`
-2. **Leaflet Map SSR Handling**:
-   - ตรวจสอบ `StoreMapPicker.tsx` ว่ามีการโหลด `L` (Leaflet) ฝั่ง Client เท่านั้น และมี dynamic import `ssr: false`
-3. **Three.js WebGL Fallback**:
-   - ใน `ThreeBarChart3D.tsx` และ `ThreeDonut3D.tsx` ต้องมี `try...catch` ครอบ WebGL context เพื่อรองรับกรณีเบราว์เซอร์ปิด Hardware Acceleration
-4. **Login Session & Pin Verification**:
-   - ตรวจสอบหน้า Login ผู้บริหาร (SI01 / 5101) ไม่ให้เกิด Error ขณะกดปลดล็อก Session
-5. **Vercel / Next.js Fast Refresh Error**:
-   - ตรวจสอบการ re-render loop ใน `useEffect` ของ `admin/page.tsx`
+### 🎯 Objective: ตรวจสอบ Real-Time Sync และ Admin Management บนฐานข้อมูลจริง
+1. **Employee Management (`src/app/admin/`)**:
+   - แสดงรายชื่อพนักงานตรงกับ Supabase 3 ท่าน (`SI01`, `01`, `02`)
+   - รองรับปุ่ม "ปลดล็อกอุปกรณ์ (Reset HWID)" เพื่อให้แอดมินช่วยรีเซ็ตเครื่องให้พนักงานได้
+2. **Attendance & Analytics**:
+   - ดึงข้อมูลจาก `attendance_logs` และ `violation_logs` สดจาก Supabase แบบ Realtime
+3. **Store Settings**:
+   - บันทึกพิกัดร้านและรัศมี (50m) ลงตาราง `store_settings` ตรงเป๊ะ
 
 ---
 
-## 🚀 คำสั่งส่งงานเมื่อแก้ไขเสร็จ:
+## 🚀 คำสั่งสำหรับ DevMobile & DevWeb ในการรับงาน:
 ```bash
-# 1. ตรวจสอบ Build 0 Errors
-npm run build
+# ตรวจสอบคำสั่งงานล่าสุด
+npm run task:mobile
+npm run task:web
 
-# 2. รายงานเข้า Discord
-npm run report:discord "แก้ไข Runtime Error หน้าเว็บแอดมินสำเร็จ" "ตรวจสอบ SSR, Leaflet, Three.js และ Login Guard เรียบร้อย" "SSR Safety,WebGL Fallback,Leaflet Fix" "พร้อมให้ท่านประธานทดสอบอีกครั้ง"
+# ส่งรายงานกลับ Discord เมื่อทดสอบสำเร็จ
+npm run report:discord "ยืนยันการเชื่อมต่อ Live Database สำเร็จ" "ทดสอบ Login พนักงาน 01, 02, SI01 ตรงกับ Supabase 100%" "Data Sync,HWID Guard,Geofence" "พร้อมใช้งานบน Production"
 ```

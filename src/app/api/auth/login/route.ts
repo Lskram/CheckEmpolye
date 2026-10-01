@@ -4,7 +4,9 @@ import { db } from '@/lib/db-store';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { employeeCode, pinCode, hwid } = body;
+    const employeeCode = (body.employeeCode || body.code || '').trim();
+    const pinCode = (body.pin || body.pinCode || '').trim();
+    const hwid = body.hwid || '';
 
     if (!employeeCode || !pinCode) {
       return NextResponse.json(
@@ -19,14 +21,14 @@ export async function POST(request: Request) {
         { 
           success: false, 
           code: 'USER_NOT_FOUND', 
-          message: `❌ ไม่พบบัญชีพนักงานรหัส "${employeeCode.trim().toUpperCase()}" ในระบบ กรุณาตรวจสอบรหัสพนักงานอีกครั้ง หรือติดต่อผู้ดูแลระบบ` 
+          message: `❌ ไม่พบบัญชีพนักงานรหัส "${employeeCode.toUpperCase()}" ในระบบ กรุณาตรวจสอบรหัสพนักงานอีกครั้ง หรือติดต่อผู้ดูแลระบบ` 
         },
         { status: 404 }
       );
     }
 
     // Verify PIN (Simple check or hash comparison)
-    if (employee.pin_hash !== pinCode.trim()) {
+    if (employee.pin_hash !== pinCode) {
       // Log invalid PIN attempt
       await db.createViolationLog({
         employee_id: employee.id,
@@ -111,17 +113,22 @@ export async function POST(request: Request) {
       }
     }
 
+    const employeePayload = {
+      id: employee.id,
+      employee_code: employee.employee_code,
+      full_name: employee.full_name,
+      nickname: employee.nickname,
+      role: employee.role,
+      position: employee.position,
+      daily_wage: employee.daily_wage,
+      hwid: employee.hwid,
+    };
+
     return NextResponse.json({
       success: true,
       message: 'เข้าสู่ระบบสำเร็จ',
-      data: {
-        id: employee.id,
-        employee_code: employee.employee_code,
-        full_name: employee.full_name,
-        nickname: employee.nickname,
-        role: employee.role,
-        hwid: employee.hwid,
-      },
+      employee: employeePayload,
+      data: employeePayload,
       warning: violationTriggered ? violationMessage : null,
     });
   } catch (error: any) {

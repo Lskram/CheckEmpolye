@@ -7,11 +7,13 @@ import {
   StoreSettings,
   SalaryAdvanceRequest
 } from './types';
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase, supabaseAdmin, isSupabaseConfigured } from './supabase';
+
+const getClient = () => supabaseAdmin || supabase;
 
 let mockSalaryAdvanceRequests: SalaryAdvanceRequest[] = [];
 
-// Mock in-memory state for immediate testing & zero-setup preview
+// Fallback in-memory state matching live Supabase records
 let mockEmployees: Employee[] = [
   {
     id: '00000000-0000-0000-0000-000000000000',
@@ -20,55 +22,56 @@ let mockEmployees: Employee[] = [
     nickname: 'ท่านประธาน',
     pin_hash: '5101',
     role: 'ADMIN',
-    hwid: null,
+    hwid: 'HWID_7970d174_pkqx4tgi',
     is_active: true,
-    created_at: new Date().toISOString(),
+    position: 'ช่างบริการทั่วไป',
+    daily_wage: 400,
+    created_at: '2026-09-22T14:32:23.098087+00:00',
+    updated_at: '2026-09-23T16:40:48.569+00:00',
   },
   {
-    id: '11111111-1111-1111-1111-111111111111',
-    employee_code: 'EMP001',
-    full_name: 'สมศักดิ์ คงศรี',
-    nickname: 'ศักดิ์',
-    pin_hash: '1234',
+    id: 'cad180f3-28da-402f-b1fe-ab46f870c0ea',
+    employee_code: '01',
+    full_name: 'ฟหกหฟก',
+    nickname: 'ฟหกฟหก',
+    pin_hash: '11',
     role: 'STAFF',
-    hwid: null,
+    hwid: 'HWID_7970d174_pkqx4tgi',
     is_active: true,
-    created_at: new Date().toISOString(),
+    position: 'ช่างบริการทั่วไป',
+    daily_wage: 400,
+    created_at: '2026-09-27T15:27:45.308+00:00',
+    updated_at: '2026-09-27T15:27:56.098+00:00',
   },
   {
-    id: '22222222-2222-2222-2222-222222222222',
-    employee_code: 'EMP002',
-    full_name: 'วิชัย มั่นคง',
-    nickname: 'ชัย',
-    pin_hash: '1234',
+    id: '14711ebc-cfaa-4674-ba8e-7ab0ea0aecaf',
+    employee_code: '02',
+    full_name: 'ฟหก',
+    nickname: 'ฟหก',
+    pin_hash: '02',
     role: 'STAFF',
-    hwid: null,
+    hwid: 'HWID_7970d174_pkqx4tgi',
     is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '33333333-3333-3333-3333-333333333333',
-    employee_code: 'EMP003',
-    full_name: 'อนุชา ใจดี',
-    nickname: 'นุ',
-    pin_hash: '1234',
-    role: 'STAFF',
-    hwid: null,
-    is_active: true,
-    created_at: new Date().toISOString(),
+    position: 'ช่างบริการทั่วไป',
+    daily_wage: 400,
+    created_at: '2026-09-27T15:32:17.678+00:00',
+    updated_at: '2026-09-27T15:32:33.043+00:00',
   }
 ];
 
 let mockStoreSettings: StoreSettings = {
   id: '00000000-0000-0000-0000-000000000001',
-  store_name: 'สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)',
-  store_lat: 15.110412,
-  store_lng: 104.358434,
+  store_name: 'สีแสงยานยนต์',
+  store_lat: 15.110481,
+  store_lng: 104.358552,
   radius_meters: 50.00,
   standard_time: '07:40:00',
   late_deadline: '08:00:00',
+  closing_time: '17:30:00',
   allowance_amount: 50.00,
-  updated_at: new Date().toISOString(),
+  min_work_hours_for_allowance: 4.00,
+  ot_rate_per_hour: 60.00,
+  updated_at: '2026-09-27T15:31:44.789+00:00',
 };
 
 let mockAttendanceLogs: AttendanceLog[] = [];
@@ -92,8 +95,9 @@ export const db = {
   // EMPLOYEES
   // -------------------------------------------------------------
   async getEmployees(): Promise<Employee[]> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client
         .from('employees')
         .select('*')
         .order('created_at', { ascending: true });
@@ -108,16 +112,18 @@ export const db = {
   },
 
   async getEmployeeById(id: string): Promise<Employee | null> {
-    if (isSupabaseConfigured && supabase) {
-      const { data } = await supabase.from('employees').select('*').eq('id', id).single();
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data } = await client.from('employees').select('*').eq('id', id).single();
       if (data) return data as Employee;
     }
     return mockEmployees.find((e) => e.id === id) || null;
   },
 
   async getEmployeeByCode(code: string): Promise<Employee | null> {
-    if (isSupabaseConfigured && supabase) {
-      const { data } = await supabase
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data } = await client
         .from('employees')
         .select('*')
         .ilike('employee_code', code.trim())
@@ -128,8 +134,9 @@ export const db = {
   },
 
   async findEmployeeByHWID(hwid: string, excludeId?: string): Promise<Employee | null> {
-    if (isSupabaseConfigured && supabase) {
-      let query = supabase.from('employees').select('*').eq('hwid', hwid);
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      let query = client.from('employees').select('*').eq('hwid', hwid);
       if (excludeId) query = query.neq('id', excludeId);
       const { data } = await query.limit(1);
       if (data && data.length > 0) return data[0] as Employee;
@@ -151,8 +158,9 @@ export const db = {
       updated_at: new Date().toISOString(),
     };
 
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('employees').insert(newEmp).select().single();
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client.from('employees').insert(newEmp).select().single();
       if (!error && data) return data as Employee;
     }
 
@@ -161,8 +169,9 @@ export const db = {
   },
 
   async updateEmployee(id: string, updates: Partial<Employee>): Promise<Employee | null> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client
         .from('employees')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -180,8 +189,9 @@ export const db = {
   },
 
   async deleteEmployee(id: string): Promise<boolean> {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('employees').delete().eq('id', id);
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { error } = await client.from('employees').delete().eq('id', id);
       return !error;
     }
     const beforeLen = mockEmployees.length;
@@ -193,19 +203,21 @@ export const db = {
   // STORE SETTINGS & GEOFENCE
   // -------------------------------------------------------------
   async getStoreSettings(): Promise<StoreSettings> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('store_settings').select('*').limit(1).single();
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client.from('store_settings').select('*').limit(1).single();
       if (!error && data) return data as StoreSettings;
     }
     return { ...mockStoreSettings };
   },
 
   async updateStoreSettings(updates: Partial<StoreSettings>): Promise<StoreSettings> {
-    if (isSupabaseConfigured && supabase) {
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
       try {
         const current = await this.getStoreSettings();
         const targetId = current?.id || '00000000-0000-0000-0000-000000000001';
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('store_settings')
           .update({ ...updates, updated_at: new Date().toISOString() })
           .eq('id', targetId)
@@ -217,7 +229,7 @@ export const db = {
         }
         if (error) {
           console.warn('[Supabase updateStoreSettings update error]:', error.message);
-          const { data: upsertData, error: upsertError } = await supabase
+          const { data: upsertData, error: upsertError } = await client
             .from('store_settings')
             .upsert({ id: targetId, ...updates, updated_at: new Date().toISOString() })
             .select()
@@ -245,8 +257,9 @@ export const db = {
       created_at: new Date().toISOString(),
     };
 
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('attendance_logs').insert(newLog).select().single();
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client.from('attendance_logs').insert(newLog).select().single();
       if (!error && data) return data as AttendanceLog;
     }
 
@@ -255,9 +268,10 @@ export const db = {
   },
 
   async getAttendanceLogs(limit = 100): Promise<AttendanceLog[]> {
-    if (isSupabaseConfigured && supabase) {
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
       // 1. Try explicit Foreign Key join
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('attendance_logs')
         .select('*, employee:employees!attendance_logs_employee_id_fkey(*)')
         .order('check_in_time', { ascending: false })
@@ -265,7 +279,7 @@ export const db = {
       if (!error && data) return data as AttendanceLog[];
 
       // 2. Resilient fallback: standard select + manual hydration
-      const { data: rawLogs, error: rawError } = await supabase
+      const { data: rawLogs, error: rawError } = await client
         .from('attendance_logs')
         .select('*')
         .order('check_in_time', { ascending: false })
@@ -287,9 +301,10 @@ export const db = {
   },
 
   async updateAttendanceLog(id: string, updates: Partial<AttendanceLog>): Promise<AttendanceLog | null> {
-    if (isSupabaseConfigured && supabase) {
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('attendance_logs')
           .update(updates)
           .eq('id', id)
@@ -337,8 +352,9 @@ export const db = {
       created_at: new Date().toISOString(),
     };
 
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('leave_requests').insert(newReq).select().single();
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client.from('leave_requests').insert(newReq).select().single();
       if (!error && data) return data as LeaveRequest;
     }
 
@@ -347,16 +363,17 @@ export const db = {
   },
 
   async getLeaveRequests(): Promise<LeaveRequest[]> {
-    if (isSupabaseConfigured && supabase) {
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
       // 1. Try explicit Foreign Key join
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('leave_requests')
         .select('*, employee:employees!leave_requests_employee_id_fkey(*)')
         .order('created_at', { ascending: false });
       if (!error && data) return data as LeaveRequest[];
 
       // 2. Resilient fallback: standard select + manual hydration
-      const { data: rawLeaves, error: rawError } = await supabase
+      const { data: rawLeaves, error: rawError } = await client
         .from('leave_requests')
         .select('*')
         .order('created_at', { ascending: false });
@@ -381,8 +398,9 @@ export const db = {
     reviewedBy?: string,
     rejectionReason?: string
   ): Promise<LeaveRequest | null> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client
         .from('leave_requests')
         .update({
           status,
@@ -421,8 +439,9 @@ export const db = {
       created_at: new Date().toISOString(),
     };
 
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from('violation_logs').insert(newLog).select().single();
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client.from('violation_logs').insert(newLog).select().single();
       if (!error && data) return data as ViolationLog;
     }
 
@@ -431,16 +450,17 @@ export const db = {
   },
 
   async getViolationLogs(): Promise<ViolationLog[]> {
-    if (isSupabaseConfigured && supabase) {
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
       // 1. Try explicit Foreign Key join
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('violation_logs')
         .select('*, employee:employees!violation_logs_employee_id_fkey(*), other_employee:employees!violation_logs_other_employee_id_fkey(*)')
         .order('created_at', { ascending: false });
       if (!error && data) return data as ViolationLog[];
 
       // 2. Resilient fallback: standard select + manual hydration
-      const { data: rawViols, error: rawError } = await supabase
+      const { data: rawViols, error: rawError } = await client
         .from('violation_logs')
         .select('*')
         .order('created_at', { ascending: false });
@@ -462,8 +482,9 @@ export const db = {
   },
 
   async resolveViolation(id: string): Promise<boolean> {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('violation_logs').update({ is_resolved: true }).eq('id', id);
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { error } = await client.from('violation_logs').update({ is_resolved: true }).eq('id', id);
       return !error;
     }
     const item = mockViolationLogs.find((v) => v.id === id);
@@ -475,8 +496,9 @@ export const db = {
   },
 
   async resolveAllViolations(): Promise<boolean> {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('violation_logs').update({ is_resolved: true }).eq('is_resolved', false);
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { error } = await client.from('violation_logs').update({ is_resolved: true }).eq('is_resolved', false);
       return !error;
     }
     mockViolationLogs.forEach((v) => {
@@ -499,8 +521,9 @@ export const db = {
       updated_at: new Date().toISOString(),
     };
 
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client
         .from('salary_advance_requests')
         .insert(newReq)
         .select()
@@ -513,8 +536,9 @@ export const db = {
   },
 
   async getSalaryAdvanceRequests(employeeId?: string): Promise<SalaryAdvanceRequest[]> {
-    if (isSupabaseConfigured && supabase) {
-      let query = supabase
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      let query = client
         .from('salary_advance_requests')
         .select('*, employee:employees!salary_advance_requests_employee_id_fkey(*), reviewer:employees!salary_advance_requests_reviewed_by_fkey(*)')
         .order('created_at', { ascending: false });
@@ -527,7 +551,7 @@ export const db = {
       if (!error && data) return data as SalaryAdvanceRequest[];
 
       // Resilient fallback: simple select + manual hydration
-      let rawQuery = supabase.from('salary_advance_requests').select('*').order('created_at', { ascending: false });
+      let rawQuery = client.from('salary_advance_requests').select('*').order('created_at', { ascending: false });
       if (employeeId) rawQuery = rawQuery.eq('employee_id', employeeId);
       const { data: rawData, error: rawErr } = await rawQuery;
       if (!rawErr && rawData) {
@@ -565,8 +589,9 @@ export const db = {
       updated_at: new Date().toISOString(),
     };
 
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    const client = getClient();
+    if (isSupabaseConfigured && client) {
+      const { data, error } = await client
         .from('salary_advance_requests')
         .update(updatePayload)
         .eq('id', id)

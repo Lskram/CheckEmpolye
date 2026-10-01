@@ -4,7 +4,9 @@ import { db } from '@/lib/db-store';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { employeeId, pinCode, hwid } = body;
+    const employeeId = (body.employeeId || body.id || '').trim();
+    const pinCode = (body.pin || body.pinCode || '').trim();
+    const hwid = body.hwid || '';
 
     if (!employeeId || !pinCode) {
       return NextResponse.json(
@@ -25,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (employee.pin_hash !== pinCode.trim()) {
+    if (employee.pin_hash !== pinCode) {
       return NextResponse.json(
         { 
           success: false, 
@@ -62,22 +64,27 @@ export async function POST(request: Request) {
       }
     }
 
+    const employeePayload = {
+      id: employee.id,
+      employee_code: employee.employee_code,
+      full_name: employee.full_name,
+      nickname: employee.nickname,
+      role: employee.role,
+      position: employee.position,
+      daily_wage: employee.daily_wage,
+      hwid: employee.hwid,
+    };
+
     return NextResponse.json({
       success: true,
       message: 'ยืนยันรหัส PIN สำเร็จ',
-      data: {
-        id: employee.id,
-        employee_code: employee.employee_code,
-        full_name: employee.full_name,
-        nickname: employee.nickname,
-        role: employee.role,
-        hwid: employee.hwid,
-      },
+      employee: employeePayload,
+      data: employeePayload,
     });
   } catch (error: any) {
     console.error('Verify PIN error:', error);
     return NextResponse.json(
-      { success: false, message: 'เกิดข้อผิดพลาดในการตรวจสอบ PIN' },
+      { success: false, message: 'เกิดข้อผิดพลาดในการตรวจสอบ PIN: ' + error.message },
       { status: 500 }
     );
   }
