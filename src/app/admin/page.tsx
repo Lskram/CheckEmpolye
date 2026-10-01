@@ -64,6 +64,7 @@ import SecurityLogsViewer from '@/components/SecurityLogsViewer';
 import SalaryAdvanceManager from '@/components/SalaryAdvanceManager';
 import NotificationCenter from '@/components/NotificationCenter';
 import ExecutiveAnalyticsDashboard from '@/components/ExecutiveAnalyticsDashboard';
+import MonthlyAttendanceReportModal from '@/components/MonthlyAttendanceReportModal';
 import { WebNotification, playWebAlertSound, showBrowserDesktopNotification } from '@/lib/web-notifications';
 import { maskBrowserUrlToEncrypted, generateEncryptedToken } from '@/lib/encrypted-route';
 
@@ -201,6 +202,10 @@ export default function WebExecutiveDashboard() {
   const [newRole, setNewRole] = useState<'STAFF' | 'SUPERVISOR'>('STAFF');
   const [addLoading, setAddLoading] = useState(false);
   const [addMsg, setAddMsg] = useState('');
+
+  // Monthly Attendance Report Modal State
+  const [selectedReportEmployee, setSelectedReportEmployee] = useState<any | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Store Settings
   const [storeSettingsForm, setStoreSettingsForm] = useState<any>({
@@ -1407,6 +1412,23 @@ export default function WebExecutiveDashboard() {
                           <td className="py-3.5 px-5 text-right">
                             <div className="inline-flex items-center gap-2">
                               <button
+                                onClick={() => {
+                                  setSelectedReportEmployee({
+                                    id: emp.id,
+                                    full_name: emp.name,
+                                    nickname: emp.nickname,
+                                    employee_code: emp.code,
+                                    role: emp.role
+                                  });
+                                  setIsReportModalOpen(true);
+                                }}
+                                className="px-3 py-1 rounded-md bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-bold font-sans flex items-center gap-1.5 transition-all shadow-2xs"
+                                title="ดึงรายงานการลงเวลาประจำเดือน & ยอดเบี้ยขยันรายบุคคล (A4 Print)"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-blue-400" />
+                                <span>รายงานเวลา A4</span>
+                              </button>
+                              <button
                                 onClick={() => handleResetHWID(emp.id, emp.name)}
                                 className="px-3 py-1 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 text-xs font-bold font-sans transition-all"
                                 title="ปลดล็อกอุปกรณ์ประจำตัว (เพื่อให้พนักงานเปลี่ยนเครื่องล็อกอินได้)"
@@ -1567,6 +1589,23 @@ export default function WebExecutiveDashboard() {
                           )}
                         </td>
                         <td className="py-3.5 px-4 text-right space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedReportEmployee({
+                                id: emp.id,
+                                full_name: emp.name,
+                                nickname: emp.nickname,
+                                employee_code: emp.code,
+                                role: emp.role
+                              });
+                              setIsReportModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 rounded-md bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-bold font-sans inline-flex items-center gap-1.5 transition-all"
+                            title="ดึงรายงานการลงเวลาประจำเดือน & ยอดเบี้ยขยันรายบุคคล (A4 Print)"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-blue-400" />
+                            <span>รายงานเวลา A4</span>
+                          </button>
                           <button
                             onClick={() => handleResetHWID(emp.id, emp.name)}
                             className="px-3 py-1.5 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 font-bold"
@@ -1873,6 +1912,18 @@ export default function WebExecutiveDashboard() {
           </div>
         </div>
       )}
+
+      {/* Monthly Employee Attendance Report Modal */}
+      <MonthlyAttendanceReportModal
+        employee={selectedReportEmployee}
+        attendanceLogs={analyticsData?.attendanceLogs || []}
+        isOpen={isReportModalOpen}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setSelectedReportEmployee(null);
+        }}
+        storeSettings={storeSettingsForm}
+      />
 
     </div>
   );

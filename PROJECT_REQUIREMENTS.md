@@ -102,6 +102,7 @@ flowchart TD
 | **REQ-028** | UI & Branding | ปรับแต่งภาพพื้นหลังเฉพาะธีมในหน้าสถิติปฏิทิน (`/employee/stats`), หน้ายื่นใบลา (`/employee/leave`), และหน้าเบิกเงินล่วงหน้า (`/employee/advance`) พร้อม Frosted Overlay คอนทราสต์สูง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-029** | UI & Polish | แก้ไขปัญหารอยแถบแสงสว่างลอดด้านบนการ์ดฟอร์มและตารางปฏิทิน (Light Bleed Elimination) เสริมเลเยอร์ทึบสนิท 100% เรียบเนียน ไร้รอยต่อ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-030** | UI & Consistency | ปรับปรุงหน้าปฏิทินและสถิติ (`/employee/stats`) ให้เหมือนและสอดคล้องกับหน้าอื่นๆ ทั้งระบบ (ปุ่มย้อนกลับ ArrowLeft ใน Header, การ์ดสรุปยอด Hero Summary Banner ประจำเดือนพร้อม Month Switcher ในตัว, และแคปซูลวันที่ Glassmorphism) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/stats`) |
+| **REQ-031** | UI & Attendance Tracking | ปรับลดความทึบของ Dark Overlay ทุกหน้าให้โปร่งแสง ~30% แสดงภาพพื้นหลังชัดเจนสวยงาม และเพิ่มตัวนับยอดวันเข้างานสะสมประจำเดือนในหน้าขอเบิกเงิน (`/employee/advance`) พร้อมระบบรีเซ็ตนับใหม่ทุกวันที่ 1 ของเดือน | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 
 ---
 
@@ -129,6 +130,52 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - 30% Overlay Translucency Tuning & Monthly Advance Workday Tracker (Version 3.20)
+- ✅ **30% Image Translucency Across All Pages (`/employee/*`)**:
+  - ปรับลดความทึบของเลเยอร์คุมดำ (Dark Overlay) ทุกจุดในแอป ให้ภาพพื้นหลังโปร่งแสงและมองเห็นชัดเจนในระดับ ~30-40% สวยงาม มีมิติ ไม่มืดทึบจนเกินไป
+  - หน้าหลัก (`/employee`): ส่วนหัว Header Top Dome + กล่องเมนูแอกชันทั้ง 6 ปุ่ม
+  - หน้ายื่นใบลา (`/employee/leave`): การ์ดแบบฟอร์มเลือกประเภทการลา (`leave-form-bg.jpg`)
+  - หน้าเบิกเงิน (`/employee/advance`): การ์ดโควตา (`advance-quota-bg.jpg`) และการ์ดแบบฟอร์มขอเบิก (`advance-form-bg.jpg`)
+  - หน้าปฏิทิน (`/employee/stats`): การ์ดสรุปยอดเบี้ยเลี้ยงสะสม (`stats-allowance-bg.jpg`) และตารางปฏิทิน (`stats-calendar-bg.jpg`)
+- ✅ **Monthly Attendance Tracker on Salary Advance Hub (`src/app/employee/advance/page.tsx`)**:
+  - การ์ดด้านบนดึงข้อมูลการเข้างานจริงของเดือนปัจจุบันผ่าน API `/api/employee/stats`
+  - แสดงจำนวนวันเข้างานสะสมในเดือนนี้อย่างเด่นชัด: **`เข้างานแล้ว X วัน`** (พร้อมแจกแจง `ตรงเวลา Y วัน • สาย Z วัน`)
+  - แสดงชื่อเดือนและปี พ.ศ. ปัจจุบันอัตโนมัติ (เช่น `ประจำเดือนตุลาคม 2569`)
+  - ตัวนับจะรีเซ็ตเริ่มนับ 1 ใหม่ทุกๆ วันที่ 1 ของเดือนใหม่โดยอัตโนมัติ
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
+
+### 📌 [2026-10-01] - Monthly Attendance Report Generator, Dual-Copy Red Stamp & Signature Layout Alignment (Version 3.19)
+- ✅ **Monthly Attendance Report Modal (`src/components/MonthlyAttendanceReportModal.tsx`)**:
+  - ดึงข้อมูลการเข้างานทั้งเดือนของพนักงานรายบุคคล (1-31 วัน) พร้อมตัวเลือกเปลี่ยนเดือน/ปี
+  - จำแนก 2 สถานะชัดเจน: 🟢 **ปกติ (ตรงเวลา)** (คำนวณเบี้ยขยันสะสม +50฿/วัน) และ 🟡 **สาย (มาสาย)**
+  - แปลงยอดเงินเบี้ยขยันเป็นตัวเลขอักษรภาษาไทย (Thai Baht Text Engine) เช่น `฿150.00 ( หนึ่งร้อยห้าสิบบาทถ้วน )`
+  - ช่องบันทึกข้อความ **"พนักงานรับทราบ"** สำหรับกรอกหมายเหตุ/บันทึกความเห็นก่อนสั่งพิมพ์
+- ✅ **Standardized Signature Layout Alignment (CEO ซ้าย / พนักงาน ขวา)**:
+  - จัดระเบียบส่วนท้ายลายเซ็นเอกสารทั้งสองฉบับ (`MonthlyAttendanceReportModal.tsx` และ `CashAdvanceReceiptModal.tsx`):
+    - ฝั่ง **ซ้าย (CEO / ผู้บริหาร)**: ช่องลงลายมือชื่อ `( ท่านประธานกรรมการบริหาร )` • รหัสผู้บริหาร `[ SI01 ]`
+    - ฝั่ง **ขวา (พนักงาน)**: ช่องลงลายมือชื่อ `( ชื่อ-นามสกุลพนักงาน )` • รหัสพนักงาน `[ ID ]`
+- ✅ **Red Version Stamp & Dual Printing Engine (ต้นฉบับ / สำเนา / ทั้ง 2 แบบ)**:
+  - ป้ายตรายางสีแดงมุมขวาบนของเอกสารทั้งสองประเภท:
+    - **ต้นฉบับ**: ตรายางสีแดง `[ ต้นฉบับ / ORIGINAL ]`
+    - **สำเนา**: ตรายางสีแดง `[ สำเนา / COPY ]`
+    - **ทั้ง 2 แบบ**: สั่งพิมพ์ครั้งเดียวออก 2 แผ่นต่อเนื่องอัตโนมัติ (แผ่นที่ 1: ต้นฉบับ, แผ่นที่ 2: สำเนา) ด้วย CSS Page Break
+- ✅ **Web Admin Dashboard Integration (`src/app/admin/page.tsx`)**:
+  - เพิ่มปุ่มด่วน `📄 รายงานเวลา A4` ในตารางบุคลากรและตารางจัดการพนักงาน สามารถเปิดดูและสั่งพิมพ์เอกสารรายงานประจำเดือนได้ทันที
+
+### 📌 [2026-10-01] - Cross-Device Buddy Punching Peak & Time-Series Analytics Hub (Version 3.18)
+- ✅ **4-Dimension Time & Peak Analytics Dashboard (`src/components/SecurityLogsViewer.tsx`)**:
+  - **🏆 มากที่สุด (อันดับ 1 / Peak Pair)**: วิเคราะห์คู่พนักงานที่มีสถิติล็อกอินทับเครื่องกันบ่อยที่สุด พร้อมระบุชื่อทั้ง 2 ฝ่าย (`User A ➔ User B`), ยอดสะสมรวม, และติดแท็ก `[ 🏆 อันดับ 1 ล็อกทับบ่อยสุด (PEAK) ]`
+  - **⚡ วันนี้ (Today's Overlaps)**: คำนวณยอดการพยายามล็อกซ้อนในรอบวัน (00:00 - ปัจจุบัน) พร้อมไฟกระพริบเตือนสถานะความปลอดภัย
+  - **🗓️ สัปดาห์นี้ (This Week's Overlaps)**: คำนวณยอดสะสมย้อนหลัง 7 วันล่าสุด
+  - **📊 เดือนนี้ (This Month's Overlaps)**: คำนวณยอดสะสมรวมประจำเดือนปัจจุบัน
+- ✅ **Interactive Time Range Filtering Engine (`overlapTimeFilter`)**:
+  - แถบปุ่มคัดกรองเวลา 1-Click: `[ ทั้งหมด ]` `[ วันนี้ ]` `[ สัปดาห์นี้ ]` `[ เดือนนี้ ]`
+  - เมื่อผู้บริหารกดเลือกช่วงเวลา ระบบจะคำนวณจำนวนครั้งและจัดอันดับคู่ใน Pairing Matrix ใหม่ พร้อมกรอง Log ใน Chronological Feed ด้านล่างให้สอดคล้องกันทันที
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
+  - Production Server Active พร้อมตอบสนองทันทีบนพอร์ต 3000 (`http://localhost:3000/admin`)
 
 ### 📌 [2026-10-01] - Calendar & Stats Top Header & Hero Architecture Alignment (Version 3.17)
 - ✅ **Header Unification (`src/app/employee/stats/page.tsx`)**:

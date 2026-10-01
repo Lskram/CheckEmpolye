@@ -44,6 +44,31 @@ export default function EmployeeSalaryAdvancePage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Monthly Attendance Tracking State (Resets every new month)
+  const thaiMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const [monthlyStats, setMonthlyStats] = useState<{
+    presentDays: number;
+    lateDays: number;
+    totalWorkDays: number;
+    totalAllowance: number;
+    monthName: string;
+    yearBuddhist: number;
+  }>({
+    presentDays: 0,
+    lateDays: 0,
+    totalWorkDays: 0,
+    totalAllowance: 0,
+    monthName: thaiMonths[currentMonth - 1],
+    yearBuddhist: currentYear + 543,
+  });
+
   const loadRequests = async (empId: string) => {
     try {
       const res = await fetch(`/api/advance-request?employeeId=${empId}`, { cache: 'no-store' });
@@ -53,6 +78,27 @@ export default function EmployeeSalaryAdvancePage() {
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const loadMonthlyAttendance = async (empId: string) => {
+    try {
+      const res = await fetch(`/api/employee/stats?id=${empId}&month=${currentMonth}&year=${currentYear}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.data?.summary) {
+        const sum = data.data.summary;
+        const total = (sum.presentDays || 0) + (sum.lateDays || 0);
+        setMonthlyStats({
+          presentDays: sum.presentDays || 0,
+          lateDays: sum.lateDays || 0,
+          totalWorkDays: total,
+          totalAllowance: sum.totalAllowance || 0,
+          monthName: thaiMonths[currentMonth - 1],
+          yearBuddhist: currentYear + 543,
+        });
+      }
+    } catch (e) {
+      console.error('Error fetching monthly attendance stats:', e);
     }
   };
 
@@ -66,6 +112,7 @@ export default function EmployeeSalaryAdvancePage() {
       const parsed = JSON.parse(saved);
       setEmployee(parsed);
       loadRequests(parsed.id);
+      loadMonthlyAttendance(parsed.id);
 
       let channel: any = null;
       if (isSupabaseConfigured && supabase) {
@@ -73,17 +120,20 @@ export default function EmployeeSalaryAdvancePage() {
           .channel(`advance-realtime-${parsed.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'salary_advance_requests' }, () => {
             loadRequests(parsed.id);
+            loadMonthlyAttendance(parsed.id);
           })
           .subscribe();
       }
 
       const pollTimer = setInterval(() => {
         loadRequests(parsed.id);
+        loadMonthlyAttendance(parsed.id);
       }, 5000);
 
       const handleVisibility = () => {
         if (document.visibilityState === 'visible') {
           loadRequests(parsed.id);
+          loadMonthlyAttendance(parsed.id);
         }
       };
       document.addEventListener('visibilitychange', handleVisibility);
@@ -241,39 +291,73 @@ export default function EmployeeSalaryAdvancePage() {
       {/* Main Content */}
       <main className="p-4 flex-1 space-y-4 relative z-10">
         
-        {/* Quota Card */}
+        {/* Monthly Attendance & Quota Hero Card with Controlled 30% Visibility */}
         <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-amber-500/30 bg-[#160f08]">
-          {/* Custom Background Image with Controlled Opacity */}
+          {/* Custom Background Image with 30-40% Translucency */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
+            className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none transition-transform duration-700 group-hover:scale-110"
             style={{ backgroundImage: `url('/images/advance-quota-bg.jpg')` }}
           />
-          {/* Solid Seamless Frosted Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-950/90 via-orange-950/85 to-[#160f08] pointer-events-none" />
+          {/* Soft Frosted Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-950/70 via-orange-950/75 to-[#160f08]/90 pointer-events-none" />
 
-          <div className="relative z-10">
-            <div className="flex items-center justify-between text-amber-200 text-xs mb-1 font-semibold">
-              <span className="drop-shadow-sm">วงเงินคงเหลือที่ขอเบิกได้</span>
-              <Coins className="w-5 h-5 text-yellow-300 drop-shadow-md" />
+          <div className="relative z-10 space-y-2">
+            {/* Header Strip with Dynamic Month Name */}
+            <div className="flex items-center justify-between text-amber-200 text-xs font-semibold">
+              <div className="flex items-center gap-1.5">
+                <Coins className="w-4 h-4 text-yellow-300 drop-shadow-md" />
+                <span className="drop-shadow-sm">สถิติเข้างาน & โควตาเบิกเงิน</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/40 border border-white/15 text-amber-300 backdrop-blur-md">
+                ประจำเดือน{monthlyStats.monthName} {monthlyStats.yearBuddhist}
+              </span>
             </div>
-            <div className="text-3xl font-black my-1 text-white drop-shadow-md">
-              7,500 <span className="text-sm font-normal">บาท</span>
+
+            {/* Main Highlight: Total Attendance Days This Month */}
+            <div className="flex items-baseline justify-between pt-1">
+              <div>
+                <div className="text-3xl font-black my-0.5 text-white drop-shadow-md tracking-tight">
+                  {monthlyStats.totalWorkDays} <span className="text-sm font-normal text-amber-200">วัน</span>
+                </div>
+                <div className="text-[11px] text-amber-200 font-medium drop-shadow-sm flex items-center gap-1">
+                  <span>เข้างานสะสมในเดือนนี้</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-emerald-300">ตรงเวลา {monthlyStats.presentDays} วัน</span>
+                  {monthlyStats.lateDays > 0 && (
+                    <>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-amber-300">สาย {monthlyStats.lateDays} วัน</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Allowance Payout Badge */}
+              <div className="text-right">
+                <div className="text-[10px] text-slate-300 font-medium">เบี้ยขยันสะสม</div>
+                <div className="text-base font-black text-yellow-300 font-mono drop-shadow-sm">
+                  +{monthlyStats.totalAllowance.toLocaleString()}฿
+                </div>
+              </div>
             </div>
-            <div className="text-[10px] text-amber-200/90 font-medium drop-shadow-sm">
-              เพดานสูงสุด 50% ของฐานเงินเดือน (รอบจ่ายสิ้นเดือน)
+
+            {/* Bottom Subtitle / Monthly Reset Indicator */}
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-amber-200/90 font-medium">
+              <span>วงเงินคงเหลือที่ขอเบิกได้: <b className="text-white font-mono">฿7,500</b></span>
+              <span className="text-slate-300/80 italic">🔄 รีเซ็ตนับวันใหม่ทุกวันที่ 1</span>
             </div>
           </div>
         </div>
 
-        {/* Advance Request Form */}
+        {/* Advance Request Form with 30% Visible Background */}
         <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-amber-500/20 bg-[#0c121e] space-y-3">
           {/* Custom Background Image with Controlled Opacity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-20 pointer-events-none transition-transform duration-700"
+            className="absolute inset-0 bg-cover bg-center opacity-35 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/advance-form-bg.jpg')` }}
           />
-          {/* Solid Seamless Dark Frosted Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16] via-[#0c121e]/90 to-[#090d16] pointer-events-none" />
+          {/* Soft Dark Frosted Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16]/65 via-[#0c121e]/75 to-[#090d16]/90 pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">

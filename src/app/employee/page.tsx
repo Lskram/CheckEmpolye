@@ -861,11 +861,11 @@ export default function ExactEmployeeApp() {
           }}
         />
 
-        {/* High-Contrast Frosted Overlay (Ensures 100% Text & Card Legibility) */}
+        {/* High-Contrast Frosted Overlay (Controlled 30% Opacity) */}
         <div className={`absolute inset-0 transition-colors duration-300 ${
           isDark 
-            ? 'bg-gradient-to-b from-[#090d16]/75 via-[#0c121e]/85 to-[#090d16] backdrop-blur-[2px]' 
-            : 'bg-gradient-to-b from-slate-950/70 via-slate-900/80 to-[#18223c]/90 backdrop-blur-[1.5px]'
+            ? 'bg-gradient-to-b from-[#090d16]/45 via-[#0c121e]/60 to-[#090d16]/85 backdrop-blur-[0.5px]' 
+            : 'bg-gradient-to-b from-slate-950/50 via-slate-900/65 to-[#18223c]/80 backdrop-blur-[0.5px]'
         }`} />
 
         <div className="max-w-md mx-auto px-4 relative z-10">
@@ -1022,11 +1022,11 @@ export default function ExactEmployeeApp() {
               }}
             />
 
-            {/* High-Contrast Frosted Overlay */}
+            {/* Soft Frosted Overlay (Controlled 30% Image Translucency) */}
             <div className={`absolute inset-0 transition-colors duration-300 ${
               isDark 
-                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
-                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+                ? 'bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-[#090d16]/75 backdrop-blur-[0.5px]' 
+                : 'bg-gradient-to-b from-slate-950/45 via-slate-900/55 to-[#18223c]/75 backdrop-blur-[0.5px]'
             }`} />
 
             {/* Inner Glowing Gradient Icon Box */}
@@ -1074,11 +1074,11 @@ export default function ExactEmployeeApp() {
               }}
             />
 
-            {/* High-Contrast Frosted Overlay */}
+            {/* Soft Frosted Overlay */}
             <div className={`absolute inset-0 transition-colors duration-300 ${
               isDark 
-                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
-                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+                ? 'bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-[#090d16]/75 backdrop-blur-[0.5px]' 
+                : 'bg-gradient-to-b from-slate-950/45 via-slate-900/55 to-[#18223c]/75 backdrop-blur-[0.5px]'
             }`} />
 
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-500 text-white flex items-center justify-center shadow-md shadow-amber-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
@@ -1107,11 +1107,11 @@ export default function ExactEmployeeApp() {
               }}
             />
 
-            {/* High-Contrast Frosted Overlay */}
+            {/* Soft Frosted Overlay */}
             <div className={`absolute inset-0 transition-colors duration-300 ${
               isDark 
-                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
-                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+                ? 'bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-[#090d16]/75 backdrop-blur-[0.5px]' 
+                : 'bg-gradient-to-b from-slate-950/45 via-slate-900/55 to-[#18223c]/75 backdrop-blur-[0.5px]'
             }`} />
 
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-purple-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
@@ -1140,11 +1140,11 @@ export default function ExactEmployeeApp() {
               }}
             />
 
-            {/* High-Contrast Frosted Overlay */}
+            {/* Soft Frosted Overlay */}
             <div className={`absolute inset-0 transition-colors duration-300 ${
               isDark 
-                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
-                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+                ? 'bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-[#090d16]/75 backdrop-blur-[0.5px]' 
+                : 'bg-gradient-to-b from-slate-950/45 via-slate-900/55 to-[#18223c]/75 backdrop-blur-[0.5px]'
             }`} />
 
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
@@ -1173,11 +1173,11 @@ export default function ExactEmployeeApp() {
               }}
             />
 
-            {/* High-Contrast Frosted Overlay */}
+            {/* Soft Frosted Overlay */}
             <div className={`absolute inset-0 transition-colors duration-300 ${
               isDark 
-                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
-                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+                ? 'bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-[#090d16]/75 backdrop-blur-[0.5px]' 
+                : 'bg-gradient-to-b from-slate-950/45 via-slate-900/55 to-[#18223c]/75 backdrop-blur-[0.5px]'
             }`} />
 
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
@@ -1205,11 +1205,11 @@ export default function ExactEmployeeApp() {
               }}
             />
 
-            {/* High-Contrast Frosted Overlay */}
+            {/* Soft Frosted Overlay */}
             <div className={`absolute inset-0 transition-colors duration-300 ${
               isDark 
-                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
-                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+                ? 'bg-gradient-to-b from-slate-950/40 via-slate-900/50 to-[#090d16]/75 backdrop-blur-[0.5px]' 
+                : 'bg-gradient-to-b from-slate-950/45 via-slate-900/55 to-[#18223c]/75 backdrop-blur-[0.5px]'
             }`} />
 
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md shadow-rose-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">

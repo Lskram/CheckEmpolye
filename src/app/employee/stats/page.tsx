@@ -197,13 +197,13 @@ export default function EmployeeStatsPage() {
         
         {/* Top Monthly Allowance & KPI Hero Summary Card */}
         <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-emerald-500/30 bg-[#061e16]">
-          {/* Background Image with Controlled Opacity */}
+          {/* Background Image with Controlled 30-40% Opacity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
+            className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none transition-transform duration-700 group-hover:scale-110"
             style={{ backgroundImage: `url('/images/stats-allowance-bg.jpg')` }}
           />
-          {/* Solid Seamless Frosted Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/95 via-emerald-900/85 to-[#061e16] pointer-events-none" />
+          {/* Soft Frosted Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/75 via-emerald-900/70 to-[#061e16]/85 pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             {/* Card Header with Integrated Month Switcher */}
@@ -267,11 +267,11 @@ export default function EmployeeStatsPage() {
         <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-white/10 bg-[#0c121e] space-y-3">
           {/* Custom Calendar Background Image with Controlled Opacity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none transition-transform duration-700"
+            className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/stats-calendar-bg.jpg')` }}
           />
-          {/* Solid Seamless Dark Frosted Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16] via-[#0c121e]/90 to-[#090d16] pointer-events-none" />
+          {/* Soft Dark Frosted Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16]/65 via-[#0c121e]/75 to-[#090d16]/85 pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-300 mb-1">
