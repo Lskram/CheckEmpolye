@@ -19,7 +19,8 @@ import {
   Zap,
   Sun,
   Moon,
-  Shield
+  Shield,
+  ArrowLeft
 } from 'lucide-react';
 import { useAppTheme } from '@/lib/theme';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
@@ -92,8 +93,8 @@ export default function EmployeeStatsPage() {
       const event = statsData?.calendarEvents?.[dateKey];
 
       let dayStyle = isDark 
-        ? 'neumorph-tile-dark text-slate-300' 
-        : 'neumorph-tile-light text-slate-700';
+        ? 'bg-slate-900/60 border border-white/5 text-slate-300 hover:bg-slate-800/80' 
+        : 'bg-white/80 border border-slate-200 text-slate-700 hover:bg-slate-50';
 
       if (event) {
         if (event.status === 'PRESENT') {
@@ -149,38 +150,44 @@ export default function EmployeeStatsPage() {
       <NetworkGuard />
 
       {/* Header */}
-      <header className={`px-5 pt-4 pb-3 flex items-center justify-between sticky top-0 z-30 transition-colors ${
+      <header className={`px-4 pt-4 pb-3 flex items-center justify-between sticky top-0 z-30 transition-colors ${
         isDark ? 'bg-[#0f1626]/90 border-b border-white/5 backdrop-blur-xl' : 'bg-white/90 border-b border-slate-200 backdrop-blur-xl shadow-xs'
       }`}>
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-sm">
-            <CalendarIcon className="w-5 h-5" />
-          </div>
+          <Link
+            href="/employee"
+            className={`p-2 rounded-xl border transition-all active:scale-90 ${
+              isDark ? 'bg-slate-800 border-white/10 text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
           <div>
             <h1 className="font-bold text-sm">ปฏิทิน & เบี้ยเลี้ยงสะสม</h1>
             <p className="text-[11px] text-slate-400 font-mono">
-              {employee?.fullName} ({employee?.employeeCode})
+              {employee?.fullName || employee?.full_name} ({employee?.employeeCode || employee?.employee_code})
             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-1.5">
           <button
-            onClick={toggleTheme}
-            className={`p-2 rounded-xl border transition-all active:scale-90 ${
-              isDark ? 'bg-slate-800 border-white/10 text-yellow-300' : 'bg-slate-100 border-slate-300 text-slate-700'
-            }`}
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <button
             onClick={() => loadStats(employee?.id, currentDate.getMonth() + 1, currentDate.getFullYear())}
             className={`p-2 rounded-xl border transition-all active:scale-90 ${
-              isDark ? 'bg-slate-800 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'
+              isDark ? 'bg-slate-800 border-white/10 text-slate-300 hover:text-white' : 'bg-slate-100 border-slate-300 text-slate-700'
             }`}
             title="รีเฟรชข้อมูล"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-500' : ''}`} />
+          </button>
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-xl border transition-all active:scale-90 ${
+              isDark ? 'bg-slate-800 border-white/10 text-yellow-300' : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}
+            title="สลับโหมด Dark / Light"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
       </header>
@@ -188,83 +195,72 @@ export default function EmployeeStatsPage() {
       {/* Main Content */}
       <main className="p-4 flex-1 space-y-4 relative z-10">
         
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Allowance Card */}
-          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-emerald-500/30 bg-[#061e16]">
-            {/* Background Image with Controlled Opacity */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
-              style={{ backgroundImage: `url('/images/stats-allowance-bg.jpg')` }}
-            />
-            {/* Solid Seamless Frosted Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/95 via-emerald-900/85 to-[#061e16] pointer-events-none" />
+        {/* Top Monthly Allowance & KPI Hero Summary Card */}
+        <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-emerald-500/30 bg-[#061e16]">
+          {/* Background Image with Controlled Opacity */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
+            style={{ backgroundImage: `url('/images/stats-allowance-bg.jpg')` }}
+          />
+          {/* Solid Seamless Frosted Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/95 via-emerald-900/85 to-[#061e16] pointer-events-none" />
 
-            <div className="relative z-10">
-              <div className="flex items-center justify-between text-emerald-200 text-xs mb-1 font-semibold">
-                <span className="drop-shadow-sm">เบี้ยเลี้ยงสะสม</span>
+          <div className="relative z-10 space-y-3">
+            {/* Card Header with Integrated Month Switcher */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-emerald-200 text-xs font-semibold">
                 <Coins className="w-4 h-4 text-yellow-300 drop-shadow-md" />
+                <span className="drop-shadow-sm">เบี้ยเลี้ยงสะสมประจำเดือน</span>
               </div>
-              <div className="text-2xl font-black my-1 text-white drop-shadow-md">
-                {statsData?.summary?.totalAllowance || 0} <span className="text-xs font-normal">บาท</span>
+              
+              {/* Month Navigator Capsule */}
+              <div className="flex items-center gap-1 bg-black/40 border border-white/15 px-1.5 py-0.5 rounded-full backdrop-blur-md">
+                <button
+                  onClick={() => changeMonth(-1)}
+                  className="p-1 rounded-full text-slate-300 hover:text-white transition-transform active:scale-90"
+                  title="เดือนก่อนหน้า"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[11px] font-bold text-white px-1">
+                  {thaiMonths[currentDate.getMonth()]} {currentDate.getFullYear() + 543}
+                </span>
+                <button
+                  onClick={() => changeMonth(1)}
+                  className="p-1 rounded-full text-slate-300 hover:text-white transition-transform active:scale-90"
+                  title="เดือนถัดไป"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <div className="text-[10px] text-emerald-200 flex items-center gap-1 mt-1 font-medium drop-shadow-sm">
-                <Zap className="w-3 h-3 text-yellow-300" />
-                ตรงเวลา {statsData?.summary?.presentDays || 0} วัน (50฿/วัน)
+            </div>
+
+            {/* Total Allowance Main Highlight */}
+            <div className="flex items-baseline justify-between pt-1">
+              <div>
+                <div className="text-3xl font-black tracking-tight text-white drop-shadow-md">
+                  ฿{statsData?.summary?.totalAllowance || 0} <span className="text-xs font-normal text-emerald-200">บาท</span>
+                </div>
+                <div className="text-[11px] text-emerald-200 flex items-center gap-1 mt-1 font-medium drop-shadow-sm">
+                  <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                  ตรงเวลา {statsData?.summary?.presentDays || 0} วัน (+50฿/วัน)
+                </div>
+              </div>
+
+              {/* On-Time Rate Pill */}
+              <div className="text-right">
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-2xl bg-blue-500/20 border border-blue-400/30 text-cyan-300 backdrop-blur-md">
+                  <TrendingUp className="w-3.5 h-3.5 text-cyan-300" />
+                  <span className="text-xs font-black">{statsData?.summary?.onTimeRate || 0}% ตรงเวลา</span>
+                </div>
+                <div className="text-[10px] text-slate-300 mt-1 space-x-1.5 font-mono">
+                  <span>สาย: <b className="text-amber-300">{statsData?.summary?.lateDays || 0}</b></span>
+                  <span>•</span>
+                  <span>ลา: <b className="text-blue-300">{statsData?.summary?.leaveDays || 0}</b></span>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* On-Time Rate */}
-          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-blue-500/30 bg-[#0a1222] flex flex-col justify-between">
-            {/* Background Image with Controlled Opacity */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
-              style={{ backgroundImage: `url('/images/stats-ontime-bg.jpg')` }}
-            />
-            {/* Solid Seamless Frosted Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-blue-950/85 to-[#0a1222] pointer-events-none" />
-
-            <div className="relative z-10">
-              <div className="flex items-center justify-between text-xs text-blue-200 mb-1 font-semibold">
-                <span className="drop-shadow-sm">อัตราตรงเวลา</span>
-                <TrendingUp className="w-4 h-4 text-sky-400 drop-shadow-md" />
-              </div>
-              <div className="text-2xl font-black text-cyan-300 my-1 drop-shadow-md">
-                {statsData?.summary?.onTimeRate || 0}<span className="text-xs font-bold text-cyan-200">%</span>
-              </div>
-            </div>
-            <div className="text-[10px] text-slate-200 flex items-center gap-1.5 flex-wrap relative z-10 mt-1">
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 border border-amber-400/30 font-bold backdrop-blur-sm">
-                สาย {statsData?.summary?.lateDays || 0}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-200 border border-blue-400/30 font-bold backdrop-blur-sm">
-                ลา {statsData?.summary?.leaveDays || 0}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Month Navigator */}
-        <div className={`flex items-center justify-between px-3 py-2 rounded-2xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} text-xs font-bold`}>
-          <button
-            onClick={() => changeMonth(-1)}
-            className={`p-2 rounded-xl transition-all active:scale-90 ${isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'}`}
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <div className="flex items-center gap-2 font-bold">
-            <CalendarIcon className="w-4 h-4 text-blue-500" />
-            <span>
-              {thaiMonths[currentDate.getMonth()]} {currentDate.getFullYear() + 543}
-            </span>
-          </div>
-          <button
-            onClick={() => changeMonth(1)}
-            className={`p-2 rounded-xl transition-all active:scale-90 ${isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'}`}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Calendar Grid */}

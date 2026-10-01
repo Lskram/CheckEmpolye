@@ -101,6 +101,7 @@ flowchart TD
 | **REQ-027** | UI & Branding | ปรับแต่งภาพพื้นหลังครบทั้ง 6 กล่องเมนูหลัก (เข้างาน, เบิกเงิน, ยื่นใบลา, ปฏิทิน, พิกัดร้าน, เบี้ยขยัน) ตามภาพที่กำหนด พร้อม Frosted Glass Layer และไอคอน Gradient 3D คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-028** | UI & Branding | ปรับแต่งภาพพื้นหลังเฉพาะธีมในหน้าสถิติปฏิทิน (`/employee/stats`), หน้ายื่นใบลา (`/employee/leave`), และหน้าเบิกเงินล่วงหน้า (`/employee/advance`) พร้อม Frosted Overlay คอนทราสต์สูง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-029** | UI & Polish | แก้ไขปัญหารอยแถบแสงสว่างลอดด้านบนการ์ดฟอร์มและตารางปฏิทิน (Light Bleed Elimination) เสริมเลเยอร์ทึบสนิท 100% เรียบเนียน ไร้รอยต่อ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
+| **REQ-030** | UI & Consistency | ปรับปรุงหน้าปฏิทินและสถิติ (`/employee/stats`) ให้เหมือนและสอดคล้องกับหน้าอื่นๆ ทั้งระบบ (ปุ่มย้อนกลับ ArrowLeft ใน Header, การ์ดสรุปยอด Hero Summary Banner ประจำเดือนพร้อม Month Switcher ในตัว, และแคปซูลวันที่ Glassmorphism) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/stats`) |
 
 ---
 
@@ -128,6 +129,21 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Calendar & Stats Top Header & Hero Architecture Alignment (Version 3.17)
+- ✅ **Header Unification (`src/app/employee/stats/page.tsx`)**:
+  - เปลี่ยนส่วนหัว Header ให้ตรงตามมาตรฐานเดียวกับหน้าขอยื่นใบลา (`/employee/leave`) และขอเบิกเงิน (`/employee/advance`)
+  - เพิ่มปุ่มย้อนกลับ `<Link href="/employee"><ArrowLeft className="w-4 h-4" /></Link>`
+  - แสดงหัวข้อ "ปฏิทิน & เบี้ยเลี้ยงสะสม" พร้อมชื่อ-นามสกุลพนักงานและรหัสพนักงาน
+  - ปุ่มสลับโหมด Dark/Light Theme และปุ่มรีเฟรชข้อมูลที่สวยงามลงตัว
+- ✅ **Top Monthly Allowance & KPI Hero Summary Banner**:
+  - ผสานการ์ดสรุปยอดเบี้ยเลี้ยงสะสมเป็น **Full-width Hero Banner** พรีเมียม พร้อมภาพพื้นหลัง `/images/stats-allowance-bg.jpg` และ Dark Frosted Gradient ทึบสนิท
+  - ฝัง **Month Navigator Capsule** สลับเดือน `[ < ]` **ตุลาคม 2569** `[ > ]` ไว้อย่างแนบเนียนบนการ์ดด้านบน
+  - แสดงยอดเบี้ยเลี้ยงขนาดใหญ่ `฿xxx บาท` พร้อม Pill อัตราตรงเวลา และรายละเอียดวันสาย/ลา
+- ✅ **Modern Glassmorphism Calendar Grid**:
+  - ปรับเซลล์ปฏิทินแต่ละวันเป็นสไตล์ Modern Glass Capsule เลิกใช้ Neumorphism แบนแบบเดิม เพื่อความหรูหรา กลมกลืนกับทุกหน้าจอในแอป
+- ✅ **Production Verification**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - Elimination of Top Light Bleeds & Seamless Dark Overlays (Version 3.16 / Mobile UI Polish)
 - ✅ **Leave Request Page (`src/app/employee/leave/page.tsx`)**:
