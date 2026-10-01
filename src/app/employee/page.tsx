@@ -905,42 +905,52 @@ export default function ExactEmployeeApp() {
           </div>
 
           {/* ========================================================= */}
-          {/* "MyShift" Telemetry Card (Dynamic Geofence from DB)       */}
+          {/* "MyShift" Telemetry Card (Custom Background + 50% Overlay) */}
           {/* ========================================================= */}
-          <div className="mt-3.5 p-4 rounded-3xl bg-slate-900/85 border border-white/15 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xs text-white">บันทึกกะปฏิบัติงาน (MyShift)</h3>
-                  <p className="text-[10px] text-slate-400">{time.dateThai}</p>
-                </div>
-              </div>
-              <div className="text-right font-mono">
-                <div className="text-xl font-black text-white tracking-tight">{time.hhmm}<span className="text-xs text-blue-400">:{time.ss}</span></div>
-              </div>
-            </div>
+          <div className="mt-3.5 p-4 rounded-3xl border border-white/20 shadow-2xl relative overflow-hidden group">
+            {/* Custom Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-105 pointer-events-none"
+              style={{ backgroundImage: `url('/images/myshift-card-bg.jpg')` }}
+            />
+            {/* 50% Opacity Dark Frosted Overlay Layer */}
+            <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px] pointer-events-none" />
 
-            {/* Shift Progress Bar */}
-            <div className="space-y-1 mt-2">
-              <div className="flex justify-between text-[10px] text-slate-300">
-                <span className="flex items-center gap-1">
-                  <span>สถานะ:</span>
-                  <strong className={isInsideRadius ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
-                    {isInsideRadius ? `📍 ในพื้นที่ร้าน (${distance?.toFixed(0)} ม. / รัศมี ${allowedRadius}ม.)` : `🚫 อยู่นอกพื้นที่ (${distance?.toFixed(0)} ม. / กำหนด ${allowedRadius}ม.)`}
-                  </strong>
-                </span>
-                <span className="font-mono text-blue-400 font-bold">
-                  {checkInResult?.checkOutTime ? 'เสร็จสิ้น 100%' : checkInResult ? `${Math.min(100, Math.round((liveWorkDuration.totalSeconds / 28800) * 100))}%` : 'ยังไม่เข้างาน'}
-                </span>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400 backdrop-blur-md">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xs text-white drop-shadow-md">บันทึกกะปฏิบัติงาน (MyShift)</h3>
+                    <p className="text-[10px] text-slate-200 drop-shadow-xs">{time.dateThai}</p>
+                  </div>
+                </div>
+                <div className="text-right font-mono">
+                  <div className="text-xl font-black text-white tracking-tight drop-shadow-md">{time.hhmm}<span className="text-xs text-blue-300">:{time.ss}</span></div>
+                </div>
               </div>
-              <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
-                <div 
-                  className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 transition-all duration-500"
-                  style={{ width: checkInResult?.checkOutTime ? '100%' : checkInResult ? `${Math.min(100, Math.max(8, (liveWorkDuration.totalSeconds / 28800) * 100))}%` : '5%' }}
-                />
+
+              {/* Shift Progress Bar */}
+              <div className="space-y-1 mt-2">
+                <div className="flex justify-between text-[10px] text-slate-100 drop-shadow-xs">
+                  <span className="flex items-center gap-1">
+                    <span>สถานะ:</span>
+                    <strong className={isInsideRadius ? 'text-emerald-300 font-bold drop-shadow-xs' : 'text-rose-300 font-bold drop-shadow-xs'}>
+                      {isInsideRadius ? `📍 ในพื้นที่ร้าน (${distance?.toFixed(0)} ม. / รัศมี ${allowedRadius}ม.)` : `🚫 อยู่นอกพื้นที่ (${distance?.toFixed(0)} ม. / กำหนด ${allowedRadius}ม.)`}
+                    </strong>
+                  </span>
+                  <span className="font-mono text-blue-300 font-bold drop-shadow-xs">
+                    {checkInResult?.checkOutTime ? 'เสร็จสิ้น 100%' : checkInResult ? `${Math.min(100, Math.round((liveWorkDuration.totalSeconds / 28800) * 100))}%` : 'ยังไม่เข้างาน'}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-slate-950/80 rounded-full overflow-hidden p-0.5 border border-white/20">
+                  <div 
+                    className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 transition-all duration-500"
+                    style={{ width: checkInResult?.checkOutTime ? '100%' : checkInResult ? `${Math.min(100, Math.max(8, (liveWorkDuration.totalSeconds / 28800) * 100))}%` : '5%' }}
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -107,6 +107,7 @@ flowchart TD
 | **REQ-033** | UI & Navigation | ย้าย Avatar โปรไฟล์พนักงานจากส่วนหัวด้านบน ลงมาประจำที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar แทนที่เข็มนาฬิกาเดิม พร้อมแสดงรหัสพนักงาน | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx` & `/employee`) |
 | **REQ-034** | UI & Background Clarity | ปรับเลเยอร์คุมดำ (Dark Overlay) เป็น 0% (ไม่มีแผ่นฟิล์มมืดทับ) บน 3 การ์ดหลัก: ตารางปฏิทิน (`/employee/stats`), การ์ดเลือกประเภทการลา (`/employee/leave`), และการ์ดระบุจำนวนเงินเบิก (`/employee/advance`) แสดงภาพพื้นหลังคมชัดเต็ม 100% | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-035** | UI & Text Contrast | บังคับตัวหนังสือเป็นสีดำเข้มคมชัด (High-Contrast Black Text `text-slate-900 font-black`) และกล่องกรอกข้อความสีขาวทึบ (`bg-white/95 text-slate-900 border-slate-300`) ใน 3 การ์ดที่ปิดม่านคุมดำ 0% (ตารางปฏิทิน, ฟอร์มยื่นใบลา, ฟอร์มขอเบิกเงิน) เพื่อความคมชัด อ่านง่ายสูงสุด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
+| **REQ-036** | UI & Branding | เปลี่ยนภาพพื้นหลังการ์ดบันทึกกะปฏิบัติงาน MyShift (`/employee`) ด้วยภาพที่กำหนด พร้อมเลเยอร์คุมดำโปร่งแสงทับ 50% (`bg-slate-950/50`) คอนทราสต์สมบูรณ์แบบ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 
 ---
 
@@ -134,6 +135,14 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - MyShift Telemetry Card Custom Background with 50% Opacity Overlay (Version 3.26)
+- ✅ **Custom Background for MyShift Telemetry Card (`src/app/employee/page.tsx`)**:
+  - ดาวน์โหลดและติดตั้งรูปภาพพื้นหลังใหม่ลงใน `public/images/myshift-card-bg.jpg`
+  - ปรับการ์ดบันทึกกะปฏิบัติงาน (MyShift Telemetry Card) ให้แสดงภาพพื้นหลังใหม่
+  - เสริมเลเยอร์ม่านทึบแสง 50% (`bg-slate-950/50 backdrop-blur-[1px]`) ครอบทับ เพื่อรักษาคอนทราสต์และความคมชัดของตัวเลขนาฬิกา, สถานะ GPS และหลอดเวลาการทำงาน
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่าน 100% (17/17 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - High-Contrast Black Text & Opaque Inputs for 0% Overlay Cards (Version 3.25)
 - ✅ **Black Text & High-Contrast Styling (`src/app/employee/stats/page.tsx`)**:
