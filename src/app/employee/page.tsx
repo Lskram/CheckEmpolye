@@ -1010,50 +1010,51 @@ export default function ExactEmployeeApp() {
           <button
             onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? promptCheckOut : handleCheckIn}
             disabled={isCheckingIn || isCheckingOut}
-            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all cursor-pointer group ${
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all cursor-pointer relative overflow-hidden group shadow-lg border border-white/10 ${
               isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
             }`}
           >
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg mb-1 relative overflow-hidden border border-white/20 transition-transform duration-300 group-hover:scale-105 group-active:scale-95 ${
-              !checkInResult
-                ? 'shadow-blue-500/30 ring-2 ring-blue-400/40'
-                : !checkInResult.checkOutTime
-                  ? 'shadow-amber-500/30 ring-2 ring-amber-400/40'
-                  : 'shadow-indigo-500/30 ring-2 ring-sky-400/40'
-            }`}>
-              {/* User-Requested Custom Background Image */}
-              <div 
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                style={{ 
-                  backgroundImage: `url('/images/checkin-tile-bg.jpg'), url('https://f.ptcdn.info/720/016/000/1394854858-49d777cdd4-o.jpg')`,
-                }}
-              />
-              
-              {/* High-Contrast Tint Overlay for Crisp Icon Visibility */}
-              <div className={`absolute inset-0 transition-colors duration-300 ${
-                !checkInResult
-                  ? 'bg-gradient-to-tr from-blue-900/60 via-blue-600/30 to-transparent backdrop-blur-[0.5px]'
-                  : !checkInResult.checkOutTime
-                    ? 'bg-gradient-to-tr from-amber-900/65 via-orange-600/30 to-transparent backdrop-blur-[0.5px]'
-                    : 'bg-gradient-to-tr from-indigo-900/65 via-sky-600/30 to-transparent backdrop-blur-[0.5px]'
-              }`} />
+            {/* Custom Outer Tile Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ 
+                backgroundImage: `url('/images/checkin-tile-bg.jpg'), url('https://f.ptcdn.info/720/016/000/1394854858-49d777cdd4-o.jpg')`,
+              }}
+            />
 
-              <div className="relative z-10 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center justify-center">
-                {isCheckingIn || isCheckingOut ? (
-                  <RefreshCw className="w-5 h-5 animate-spin text-white" />
-                ) : !checkInResult ? (
-                  <Zap className="w-5 h-5 text-white fill-white/30" />
-                ) : !checkInResult.checkOutTime ? (
-                  <LogOut className="w-5 h-5 text-white" />
-                ) : (
-                  <RotateCcw className="w-5 h-5 text-white" />
-                )}
-              </div>
+            {/* High-Contrast Frosted Overlay for Entire Tile */}
+            <div className={`absolute inset-0 transition-colors duration-300 ${
+              isDark 
+                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
+                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+            }`} />
+
+            {/* Inner Glowing Gradient Icon Box */}
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-md mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95 ${
+              !checkInResult
+                ? 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-blue-500/40 ring-1 ring-white/20'
+                : !checkInResult.checkOutTime
+                  ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-amber-500/40 ring-1 ring-white/20'
+                  : 'bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-indigo-500/40 ring-2 ring-sky-400/40'
+            }`}>
+              {isCheckingIn || isCheckingOut ? (
+                <RefreshCw className="w-5 h-5 animate-spin text-white" />
+              ) : !checkInResult ? (
+                <Zap className="w-5 h-5 text-white" />
+              ) : !checkInResult.checkOutTime ? (
+                <LogOut className="w-5 h-5 text-white" />
+              ) : (
+                <RotateCcw className="w-5 h-5 text-white" />
+              )}
             </div>
-            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+
+            {/* Tile Text Label */}
+            <div className="text-xs font-bold text-white relative z-10 drop-shadow-md">
               {!checkInResult ? 'เข้างาน' : !checkInResult.checkOutTime ? 'ออกงาน' : 'กลับเข้างาน'}
             </div>
-            <div className="text-[9px] text-slate-400 mt-0.5 font-mono">
+
+            {/* Time / Status Subtitle */}
+            <div className="text-[9px] text-blue-200 font-mono mt-0.5 relative z-10 drop-shadow-sm font-medium">
               {!checkInResult ? '08:00' : !checkInResult.checkOutTime ? (checkInResult?.checkInTime ? checkInResult.checkInTime.slice(0, 5) : '08:00') : 'แตะเพื่อเริ่มต่อ'}
             </div>
           </button>

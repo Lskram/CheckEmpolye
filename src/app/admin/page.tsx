@@ -901,14 +901,11 @@ export default function WebExecutiveDashboard() {
           </div>
           <div className="flex items-center gap-3">
             {systemClock && (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-800 text-xs font-mono text-neutral-300">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-900/90 border border-neutral-800 text-xs font-mono text-neutral-300">
                 <Clock className="w-3.5 h-3.5 text-neutral-400" />
                 <span>{systemClock}</span>
               </div>
             )}
-            <Link href="/" className="text-xs font-mono font-bold text-neutral-400 hover:text-white transition-colors flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 border border-neutral-800 hover:border-neutral-700">
-              ← หน้าหลัก Portal
-            </Link>
           </div>
         </header>
 

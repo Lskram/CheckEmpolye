@@ -97,7 +97,7 @@ flowchart TD
 | **REQ-023** | Mobile & Reliability | ระบบ NetworkGuard ตรวจจับการเชื่อมต่ออินเทอร์เน็ตตลอดเวลา (Continuous Ping & Native Notification), แจ้งเตือนเมื่ออยู่นอกรัศมีร้านทันที, และ Floating Banner "ลงชื่อเข้างานเรียบร้อย" | ✅ เสร็จสิ้น | `NetworkGuard.tsx` / Next.js / Capacitor |
 | **REQ-024** | Attendance & Shift Re-entry | ระบบอนุญาตให้กลับเข้าทำงานซ้ำในวันเดียวกันหากเผลอกดออกงาน (Accidental Check-out Re-entry) พร้อมตรวจสอบ Geofence อย่างเคร่งครัด ล้างเวลาออกงาน คืนสถานะและเบี้ยขยันเดิม และนับเวลาทำงานต่อทันที | ✅ เสร็จสิ้น | API `/api/check-in` / Mobile Staff UI (`/employee`) |
 | **REQ-025** | UI & Branding | ปรับแต่งพื้นหลังส่วนหัวแอป (Top Dome Profile & MyShift Header) ด้วยภาพกราฟิก Yokohama Wheel & Tire พรีเมียม พร้อม Frosted Backdrop Overlay คอนทราสต์สูงและสบายตา | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
-| **REQ-026** | UI & Branding | ปรับแต่งพื้นหลังไอคอนปุ่มเข้างาน (Check-In Quick Action Tile 1) ด้วยภาพกราฟิกล้อแม็ก Yokohama Custom ลายพิเศษ พร้อม Tint Overlay และ Drop Shadow | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
+| **REQ-026** | UI & Branding | ปรับแต่งพื้นหลังกรอบวงนอกของปุ่มเข้างาน (Check-In Quick Action Outer Tile) ด้วยภาพกราฟิกล้อแม็ก Yokohama ลายพิเศษ พร้อม Frosted Glass Overlay และคงกล่องไอคอน Gradient ภายในให้คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 
 ---
 
@@ -290,11 +290,11 @@ flowchart TD
 - ✅ **Leaflet Geofence Map Picker**: ผู้บริหารสามารถปรับหมุดพิกัดร้านและขยาย/ย่อรัศมี Geofence (เมตร) ได้อย่างอิสระ พร้อมระบบ Reverse Geocode ถอดชื่อสถานที่จริงอัตโนมัติ
 - ✅ **Vercel Production Readiness**: ผ่านการทดสอบ `npm run build` สำเร็จ 100% 16/16 Routes (0 Type/Lint Errors) พร้อมส่งรายงานความคืบหน้าเข้า Discord ผ่าน `report:discord`
 
-### 📌 [2026-10-01] - Custom Yokohama Check-In Tile Icon Branding (Version 3.6)
-- ✅ **เพิ่มภาพพื้นหลังไอคอนปุ่มเข้างาน (Check-In Quick Action Tile 1)**:
-  - นำเข้ารูปภาพที่ผู้ใช้กำหนด (`public/images/checkin-tile-bg.jpg` พร้อม URL Fallback) มาประยุกต์เป็นพื้นหลังของกล่องไอคอนปุ่มเข้างานหลัก
-  - เสริม Dynamic Tint Overlay ตามสถานะการลงเวลา (สีน้ำเงิน = ยังไม่เข้างาน / สีส้มอำพัน = กำลังทำงาน รอออกงาน / สีคราม = กลับเข้าทำงานต่อ)
-  - เพิ่ม Drop Shadow และ Border คอนทราสต์สูง ทำให้ไอคอน `⚡` โดดเด่น ชัดเจน สวยงาม
+### 📌 [2026-10-01] - Custom Yokohama Check-In Tile Outer Card Branding (Version 3.6)
+- ✅ **เพิ่มภาพพื้นหลังกรอบวงนอกของปุ่มเข้างาน (Check-In Quick Action Tile 1 Card)**:
+  - นำเข้ารูปภาพที่ผู้ใช้กำหนด (`public/images/checkin-tile-bg.jpg` พร้อม URL Fallback) มาประยุกต์เป็นพื้นหลังของการ์ดปุ่มเข้างานทั้งหมด (วงนอก)
+  - เพิ่มเลเยอร์ Frosted Glass Overlay ให้ตัวหนังสือ "เข้างาน" และเวลา "08:00" คมชัด โดดเด่น
+  - คงกล่องไอคอน Gradient 3D Glowing ด้านใน (`⚡`, `LogOut`, `RotateCcw`) ให้สดใส คมชัด ไม่ถูกบดบัง
 - ✅ **Zero Regression Guarantee**: ผ่านการทดสอบ Production Build `npm run build` สมบูรณ์แบบ 18/18 Routes (0 Errors)
 
 ### 📌 [2026-10-01] - Custom Yokohama Header Branding & Frosted Glass Backdrop (Version 3.5)
