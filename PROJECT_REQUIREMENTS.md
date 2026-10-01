@@ -111,6 +111,7 @@ flowchart TD
 | **REQ-037** | UI & Navigation | แทนที่ไอคอนทั้ง 4 เมนูใน Bottom Navigation Bar (`EmployeeBottomNav.tsx`) ด้วยภาพไอคอน HD จาก Google Drive (ลงเวลา, ปฏิทิน, ยื่นใบลา, เบิกเงิน) พร้อมเพิ่มเอฟเฟกต์มิติเงา Drop-Shadow และสเกลเนียนตาทุกปุ่ม | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
 | **REQ-038** | Database & Storage | ระบบอัปโหลดและจัดเก็บรูปภาพโปรไฟล์พนักงาน (Supabase Storage Bucket `avatars` + คอลัมน์ `avatar_url` + ตารางประวัติ `employee_photos`) พร้อม API `/api/employee/avatar` และหน้าต่าง Modal ถ่ายภาพ/เลือกรูปจากเครื่อง แสดงบนปุ่มนูนโปรไฟล์ทันที | ✅ เสร็จสิ้น | Supabase DB / Next.js / Mobile Staff App |
 | **REQ-039** | UI & User Experience | รวมศูนย์การตั้งค่ารูปโปรไฟล์พนักงานไว้ที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar เพียงจุดเดียว พร้อมตัวเลือกเลือกรูปจากแกลเลอรี (Gallery) หรือถ่ายรูปจากกล้อง (Camera) และซิงค์แสดงผลเรียลไทม์ทุกหน้า | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
+| **REQ-040** | UI & Branding | ปรับปรุงโฉมหน้าจอล็อกอินพนักงานบนมือถือ (`/employee/login`) ให้มีธีมและเอกลักษณ์ตรงตามหน้าภายในทั้งหมด (Top Dome Header ภาพพื้นหลัง Yokohama `header-bg.jpg`, โลโก้ทางการสีแสงยางยนต์ `store-logo.png`, เส้นโค้งคลื่น S-Curve Cutout, กล่องข้อมูลพนักงานเดิมที่ผูกเครื่องแล้วพร้อมปุ่มสลับบัญชี, ระบบค้นหาข้อมูลพนักงานแบบสด, ตัวแสดงผลรหัส PIN จุดเรืองแสง และแป้นพิมพ์สัมผัส Tactile 3D Neumorphic Keypad) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/login`) |
 
 ---
 
@@ -138,6 +139,17 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Mobile Login Page Redesign with Unified Yokohama Sisaeng Theme (Version 3.30)
+- ✅ **Unified Top Dome Header & Brand Identity (`src/app/employee/login/page.tsx`)**:
+  - ผสานดีไซน์ Top Dome Header ด้วยภาพพื้นหลัง Yokohama Wheel & Tire (`header-bg.jpg`) ร่วมกับเลเยอร์ Frosted Glass Overlay คอนทราสต์สูง
+  - แสดงภาพโลโก้ร้านทางการ "สีแสงยางยนต์ (Sisaeng Yang Yont)" ร่วมกับแบรนด์ดิ้ง "YOKOHAMA NAYA" ชัดเจน สวยงาม
+  - ใส่เส้นโค้งคลื่น S-Curve Wave SVG Cutout ด้านล่างส่วนหัว ไร้รอยต่อ
+- ✅ **Tactile 3D Keypad & User Experience (`src/app/employee/login/page.tsx`)**:
+  - ออกแบบแป้นพิมพ์สัมผัส Tactile 3D Neumorphic Keypad (`0-9`, `ล้าง C`, `⌫ Backspace`) พร้อมอนิเมชันเวลากดปุ่ม ยุบตัว นุ่มนวล
+  - กล่องแสดงผลรหัสผ่าน PIN 4 หลัก ด้วยไฟ LED Cyan/Blue Glow จุดเรืองแสง พร้อมปุ่มสลับดู/ซ่อนรหัสผ่าน
+  - การ์ดพนักงานที่บันทึกไว้ในเครื่อง (Returning User Card) แสดง Avatar รูปโปรไฟล์ หรืออักษรย่อ พร้อมป้าย "✓ ผูกเครื่องนี้แล้ว" และปุ่มสลับบัญชี
+  - ระบบค้นหารหัสพนักงานแบบสด (Live Debounced Lookup Pre-check) แสดงชื่อ-นามสกุล, ชื่อเล่น, และตำแหน่งทันทีเมื่อพิมพ์
 
 ### 📌 [2026-10-01] - Center Nav Profile Photo Setup & Gallery Picker Integration (Version 3.29)
 - ✅ **Centralized Center Nav Avatar Trigger (`src/components/EmployeeBottomNav.tsx`)**:

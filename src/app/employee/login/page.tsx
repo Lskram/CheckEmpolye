@@ -223,140 +223,219 @@ export default function EmployeeLoginPage() {
   };
 
   return (
-    <div className={`min-h-screen w-full flex flex-col justify-between p-4 sm:p-6 transition-colors duration-300 font-sans ${
+    <div className={`min-h-screen w-full flex flex-col justify-between font-sans transition-colors duration-300 relative overflow-x-hidden ${
       isDark ? 'bg-[#090d16] text-slate-100' : 'bg-[#eef2f7] text-slate-800'
     }`}>
       {/* Continuous Network Connection Guard */}
       <NetworkGuard />
 
-      {/* Top Header */}
-      <div className="max-w-sm w-full mx-auto flex items-center justify-between pt-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
-            <Shield className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-xs">YOKOHAMA NAYA</span>
-        </div>
-        
-        {/* Theme Switcher */}
-        <button
-          onClick={toggleTheme}
-          className={`p-2 rounded-xl border transition-all active:scale-90 ${
-            isDark ? 'bg-slate-800 border-white/10 text-yellow-300' : 'bg-white border-slate-300 text-slate-700 shadow-sm'
-          }`}
-          title="สลับโหมด Dark / Light"
-        >
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
-      </div>
+      {/* Ambient Background Glows */}
+      {isDark ? (
+        <>
+          <div className="absolute top-[-50px] left-[-50px] w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-[30%] right-[-50px] w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-[-50px] left-[20%] w-72 h-72 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        </>
+      ) : (
+        <>
+          <div className="absolute top-[-50px] left-[-50px] w-72 h-72 bg-blue-300/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-[30%] right-[-50px] w-72 h-72 bg-emerald-300/20 rounded-full blur-3xl pointer-events-none" />
+        </>
+      )}
 
-      {/* Main Login Card */}
-      <div className="max-w-sm w-full mx-auto my-auto space-y-4">
+      {/* ------------------------------------------------------------- */}
+      {/* 1. TOP DOME HEADER & S-CURVE WAVE (Matching Internal Theme)   */}
+      {/* ------------------------------------------------------------- */}
+      <div className="w-full relative z-10 pt-4 pb-0 text-white overflow-hidden shadow-xl transition-colors duration-300">
         
-        {/* Dome Icon & Title */}
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 mx-auto flex items-center justify-center text-2xl shadow-xl shadow-blue-500/30 text-white mb-2">
-            🔐
-          </div>
-          <h1 className="text-xl font-black tracking-tight">เข้าสู่ระบบพนักงาน</h1>
-          <p className="text-xs text-slate-400 mt-0.5">สีแสงยางยนต์ YOKOHAMA NAYA COSMIS</p>
-        </div>
+        {/* Background Image Layer */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 hover:scale-105"
+          style={{ 
+            backgroundImage: `url('/images/header-bg.jpg')`,
+          }}
+        />
 
-        {/* User Card / Mode Toggle */}
-        {!isFirstTimeMode && cachedUser ? (
-          <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} flex items-center justify-between`}>
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-sm shadow-md">
-                {cachedUser.nickname ? cachedUser.nickname.slice(0, 2) : cachedUser.fullName?.slice(0, 2) || 'EM'}
+        {/* High-Contrast Frosted Overlay (30-40% Opacity) */}
+        <div className={`absolute inset-0 transition-colors duration-300 ${
+          isDark 
+            ? 'bg-gradient-to-b from-[#090d16]/50 via-[#0c121e]/65 to-[#090d16]/90 backdrop-blur-[0.5px]' 
+            : 'bg-gradient-to-b from-slate-950/55 via-slate-900/70 to-[#18223c]/85 backdrop-blur-[0.5px]'
+        }`} />
+
+        <div className="max-w-md mx-auto px-4 relative z-10">
+          
+          {/* Top Header Row */}
+          <div className="flex items-center justify-between relative py-1">
+            
+            {/* Left: Official Sisaeng Store Logo */}
+            <div className="flex items-center gap-2">
+              <img 
+                src="/images/store-logo.png" 
+                alt="สีแสงยางยนต์ (Sisaeng Yang Yont)" 
+                className="h-8 w-auto max-w-[120px] object-contain drop-shadow-md"
+              />
+              <div>
+                <div className="text-[10px] font-bold text-blue-300 tracking-wider">YOKOHAMA NAYA</div>
+                <div className="text-xs font-black text-white leading-none">สีแสงยางยนต์</div>
+              </div>
+            </div>
+
+            {/* Right: Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-yellow-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm"
+              title="สลับโหมด Dark / Light"
+            >
+              {isDark ? <Sun className="w-4 h-4 text-yellow-300" /> : <Moon className="w-4 h-4 text-sky-200" />}
+            </button>
+          </div>
+
+          {/* Header Banner Subtitle */}
+          <div className="mt-3 p-3 rounded-2xl bg-black/35 border border-white/15 backdrop-blur-md flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
+                <Lock className="w-3.5 h-3.5" />
               </div>
               <div>
-                <div className="font-bold text-sm leading-tight">{cachedUser.fullName}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1 font-mono">
-                  <span>รหัส: {cachedUser.employeeCode}</span>
+                <h2 className="text-xs font-black text-white drop-shadow-sm">เข้าสู่ระบบพนักงาน (Employee Portal)</h2>
+                <p className="text-[9px] text-slate-300">ระบบลงเวลาทำงาน & เบี้ยเลี้ยงอัตโนมัติ</p>
+              </div>
+            </div>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300">
+              ● ออนไลน์
+            </span>
+          </div>
+
+        </div>
+
+        {/* Smooth S-Curve Wave SVG Cutout */}
+        <div className="w-full overflow-hidden leading-none mt-2 relative z-10">
+          <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="w-full h-6 text-[#090d16]" style={{ color: isDark ? '#090d16' : '#eef2f7' }}>
+            <path d="M0,0 C150,40 350,0 500,40 L500,40 L0,40 Z" fill="currentColor" />
+          </svg>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. MAIN LOGIN FORM & TACTILE KEYPAD                           */}
+      {/* ------------------------------------------------------------- */}
+      <div className="max-w-md w-full mx-auto px-4 py-2 space-y-3 relative z-10 flex-1 flex flex-col justify-center">
+
+        {/* Returning User Profile Card OR First-time Input */}
+        {!isFirstTimeMode && cachedUser ? (
+          <div className={`p-4 rounded-3xl relative overflow-hidden shadow-xl border ${
+            isDark ? 'neumorph-dark border-blue-500/30' : 'neumorph-light border-blue-300/50'
+          } flex items-center justify-between transition-all`}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-white/20">
+                {cachedUser.avatar_url ? (
+                  <img src={cachedUser.avatar_url} alt={cachedUser.fullName} className="w-full h-full object-cover" />
+                ) : (
+                  cachedUser.nickname ? cachedUser.nickname.slice(0, 2) : (cachedUser.fullName || 'EM').slice(0, 2)
+                )}
+              </div>
+              <div>
+                <div className="font-black text-sm leading-tight flex items-center gap-1.5">
+                  <span>{cachedUser.fullName}</span>
+                  {cachedUser.nickname && <span className="text-[11px] font-normal text-slate-400">({cachedUser.nickname})</span>}
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 font-mono">
+                  <span className="px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-400 font-bold border border-blue-400/20">
+                    รหัส: {cachedUser.employeeCode || cachedUser.employee_code}
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-sans">✓ ผูกเครื่องนี้แล้ว</span>
                 </div>
               </div>
             </div>
             <button
               onClick={handleSwitchAccount}
-              className="text-[11px] text-blue-500 hover:underline font-semibold"
+              className="text-[11px] text-blue-400 hover:text-blue-300 hover:underline font-bold px-2 py-1 rounded-xl bg-blue-500/10 border border-blue-400/20 active:scale-95 transition-all"
             >
-              เปลี่ยนบัญชี
+              สลับบัญชี
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {/* Employee Code Input */}
-            <div className={`p-3.5 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'}`}>
-              <label className="text-[11px] font-bold text-slate-400 mb-1.5 block">รหัสพนักงาน (EMP Code):</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="เช่น 01, 02, SI01"
-                  value={employeeCode}
-                  onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
-                  className={`w-full py-2.5 px-3 rounded-2xl text-sm font-mono font-bold tracking-wider uppercase transition-all ${
-                    isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
-                  }`}
-                />
-                {lookupLoading && (
-                  <RefreshCw className="w-4 h-4 text-blue-500 animate-spin absolute right-3 top-3" />
-                )}
-              </div>
-
-              {/* Real-Time Lookup Feedback */}
-              {foundEmployee && (
-                <div className="mt-2 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <div>
-                    <span className="font-bold">{foundEmployee.fullName}</span>
-                    <span className="text-[10px] text-slate-400 block font-sans">{foundEmployee.position || 'พนักงาน'}</span>
-                  </div>
-                </div>
-              )}
-              {lookupError && (
-                <div className="mt-2 text-[10px] text-rose-400 font-medium">
-                  {lookupError}
-                </div>
+          <div className={`p-4 rounded-3xl relative overflow-hidden shadow-xl border ${
+            isDark ? 'neumorph-dark border-blue-500/30' : 'neumorph-light border-blue-300/50'
+          } space-y-2`}>
+            <label className="text-[11px] font-black text-slate-400 block flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+              <span>กรอกรหัสพนักงาน (EMP Code):</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="เช่น 01, 02, SI01"
+                value={employeeCode}
+                onChange={(e) => setEmployeeCode(e.target.value.toUpperCase())}
+                className={`w-full py-3 px-3.5 rounded-2xl text-base font-mono font-black tracking-wider uppercase transition-all ${
+                  isDark ? 'neumorph-dark-inset text-white focus:ring-2 focus:ring-blue-500' : 'neumorph-light-inset text-slate-800 focus:ring-2 focus:ring-blue-500'
+                }`}
+              />
+              {lookupLoading && (
+                <RefreshCw className="w-4 h-4 text-blue-400 animate-spin absolute right-3.5 top-3.5" />
               )}
             </div>
+
+            {/* Real-Time Lookup Feedback */}
+            {foundEmployee && (
+              <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <div className="truncate">
+                  <span className="font-black">{foundEmployee.fullName}</span>
+                  {foundEmployee.nickname && <span className="text-[11px] text-emerald-200"> ({foundEmployee.nickname})</span>}
+                  <span className="text-[10px] text-slate-400 block">{foundEmployee.position || 'พนักงานประจำ'}</span>
+                </div>
+              </div>
+            )}
+            {lookupError && (
+              <div className="text-[11px] text-rose-400 font-bold flex items-center gap-1 pt-1">
+                <XCircle className="w-3.5 h-3.5" />
+                <span>{lookupError}</span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* PIN Code Dots Display */}
-        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} text-center space-y-2`}>
+        {/* PIN Code Dots Display Card */}
+        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} text-center space-y-2.5 shadow-xl`}>
           <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>กดรหัสผ่าน PIN</span>
+            <span className="font-bold flex items-center gap-1">
+              <KeyRound className="w-3.5 h-3.5 text-blue-400" />
+              <span>กดรหัสผ่าน PIN</span>
+            </span>
             <button
               onClick={() => setShowPassword(!showPassword)}
-              className="text-[11px] text-blue-500 flex items-center gap-1 font-semibold"
+              className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 border border-blue-400/20 transition-all"
             >
               {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               <span>{showPassword ? 'ซ่อนรหัส' : 'ดูรหัส'}</span>
             </button>
           </div>
 
-          {/* Dots */}
-          <div className={`py-3 px-4 rounded-2xl ${isDark ? 'neumorph-dark-inset' : 'neumorph-light-inset'} flex items-center justify-center min-h-[48px] gap-2.5`}>
+          {/* Dots Indicator */}
+          <div className={`py-3 px-4 rounded-2xl ${isDark ? 'neumorph-dark-inset' : 'neumorph-light-inset'} flex items-center justify-center min-h-[50px] gap-3`}>
             {pinCode.length === 0 ? (
-              <span className="text-xs text-slate-400 font-medium">กรุณากดรหัสผ่านที่แป้นด้านล่าง</span>
+              <span className="text-xs text-slate-400 font-medium">กดรหัสผ่าน PIN 4 หลัก บนแป้นด้านล่าง</span>
             ) : showPassword ? (
-              <span className="text-lg font-mono font-black tracking-widest text-blue-500">{pinCode}</span>
+              <span className="text-xl font-mono font-black tracking-widest text-blue-400 drop-shadow-sm">{pinCode}</span>
             ) : (
               pinCode.split('').map((_, idx) => (
-                <span key={idx} className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-md shadow-blue-500/40" />
+                <span key={idx} className="w-4 h-4 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 shadow-md shadow-blue-500/50 transform scale-110 transition-all animate-pulse" />
               ))
             )}
           </div>
         </div>
 
-        {/* Tactile Neumorphic Keypad */}
-        <div className="grid grid-cols-3 gap-2 px-1">
+        {/* Tactile 3D Neumorphic Keypad */}
+        <div className="grid grid-cols-3 gap-2 pt-1">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
             <button
               key={num}
               onClick={() => handleKeyPress(num)}
-              className={`py-3.5 rounded-2xl text-lg font-bold font-mono transition-all active:scale-90 cursor-pointer ${
-                isDark ? 'neumorph-tile-dark text-white' : 'neumorph-tile-light text-slate-800'
+              className={`py-3.5 rounded-2xl text-xl font-black font-mono transition-all active:scale-90 cursor-pointer ${
+                isDark ? 'neumorph-tile-dark text-white hover:text-blue-300' : 'neumorph-tile-light text-slate-800 hover:text-blue-600'
               }`}
             >
               {num}
@@ -364,24 +443,24 @@ export default function EmployeeLoginPage() {
           ))}
           <button
             onClick={handleClear}
-            className={`py-3.5 rounded-2xl text-xs font-bold transition-all active:scale-90 cursor-pointer ${
-              isDark ? 'neumorph-tile-dark text-rose-400' : 'neumorph-tile-light text-rose-600'
+            className={`py-3.5 rounded-2xl text-sm font-black transition-all active:scale-90 cursor-pointer ${
+              isDark ? 'neumorph-tile-dark text-rose-400 hover:bg-rose-500/10' : 'neumorph-tile-light text-rose-600 hover:bg-rose-50'
             }`}
           >
-            C
+            ล้าง (C)
           </button>
           <button
             onClick={() => handleKeyPress('0')}
-            className={`py-3.5 rounded-2xl text-lg font-bold font-mono transition-all active:scale-90 cursor-pointer ${
-              isDark ? 'neumorph-tile-dark text-white' : 'neumorph-tile-light text-slate-800'
+            className={`py-3.5 rounded-2xl text-xl font-black font-mono transition-all active:scale-90 cursor-pointer ${
+              isDark ? 'neumorph-tile-dark text-white hover:text-blue-300' : 'neumorph-tile-light text-slate-800 hover:text-blue-600'
             }`}
           >
             0
           </button>
           <button
             onClick={handleBackspace}
-            className={`py-3.5 rounded-2xl text-xs font-bold transition-all active:scale-90 cursor-pointer ${
-              isDark ? 'neumorph-tile-dark text-slate-400' : 'neumorph-tile-light text-slate-600'
+            className={`py-3.5 rounded-2xl text-base font-black transition-all active:scale-90 cursor-pointer flex items-center justify-center ${
+              isDark ? 'neumorph-tile-dark text-slate-400 hover:text-slate-200' : 'neumorph-tile-light text-slate-600 hover:text-slate-800'
             }`}
           >
             ⌫
@@ -390,15 +469,15 @@ export default function EmployeeLoginPage() {
 
         {/* Feedback Messages */}
         {errorMsg && (
-          <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{errorMsg}</span>
+          <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 shadow-md">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+            <span className="font-bold">{errorMsg}</span>
           </div>
         )}
         {warningMsg && (
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>{warningMsg}</span>
+          <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2 shadow-md">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span className="font-bold">{warningMsg}</span>
           </div>
         )}
 
@@ -406,18 +485,22 @@ export default function EmployeeLoginPage() {
         <button
           onClick={() => handleLoginSubmit()}
           disabled={isLoading}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-xl shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white font-black text-sm shadow-xl shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer mt-1"
         >
           {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-          <span>{isLoading ? 'กำลังตรวจสอบ...' : 'ยืนยันเข้าสู่ระบบ (Unlock)'}</span>
+          <span>{isLoading ? 'กำลังตรวจสอบสิทธิ์...' : 'ยืนยันเข้าสู่ระบบ (Unlock)'}</span>
         </button>
 
       </div>
 
-      {/* Footer Security Badge */}
-      <div className="text-center text-xs text-slate-400 pt-2 flex items-center justify-center gap-1.5 font-medium">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-        <span>ระบบความปลอดภัย 1 คน 1 เครื่อง (อุปกรณ์ผ่านการตรวจสอบแล้ว)</span>
+      {/* ------------------------------------------------------------- */}
+      {/* 3. FOOTER SECURITY BADGE                                      */}
+      {/* ------------------------------------------------------------- */}
+      <div className="max-w-md mx-auto w-full text-center text-xs text-slate-400 pb-3 pt-1 px-4 relative z-10">
+        <div className="flex items-center justify-center gap-1.5 font-medium">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse shadow-sm shadow-emerald-400/50"></span>
+          <span>ระบบความปลอดภัย 1 คน 1 เครื่อง (HWID Protected)</span>
+        </div>
       </div>
     </div>
   );

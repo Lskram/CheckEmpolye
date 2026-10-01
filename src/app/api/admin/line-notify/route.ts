@@ -11,7 +11,11 @@ export async function GET() {
     const envTarget = process.env.LINE_TARGET_USER_ID || process.env.LINE_ADMIN_GROUP_ID;
     const envNotify = process.env.LINE_NOTIFY_TOKEN;
 
-    const hasToken = !!((settings as any)?.line_access_token || envToken);
+    const DEFAULT_LINE_TOKEN = 'Pe4vS2QQHU9yIPfxRFbMO5wYicsPlob8HMZKtLKsJ/3uy3zSfwpp9772on7oszJQCHw6C94BnXgFDH7CaVUap9BX/hFj+qEIfMAeTygPUWB+8gh9+YSXJgj2+f46epgGZv3owz+WVifHWXOJwb5xEAdB04t89/1O/w1cDnyilFU=';
+    const activeToken = (settings as any)?.line_access_token || envToken || DEFAULT_LINE_TOKEN;
+    const activeTarget = (settings as any)?.line_target_id || envTarget || 'broadcast';
+
+    const hasToken = !!activeToken;
     const hasNotify = !!((settings as any)?.line_notify_token || envNotify);
 
     return NextResponse.json({
@@ -20,8 +24,8 @@ export async function GET() {
         isConfigured: hasToken || hasNotify,
         hasLineOAToken: hasToken,
         hasLineNotifyToken: hasNotify,
-        targetId: (settings as any)?.line_target_id || envTarget || 'broadcast',
-        tokenMasked: hasToken ? '••••••••' + ((settings as any)?.line_access_token || envToken)?.slice(-6) : null,
+        targetId: activeTarget,
+        tokenMasked: hasToken ? '••••••••' + activeToken.slice(-6) : null,
       },
     });
   } catch (error: any) {

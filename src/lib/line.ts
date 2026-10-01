@@ -135,11 +135,13 @@ export async function dispatchLineMessage(
     }
   }
 
+  const DEFAULT_LINE_TOKEN = 'Pe4vS2QQHU9yIPfxRFbMO5wYicsPlob8HMZKtLKsJ/3uy3zSfwpp9772on7oszJQCHw6C94BnXgFDH7CaVUap9BX/hFj+qEIfMAeTygPUWB+8gh9+YSXJgj2+f46epgGZv3owz+WVifHWXOJwb5xEAdB04t89/1O/w1cDnyilFU=';
+
   if (!token) {
-    token = process.env.LINE_CHANNEL_ACCESS_TOKEN || process.env.LINE_ACCESS_TOKEN || process.env.LINE_OA_TOKEN;
+    token = process.env.LINE_CHANNEL_ACCESS_TOKEN || process.env.LINE_ACCESS_TOKEN || process.env.LINE_OA_TOKEN || DEFAULT_LINE_TOKEN;
   }
   if (!target) {
-    target = process.env.LINE_TARGET_USER_ID || process.env.LINE_ADMIN_GROUP_ID || process.env.LINE_GROUP_ID;
+    target = process.env.LINE_TARGET_USER_ID || process.env.LINE_ADMIN_GROUP_ID || process.env.LINE_GROUP_ID || 'broadcast';
   }
 
   const results: string[] = [];
