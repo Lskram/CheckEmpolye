@@ -51,6 +51,8 @@ export default function MonthlyAttendanceReportModal({
   const [printCopyMode, setPrintCopyMode] = useState<'ORIGINAL' | 'COPY' | 'BOTH'>('BOTH');
   const [employeeAckNote, setEmployeeAckNote] = useState('ข้าพเจ้าได้ตรวจสอบเวลาเข้า-ออกงาน และยอดเบี้ยขยันประจำเดือนแล้ว ขอยืนยันว่าถูกต้องสมบูรณ์');
   const [isAckChecked, setIsAckChecked] = useState(true);
+  const [isExportingPng, setIsExportingPng] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const printAreaRef = useRef<HTMLDivElement>(null);
 
@@ -206,9 +208,6 @@ export default function MonthlyAttendanceReportModal({
   const storePhone = storeSettings?.store_phone || '045-612-888, 081-999-9999';
 
   const docNumber = `ATT-${selectedYear}${String(selectedMonth + 1).padStart(2, '0')}-${employee.employee_code || '01'}`;
-
-  const [isExportingPng, setIsExportingPng] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const handlePrint = () => {
     window.print();
