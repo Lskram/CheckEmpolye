@@ -172,5 +172,64 @@ export const MobileNotificationService = {
       console.warn('Geofence notification error:', e);
     }
   },
+
+  // 6. Instant Leave Request Status Notification (Approved / Rejected)
+  async showLeaveStatusNotification(status: 'APPROVED' | 'REJECTED', leaveType: string, daysCount: number = 1, reason?: string) {
+    const isApproved = status === 'APPROVED';
+    const title = isApproved ? '✅ คำขอลางานได้รับการอนุมัติ' : '❌ คำขอลางานถูกปฏิเสธ';
+    const body = isApproved
+      ? `คำขอ${leaveType} (${daysCount} วัน) ได้รับการอนุมัติเรียบร้อย`
+      : `คำขอ${leaveType}ของคุณถูกปฏิเสธ${reason ? `: ${reason}` : ' โดยผู้บริหาร'}`;
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Math.floor(Math.random() * 100000),
+              title,
+              body,
+              schedule: { at: new Date(Date.now() + 300) },
+              sound: 'beep.wav',
+            },
+          ],
+        });
+      } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      }
+    } catch (e) {
+      console.warn('Leave status notification error:', e);
+    }
+  },
+
+  // 7. Instant Salary Advance Request Status Notification (Approved / Rejected)
+  async showAdvanceStatusNotification(status: 'APPROVED' | 'REJECTED', amount: number, reason?: string) {
+    const isApproved = status === 'APPROVED';
+    const title = isApproved ? '✅ คำขอเบิกเงินได้รับการอนุมัติ' : '❌ คำขอเบิกเงินถูกปฏิเสธ';
+    const body = isApproved
+      ? `คำขอเบิกเงินล่วงหน้า ${Number(amount).toLocaleString()} บาท ได้รับการอนุมัติแล้ว`
+      : `คำขอเบิกเงิน ${Number(amount).toLocaleString()} บาท ถูกปฏิเสธ${reason ? `: ${reason}` : ' โดยผู้บริหาร'}`;
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              id: Math.floor(Math.random() * 100000),
+              title,
+              body,
+              schedule: { at: new Date(Date.now() + 300) },
+              sound: 'beep.wav',
+            },
+          ],
+        });
+      } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, icon: '/favicon.ico' });
+      }
+    } catch (e) {
+      console.warn('Advance status notification error:', e);
+    }
+  },
 };
+
 

@@ -87,10 +87,16 @@ export default function EmployeeLeavePage() {
       };
       document.addEventListener('visibilitychange', handleVisibility);
 
+      const handleLeaveUpdated = () => {
+        loadLeaves(parsed.id);
+      };
+      window.addEventListener('yokohama-leave-updated', handleLeaveUpdated);
+
       return () => {
         if (channel && supabase) supabase.removeChannel(channel);
         clearInterval(pollTimer);
         document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('yokohama-leave-updated', handleLeaveUpdated);
       };
     } catch (e) {
       router.push('/employee/login');
@@ -99,17 +105,26 @@ export default function EmployeeLeavePage() {
 
   const handleSubmitLeave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!employee?.id || !reason) {
-      setErrorMsg('กรุณาระบุเหตุผลการลา');
+    if (!employee?.id) {
+      setErrorMsg('ไม่พบข้อมูลพนักงาน');
+      return;
+    }
+    if (!startDate || !endDate) {
+      setErrorMsg('กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด');
       return;
     }
 
+    setIsSubmitting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const cleanReason = reason.trim() || 'ไม่ได้ระบุเหตุผล';
     const payload = {
       employeeId: employee.id,
       leaveType,
       startDate,
       endDate,
-      reason,
+      reason: cleanReason,
     };
 
     // Offline check
@@ -124,7 +139,7 @@ export default function EmployeeLeavePage() {
           leaveType,
           startDate,
           endDate,
-          reason,
+          reason: cleanReason,
           status: 'PENDING',
         },
         ...prev,
@@ -160,7 +175,7 @@ export default function EmployeeLeavePage() {
           leaveType,
           startDate,
           endDate,
-          reason,
+          reason: cleanReason,
           status: 'PENDING',
         },
         ...prev,
@@ -317,14 +332,15 @@ export default function EmployeeLeavePage() {
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">เหตุผลความจำเป็น</label>
+              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">
+                เหตุผลความจำเป็น <span className="text-[10px] font-bold text-slate-500">(ระบุหรือไม่ก็ได้)</span>
+              </label>
               <textarea
                 rows={2}
-                placeholder="ระบุอาการหรือเหตุผลความจำเป็น..."
+                placeholder="เช่น ติดธุระส่วนตัว หรือ ป่วยมีใบรับรองแพทย์ (เว้นว่างได้)"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full p-2.5 rounded-2xl text-xs font-bold resize-none bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-hidden shadow-xs placeholder:text-slate-500"
-                required
+                className="w-full p-2.5 rounded-2xl text-xs font-bold resize-none bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-hidden shadow-xs placeholder:text-slate-400"
               />
             </div>
 

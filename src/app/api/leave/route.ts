@@ -25,9 +25,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { employeeId, leaveType, startDate, endDate, daysCount, reason } = body;
 
-    if (!employeeId || !leaveType || !startDate || !endDate || !reason) {
+    if (!employeeId || !leaveType || !startDate || !endDate) {
       return NextResponse.json(
-        { success: false, message: 'กรุณากรอกข้อมูลการลาให้ครบถ้วน (ประเภท, วันที่, เหตุผล)' },
+        { success: false, message: 'กรุณากรอกข้อมูลการลาให้ครบถ้วน (ประเภท และ วันที่)' },
         { status: 400 }
       );
     }
@@ -40,6 +40,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const cleanReason = (reason || '').trim() || 'ไม่ได้ระบุเหตุผล';
+
     // Calculate days count if not provided
     const days = daysCount || Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
       start_date: startDate,
       end_date: endDate,
       days_count: days,
-      reason: reason.trim(),
+      reason: cleanReason,
     });
 
     // Fire LINE OA Notification asynchronously
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
       startDate: startDate,
       endDate: endDate,
       daysCount: days,
-      reason: reason.trim(),
+      reason: cleanReason,
     }).catch((err) => console.error('[LINE OA Leave Alert Error]:', err));
 
     return NextResponse.json({

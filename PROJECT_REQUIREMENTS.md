@@ -113,6 +113,7 @@ flowchart TD
 | **REQ-039** | UI & User Experience | รวมศูนย์การตั้งค่ารูปโปรไฟล์พนักงานไว้ที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar เพียงจุดเดียว พร้อมตัวเลือกเลือกรูปจากแกลเลอรี (Gallery) หรือถ่ายรูปจากกล้อง (Camera) และซิงค์แสดงผลเรียลไทม์ทุกหน้า | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
 | **REQ-040** | UI & Branding | ปรับปรุงโฉมหน้าจอล็อกอินพนักงานบนมือถือ (`/employee/login`) ให้มีธีมและเอกลักษณ์ตรงตามหน้าภายในทั้งหมด (Top Dome Header ภาพพื้นหลัง Yokohama `header-bg.jpg`, โลโก้ทางการสีแสงยางยนต์ `store-logo.png`, เส้นโค้งคลื่น S-Curve Cutout, กล่องข้อมูลพนักงานเดิมที่ผูกเครื่องแล้วพร้อมปุ่มสลับบัญชี, ระบบค้นหาข้อมูลพนักงานแบบสด, ตัวแสดงผลรหัส PIN จุดเรืองแสง และแป้นพิมพ์สัมผัส Tactile 3D Neumorphic Keypad) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/login`) |
 | **REQ-041** | Database & UI Synchronization | ดึงและแสดงรูปโปรไฟล์พนักงาน (`avatar_url`) จากฐานข้อมูล Supabase อัตโนมัติในหน้าจอล็อกอิน (`/employee/login`), หน้าหลักพนักงาน (`/employee`), และแถบเมนูนำทาง (`EmployeeBottomNav.tsx`) พร้อมระบบ Background Profile Sync, การค้นหารหัสพนักงานสด และ Fallback Image Error Handling | ✅ เสร็จสิ้น | API `/api/auth/check-code`, `/api/auth/verify-pin` / Mobile Staff App |
+| **REQ-042** | Notifications & UX | ระบบแจ้งเตือน Realtime Notification (Native Push Alert, In-App Banner, และ Audio Alert) เมื่อคำขอเบิกเงินหรือคำขอลางานถูกปฏิเสธ (หรืออนุมัติ) โดยผู้บริหาร พร้อมปรับให้ช่องระบุเหตุผลในการขอเบิกเงินและขอลางานเป็นแบบไม่บังคับ (Optional Reason Submission) | ✅ เสร็จสิ้น | `EmployeeNotificationListener.tsx` / API Leave & Advance |
 
 ---
 
@@ -140,6 +141,17 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-02] - Realtime Rejection/Approval Notifications & Optional Reason Submission (Version 3.32)
+- ✅ **Global Real-Time Status Notification Watcher (`src/components/EmployeeNotificationListener.tsx`)**:
+  - ดักจับการเปลี่ยนแปลงสถานะคำขอเบิกเงิน (`salary_advance_requests`) และคำขอลางาน (`leave_requests`) ของพนักงานผ่าน Supabase Realtime + Polling Fallback
+  - เมื่อผู้บริหารกด **"ปฏิเสธ" (REJECTED)** หรือ **"อนุมัติ" (APPROVED)**:
+    - 🔔 ส่งแจ้งเตือน **Native Local Notification** บนมือถือ
+    - 📢 แสดงแถบ **Floating In-App Toast Banner** ด้านบนหน้าจอแบบ Dual-Tone สวยงาม (สีแดงเมื่อปฏิเสธ / สีเขียวเมื่ออนุมัติ) พร้อมแสดงเหตุผลประกอบ
+    - 🔊 เล่นเสียงแจ้งเตือนอัตโนมัติ (`playWebAlertSound`)
+- ✅ **Optional Reason Submission (ไม่บังคับใส่เหตุผล)**:
+  - ปรับปรุงฟอร์มขอลางาน ([`src/app/employee/leave/page.tsx`](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/src/app/employee/leave/page.tsx)) และฟอร์มขอเบิกเงิน ([`src/app/employee/advance/page.tsx`](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/src/app/employee/advance/page.tsx)) ให้สามารถกดส่งได้ทันทีโดยไม่ต้องระบุเหตุผล (เว้นว่างได้)
+  - ปรับปรุง Backend API ([`/api/leave`](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/src/app/api/leave/route.ts) และ [`/api/advance-request`](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/src/app/api/advance-request/route.ts)) ให้รองรับค่าว่างและกำหนดค่าเริ่มต้นเป็น `ไม่ได้ระบุเหตุผล` อัตโนมัติ
 
 ### 📌 [2026-10-01] - Live Profile Avatar Sync from Database on Login & App Pages (Version 3.31)
 - ✅ **Database Avatar Synchronization (`/api/auth/check-code` & `/api/auth/verify-pin`)**:

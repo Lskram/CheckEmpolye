@@ -7,6 +7,7 @@ import { MobileNotificationService } from '@/lib/mobile-notifications';
 import { playWebAlertSound } from '@/lib/web-notifications';
 import { syncPendingActions } from '@/lib/offline-sync';
 import { useAppTheme } from '@/lib/theme';
+import EmployeeNotificationListener from '@/components/EmployeeNotificationListener';
 
 export default function NetworkGuard() {
   const router = useRouter();
@@ -115,6 +116,9 @@ export default function NetworkGuard() {
 
   return (
     <>
+      {/* Global Real-time Employee Status Notification Listener (Leaves & Advances) */}
+      <EmployeeNotificationListener />
+
       {/* Reconnected Green Toast */}
       {showReconnectedToast && (
         <div className="fixed top-4 left-4 right-4 z-50 max-w-md mx-auto p-3.5 rounded-2xl bg-emerald-600 text-white shadow-2xl flex items-center justify-between animate-bounce">

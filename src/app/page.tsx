@@ -76,13 +76,11 @@ export default function VercelPortalLandingPage() {
       <header className="max-w-7xl mx-auto w-full px-6 py-5 flex items-center justify-between border-b border-neutral-800/60 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center p-1 transition-transform duration-200 group-hover:scale-105 shrink-0 overflow-hidden shadow-sm">
-              <img 
-                src="/images/official-store-logo.png" 
-                alt="สีแสงยางยนต์ YOKOHAMA" 
-                className="w-full h-full object-contain"
-              />
-            </div>
+            <img 
+              src="/images/official-store-logo.png" 
+              alt="สีแสงยางยนต์ YOKOHAMA" 
+              className="h-9 sm:h-10 w-auto object-contain shrink-0 transition-transform duration-200 group-hover:scale-105 drop-shadow-sm"
+            />
             <div>
               <div className="font-bold text-white text-base tracking-tight flex items-center gap-2">
                 <span>สีแสงยางยนต์</span>

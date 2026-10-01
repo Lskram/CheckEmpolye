@@ -23,9 +23,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { employeeId, amount, requestDate, reason, neededBeforeDate } = body;
 
-    if (!employeeId || !amount || Number(amount) <= 0 || !reason) {
+    if (!employeeId || !amount || Number(amount) <= 0) {
       return NextResponse.json(
-        { success: false, message: 'กรุณากรอกข้อมูลการขอเบิกเงินให้ครบถ้วน (ยอดเงิน และ เหตุผล)' },
+        { success: false, message: 'กรุณาระบุจำนวนเงินที่ต้องการขอเบิกให้ถูกต้อง' },
         { status: 400 }
       );
     }
@@ -38,11 +38,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const cleanReason = (reason || '').trim() || 'ไม่ได้ระบุเหตุผล';
+
     const newAdvance = await db.createSalaryAdvanceRequest({
       employee_id: employee.id,
       amount: Number(amount),
       request_date: requestDate || new Date().toISOString().slice(0, 10),
-      reason: reason.trim(),
+      reason: cleanReason,
       needed_before_date: neededBeforeDate || null,
     });
 
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
       nickname: employee.nickname,
       avatarUrl: employee.avatar_url,
       amount: Number(amount),
-      reason: reason.trim(),
+      reason: cleanReason,
       neededBeforeDate: neededBeforeDate || null,
       requestDate: requestDate || new Date().toISOString().slice(0, 10),
     }).catch((err) => console.error('[LINE OA Advance Alert Error]:', err));

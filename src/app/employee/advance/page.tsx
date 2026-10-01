@@ -138,10 +138,17 @@ export default function EmployeeSalaryAdvancePage() {
       };
       document.addEventListener('visibilitychange', handleVisibility);
 
+      const handleAdvanceUpdated = () => {
+        loadRequests(parsed.id);
+        loadMonthlyAttendance(parsed.id);
+      };
+      window.addEventListener('yokohama-advance-updated', handleAdvanceUpdated);
+
       return () => {
         if (channel && supabase) supabase.removeChannel(channel);
         clearInterval(pollTimer);
         document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('yokohama-advance-updated', handleAdvanceUpdated);
       };
     } catch (e) {
       router.push('/employee/login');
@@ -160,12 +167,13 @@ export default function EmployeeSalaryAdvancePage() {
     setErrorMsg('');
     setSuccessMsg('');
 
+    const cleanReason = reason.trim() || 'ไม่ได้ระบุเหตุผล';
     const payload = {
       employeeId: employee.id,
       amount: numAmount,
       requestDate,
       needDate,
-      reason,
+      reason: cleanReason,
     };
 
     // Offline check
@@ -179,7 +187,7 @@ export default function EmployeeSalaryAdvancePage() {
           employee_id: employee.id,
           amount: numAmount,
           request_date: requestDate,
-          reason,
+          reason: cleanReason,
           status: 'PENDING',
         },
         ...prev,
@@ -214,7 +222,7 @@ export default function EmployeeSalaryAdvancePage() {
           employee_id: employee.id,
           amount: numAmount,
           request_date: requestDate,
-          reason,
+          reason: cleanReason,
           status: 'PENDING',
         },
         ...prev,
@@ -415,14 +423,15 @@ export default function EmployeeSalaryAdvancePage() {
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">เหตุผลความจำเป็น</label>
+              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">
+                เหตุผลความจำเป็น <span className="text-[10px] font-bold text-slate-500">(ระบุหรือไม่ก็ได้)</span>
+              </label>
               <input
                 type="text"
-                placeholder="เช่น ค่าใช้จ่ายฉุกเฉินในครอบครัว..."
+                placeholder="เช่น ค่าใช้จ่ายฉุกเฉิน ค่ารักษาพยาบาล (เว้นว่างได้)"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full p-2.5 rounded-2xl text-xs font-bold bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-hidden shadow-xs placeholder:text-slate-500"
-                required
+                className="w-full p-2.5 rounded-2xl text-xs font-bold bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-hidden shadow-xs placeholder:text-slate-400"
               />
             </div>
 

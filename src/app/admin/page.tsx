@@ -907,13 +907,11 @@ export default function WebExecutiveDashboard() {
         {/* Header Bar with Live Clock */}
         <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4 border-b border-neutral-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-md shrink-0 overflow-hidden p-1">
-              <img 
-                src="/images/official-store-logo.png" 
-                alt="สีแสงยางยนต์ YOKOHAMA" 
-                className="w-full h-full object-contain"
-              />
-            </div>
+            <img 
+              src="/images/official-store-logo.png" 
+              alt="สีแสงยางยนต์ YOKOHAMA" 
+              className="h-10 sm:h-11 w-auto object-contain shrink-0 drop-shadow-md"
+            />
             <div>
               <div className="font-bold text-base sm:text-lg text-white">สีแสงยางยนต์ YOKOHAMA</div>
               <div className="text-xs font-mono text-emerald-400/90 flex items-center gap-1.5">
@@ -1116,13 +1114,11 @@ export default function WebExecutiveDashboard() {
         {/* Left: Store Logo + Store Brand Name */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center p-1 group-hover:scale-105 transition-all shrink-0 overflow-hidden shadow-xs">
-              <img 
-                src="/images/official-store-logo.png" 
-                alt="สีแสงยางยนต์ YOKOHAMA" 
-                className="w-full h-full object-contain"
-              />
-            </div>
+            <img 
+              src="/images/official-store-logo.png" 
+              alt="สีแสงยางยนต์ YOKOHAMA" 
+              className="h-8 sm:h-9 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform duration-200 drop-shadow-sm"
+            />
             <div className="flex items-center gap-2">
               <span className="font-bold text-white text-sm sm:text-base tracking-tight">สีแสงยางยนต์ YOKOHAMA</span>
             </div>
