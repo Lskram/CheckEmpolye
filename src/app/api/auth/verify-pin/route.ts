@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       employee_code: employee.employee_code,
       full_name: employee.full_name,
       nickname: employee.nickname,
+      avatar_url: employee.avatar_url || null,
       role: employee.role,
       position: employee.position,
       daily_wage: employee.daily_wage,

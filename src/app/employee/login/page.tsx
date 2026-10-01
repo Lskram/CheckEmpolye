@@ -48,7 +48,31 @@ export default function EmployeeLoginPage() {
   const [foundEmployee, setFoundEmployee] = useState<any>(null);
   const [lookupError, setLookupError] = useState('');
 
-  const pinInputRef = useRef<HTMLInputElement>(null);
+  // Fetch fresh profile and avatar from Supabase DB
+  const refreshCachedUserProfile = async (id?: string, code?: string) => {
+    if (!id && !code) return;
+    try {
+      const param = id ? `id=${encodeURIComponent(id)}` : `code=${encodeURIComponent(code || '')}`;
+      const res = await fetch(`/api/auth/check-code?${param}`);
+      const data = await res.json();
+      if (data.success && data.found && data.employee) {
+        setCachedUser((prev: any) => {
+          const updated = {
+            ...(prev || {}),
+            ...data.employee,
+            id: data.employee.id || prev?.id,
+            fullName: data.employee.full_name || prev?.fullName || prev?.full_name,
+            employeeCode: data.employee.employee_code || prev?.employeeCode || prev?.employee_code,
+            avatar_url: data.employee.avatar_url || null,
+          };
+          localStorage.setItem('attendance_employee_profile', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (e) {
+      console.warn('Could not refresh cached profile from DB:', e);
+    }
+  };
 
   useEffect(() => {
     const currentHWID = getDeviceHWID();
@@ -58,9 +82,11 @@ export default function EmployeeLoginPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed?.id) {
+        if (parsed?.id || parsed?.employee_code || parsed?.employeeCode) {
           setCachedUser(parsed);
           setIsFirstTimeMode(false);
+          // Sync fresh avatar & profile data from Supabase in background
+          refreshCachedUserProfile(parsed.id, parsed.employee_code || parsed.employeeCode);
         } else {
           setIsFirstTimeMode(true);
         }
@@ -328,16 +354,28 @@ export default function EmployeeLoginPage() {
             isDark ? 'neumorph-dark border-blue-500/30' : 'neumorph-light border-blue-300/50'
           } flex items-center justify-between transition-all`}>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-white/20">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-white font-black text-sm shadow-md ring-2 ring-white/20 shrink-0 relative">
                 {cachedUser.avatar_url ? (
-                  <img src={cachedUser.avatar_url} alt={cachedUser.fullName} className="w-full h-full object-cover" />
+                  <img 
+                    key={cachedUser.avatar_url}
+                    src={cachedUser.avatar_url} 
+                    alt={cachedUser.fullName || cachedUser.full_name || 'พนักงาน'} 
+                    className="w-full h-full object-cover rounded-full" 
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
                 ) : (
-                  cachedUser.nickname ? cachedUser.nickname.slice(0, 2) : (cachedUser.fullName || 'EM').slice(0, 2)
+                  <span>
+                    {cachedUser.nickname 
+                      ? cachedUser.nickname.slice(0, 2) 
+                      : (cachedUser.fullName || cachedUser.full_name || 'EM').slice(0, 2)}
+                  </span>
                 )}
               </div>
               <div>
                 <div className="font-black text-sm leading-tight flex items-center gap-1.5">
-                  <span>{cachedUser.fullName}</span>
+                  <span>{cachedUser.fullName || cachedUser.full_name}</span>
                   {cachedUser.nickname && <span className="text-[11px] font-normal text-slate-400">({cachedUser.nickname})</span>}
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 font-mono">
@@ -380,13 +418,34 @@ export default function EmployeeLoginPage() {
 
             {/* Real-Time Lookup Feedback */}
             {foundEmployee && (
-              <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                <div className="truncate">
-                  <span className="font-black">{foundEmployee.fullName}</span>
-                  {foundEmployee.nickname && <span className="text-[11px] text-emerald-200"> ({foundEmployee.nickname})</span>}
-                  <span className="text-[10px] text-slate-400 block">{foundEmployee.position || 'พนักงานประจำ'}</span>
+              <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2.5 shadow-sm">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-md ring-1 ring-white/20">
+                  {foundEmployee.avatar_url ? (
+                    <img 
+                      key={foundEmployee.avatar_url}
+                      src={foundEmployee.avatar_url} 
+                      alt={foundEmployee.full_name || foundEmployee.fullName || 'พนักงาน'} 
+                      className="w-full h-full object-cover rounded-full" 
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span>
+                      {foundEmployee.nickname 
+                        ? foundEmployee.nickname.slice(0, 2) 
+                        : (foundEmployee.full_name || foundEmployee.fullName || 'EM').slice(0, 2)}
+                    </span>
+                  )}
                 </div>
+                <div className="truncate flex-1">
+                  <div className="flex items-center gap-1">
+                    <span className="font-black text-white">{foundEmployee.full_name || foundEmployee.fullName}</span>
+                    {foundEmployee.nickname && <span className="text-[11px] text-emerald-200"> ({foundEmployee.nickname})</span>}
+                  </div>
+                  <span className="text-[10px] text-slate-300 block">{foundEmployee.position || 'พนักงานประจำ'}</span>
+                </div>
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
               </div>
             )}
             {lookupError && (

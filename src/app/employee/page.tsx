@@ -205,6 +205,29 @@ export default function ExactEmployeeApp() {
         setEmployee(parsed);
         setIsAuthChecking(false);
 
+        // Fetch latest profile & avatar from Supabase DB in background
+        const code = parsed.employee_code || parsed.employeeCode;
+        const id = parsed.id;
+        if (code || id) {
+          const param = id ? `id=${encodeURIComponent(id)}` : `code=${encodeURIComponent(code || '')}`;
+          fetch(`/api/auth/check-code?${param}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success && data.found && data.employee) {
+                const fresh = {
+                  ...parsed,
+                  ...data.employee,
+                  fullName: data.employee.full_name || parsed.fullName || parsed.full_name,
+                  employeeCode: data.employee.employee_code || parsed.employeeCode || parsed.employee_code,
+                  avatar_url: data.employee.avatar_url || null,
+                };
+                setEmployee(fresh);
+                localStorage.setItem('attendance_employee_profile', JSON.stringify(fresh));
+              }
+            })
+            .catch(() => {});
+        }
+
         // Load today's check-in / check-out status from Supabase DB
         fetch(`/api/check-in?employeeId=${parsed.id}`)
           .then(res => res.json())

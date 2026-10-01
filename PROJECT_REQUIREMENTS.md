@@ -112,6 +112,7 @@ flowchart TD
 | **REQ-038** | Database & Storage | ระบบอัปโหลดและจัดเก็บรูปภาพโปรไฟล์พนักงาน (Supabase Storage Bucket `avatars` + คอลัมน์ `avatar_url` + ตารางประวัติ `employee_photos`) พร้อม API `/api/employee/avatar` และหน้าต่าง Modal ถ่ายภาพ/เลือกรูปจากเครื่อง แสดงบนปุ่มนูนโปรไฟล์ทันที | ✅ เสร็จสิ้น | Supabase DB / Next.js / Mobile Staff App |
 | **REQ-039** | UI & User Experience | รวมศูนย์การตั้งค่ารูปโปรไฟล์พนักงานไว้ที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar เพียงจุดเดียว พร้อมตัวเลือกเลือกรูปจากแกลเลอรี (Gallery) หรือถ่ายรูปจากกล้อง (Camera) และซิงค์แสดงผลเรียลไทม์ทุกหน้า | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
 | **REQ-040** | UI & Branding | ปรับปรุงโฉมหน้าจอล็อกอินพนักงานบนมือถือ (`/employee/login`) ให้มีธีมและเอกลักษณ์ตรงตามหน้าภายในทั้งหมด (Top Dome Header ภาพพื้นหลัง Yokohama `header-bg.jpg`, โลโก้ทางการสีแสงยางยนต์ `store-logo.png`, เส้นโค้งคลื่น S-Curve Cutout, กล่องข้อมูลพนักงานเดิมที่ผูกเครื่องแล้วพร้อมปุ่มสลับบัญชี, ระบบค้นหาข้อมูลพนักงานแบบสด, ตัวแสดงผลรหัส PIN จุดเรืองแสง และแป้นพิมพ์สัมผัส Tactile 3D Neumorphic Keypad) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/login`) |
+| **REQ-041** | Database & UI Synchronization | ดึงและแสดงรูปโปรไฟล์พนักงาน (`avatar_url`) จากฐานข้อมูล Supabase อัตโนมัติในหน้าจอล็อกอิน (`/employee/login`), หน้าหลักพนักงาน (`/employee`), และแถบเมนูนำทาง (`EmployeeBottomNav.tsx`) พร้อมระบบ Background Profile Sync, การค้นหารหัสพนักงานสด และ Fallback Image Error Handling | ✅ เสร็จสิ้น | API `/api/auth/check-code`, `/api/auth/verify-pin` / Mobile Staff App |
 
 ---
 
@@ -139,6 +140,17 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Live Profile Avatar Sync from Database on Login & App Pages (Version 3.31)
+- ✅ **Database Avatar Synchronization (`/api/auth/check-code` & `/api/auth/verify-pin`)**:
+  - ปรับปรุง API ให้คืนค่า `avatar_url` ล่าสุดจาก Supabase เสมอ และรองรับการค้นหาด้วย `id` หรือ `employee_code`
+  - แก้ไข `verify-pin` ให้ส่งคืน `avatar_url` บันทึกเข้าเครื่องหลังยืนยันรหัส PIN
+- ✅ **Auto-Fetch Avatar on Login Page (`src/app/employee/login/page.tsx`)**:
+  - เมื่อเปิดหน้า Login จะทำการ Background Fetch ข้อมูลพนักงานและรูปโปรไฟล์ล่าสุดจาก Supabase มาอัปเดตลงการ์ดพนักงานที่ผูกเครื่องไว้ทันที
+  - แสดงภาพโปรไฟล์จริงในวง Avatar ของ Returning User Card พร้อม Fallback อักษรย่อหากไม่มีรูป
+  - แสดงรูปโปรไฟล์ในกล่อง Preview ทันทีขณะพิมพ์ค้นหารหัสพนักงานในโหมดเริ่มต้น
+- ✅ **Cross-Component Synchronization (`src/app/employee/page.tsx` & `EmployeeBottomNav.tsx`)**:
+  - ซิงค์รูปโปรไฟล์ล่าสุดอัตโนมัติเมื่อเปิดหน้าหลักและแถบเมนูนำทางด้านล่าง
 
 ### 📌 [2026-10-01] - Mobile Login Page Redesign with Unified Yokohama Sisaeng Theme (Version 3.30)
 - ✅ **Unified Top Dome Header & Brand Identity (`src/app/employee/login/page.tsx`)**:
