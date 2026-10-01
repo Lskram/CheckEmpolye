@@ -100,6 +100,7 @@ flowchart TD
 | **REQ-026** | UI & Branding | ปรับแต่งพื้นหลังกรอบวงนอกของปุ่มเข้างาน (Check-In Quick Action Outer Tile) ด้วยภาพกราฟิกล้อแม็ก Yokohama ลายพิเศษ พร้อม Frosted Glass Overlay และคงกล่องไอคอน Gradient ภายในให้คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-027** | UI & Branding | ปรับแต่งภาพพื้นหลังครบทั้ง 6 กล่องเมนูหลัก (เข้างาน, เบิกเงิน, ยื่นใบลา, ปฏิทิน, พิกัดร้าน, เบี้ยขยัน) ตามภาพที่กำหนด พร้อม Frosted Glass Layer และไอคอน Gradient 3D คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-028** | UI & Branding | ปรับแต่งภาพพื้นหลังเฉพาะธีมในหน้าสถิติปฏิทิน (`/employee/stats`), หน้ายื่นใบลา (`/employee/leave`), และหน้าเบิกเงินล่วงหน้า (`/employee/advance`) พร้อม Frosted Overlay คอนทราสต์สูง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
+| **REQ-029** | UI & Polish | แก้ไขปัญหารอยแถบแสงสว่างลอดด้านบนการ์ดฟอร์มและตารางปฏิทิน (Light Bleed Elimination) เสริมเลเยอร์ทึบสนิท 100% เรียบเนียน ไร้รอยต่อ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 
 ---
 
@@ -127,6 +128,41 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Elimination of Top Light Bleeds & Seamless Dark Overlays (Version 3.16 / Mobile UI Polish)
+- ✅ **Leave Request Page (`src/app/employee/leave/page.tsx`)**:
+  - กำจัดแถบแสง/ขอบขาวด้านบนของการ์ดยื่นใบลา (`leave-form-bg.jpg`) อย่างเบ็ดเสร็จ
+  - วางเลเยอร์พื้นหลังทึบ `bg-[#0c121e]` พร้อมปรับความโปร่งแสงภาพ `opacity-20 pointer-events-none` และครอบด้วย Gradient ทึบเนียนตา `bg-gradient-to-b from-[#090d16] via-[#0c121e]/90 to-[#090d16]`
+- ✅ **Salary Advance Page (`src/app/employee/advance/page.tsx`)**:
+  - ปรับการ์ดสรุปโควตาเบิกเงิน (`advance-quota-bg.jpg`): เสริมฐาน `bg-[#160f08]`, คุมภาพ `opacity-30`, และ Gradient โทนอุ่นเข้ม `from-amber-950/90 via-orange-950/85 to-[#160f08]`
+  - ปรับการ์ดฟอร์มขอเบิกเงิน (`advance-form-bg.jpg`): เสริมฐาน `bg-[#0c121e]`, คุมภาพ `opacity-20`, และ Gradient ทึบ `from-[#090d16] via-[#0c121e]/90 to-[#090d16]` ไร้แสงลอด
+- ✅ **Calendar & Stats Page (`src/app/employee/stats/page.tsx`)**:
+  - กำจัดแถบแสง/ขอบขาวพระจันทร์เสี้ยวด้านบนของการ์ดตารางปฏิทิน (`stats-calendar-bg.jpg`) โดยเพิ่มฐาน `bg-[#0c121e]`, คุมภาพ `opacity-15`, และครอบด้วย Gradient ทึบ `from-[#090d16] via-[#0c121e]/90 to-[#090d16]`
+  - ปรับแต่งการ์ดเบี้ยขยันสะสมและการ์ดอัตราตรงเวลาด้วย `opacity-30` และ Dark Overlay ทึบสนิท 100%
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
+
+### 📌 [2026-10-01] - Official Cash Advance Receipt & Payment Voucher Generator (Version 3.15)
+- ✅ **A4 Print-Ready Voucher Modal (`src/components/CashAdvanceReceiptModal.tsx`)**:
+  - สร้างเอกสารทางการ: **"ใบสำคัญจ่ายเงิน / ใบรับเงินเบิกเงินล่วงหน้า (Cash Advance Payment Voucher & Receipt)"**
+  - **ส่วนหัวเอกสาร**: ตราสัญลักษณ์ทางการ, ชื่อศูนย์บริการ `สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)`, เลขที่เอกสาร (เช่น `VCH-20261001-001`), วันที่ทำรายการ, ตรายางอนุมัติ (Official Approved Stamp)
+  - **ข้อมูลพนักงาน & รหัส (ID)**: แสดงชื่อ-นามสกุล, ชื่อเล่น, ตำแหน่ง, และกรอบรหัสพนักงานเด่นชัด เช่น `[ 01 ]`
+  - **วาระและเหตุผลความจำเป็น (Purpose & Agenda)**: ดึงรายละเอียดวาระการขอเบิกเงินจากคำขอจริง
+  - **ตารางสรุปยอดเงินและคำอ่านภาษาไทย (Thai Baht Text Engine)**:
+    - ตัวเลขยอดเงินทางการ `฿1,500.00 บาท`
+    - แปลงตัวเลขเป็นตัวอักษรภาษาไทยอัตโนมัติ เช่น `( หนึ่งพันห้าร้อยบาทถ้วน )`
+    - ระบุงวดรอบการหักเงินคืนจากเงินเดือนประจำงวดถัดไป
+  - **ข้อความรับรองและยินยอม (Terms & Agreement)**: คำรับรองการรับเงินและการยินยอมหักคืน
+  - **ส่วนท้ายลายมือชื่อ (Official Signature Block)**:
+    - **ฝ่ายพนักงาน (ผู้รับเงิน)**: เว้นช่องว่างสำหรับลงลายมือชื่อจริงด้านบน + วงเล็บชื่อ-นามสกุล + รหัสพนักงาน (ID) + วันที่
+    - **ฝ่าย CEO / ผู้บริหาร (ผู้อนุมัติจ่าย)**: เว้นช่องว่างสำหรับลงลายมือชื่อจริงด้านบน + วงเล็บ `( ท่านประธานกรรมการบริหาร / CEO )` + รหัสผู้บริหาร `[ SI01 ]` + วันที่
+- ✅ **1-Click Generation Trigger in Salary Advance Hub (`src/components/SalaryAdvanceManager.tsx`)**:
+  - ปุ่ม **`📄 สร้างเอกสารรับเงิน / พิมพ์ใบสำคัญจ่าย (A4)`** แสดงอัตโนมัติทันทีที่รายการได้รับการอนุมัติ
+  - ระบบแจ้งเตือนหลังกดอนุมัติ พร้อมปุ่มทางลัดเปิดดูเอกสารทันที
+  - รองรับการสั่งพิมพ์จริงผ่าน `window.print()` ด้วย `@media print` จัดหน้ากระดาษ A4 สะอาดตา สวยงาม คมชัด ไม่ติด UI เว็บไซต์
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
+  - Production Server Active พร้อมตอบสนองทันทีบนพอร์ต 3000
 
 ### 📌 [2026-10-01] - Executive Security Intelligence & Cross-Device Pairing Matrix (Version 3.14)
 - ✅ **Cross-Device Buddy Punching Summary Matrix (`src/components/SecurityLogsViewer.tsx`)**:

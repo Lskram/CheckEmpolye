@@ -191,14 +191,14 @@ export default function EmployeeStatsPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 gap-3">
           {/* Allowance Card */}
-          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-emerald-500/30">
-            {/* Background Image */}
+          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-emerald-500/30 bg-[#061e16]">
+            {/* Background Image with Controlled Opacity */}
             <div 
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
               style={{ backgroundImage: `url('/images/stats-allowance-bg.jpg')` }}
             />
-            {/* Frosted Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/85 via-emerald-900/80 to-teal-950/90 backdrop-blur-[1px]" />
+            {/* Solid Seamless Frosted Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/95 via-emerald-900/85 to-[#061e16] pointer-events-none" />
 
             <div className="relative z-10">
               <div className="flex items-center justify-between text-emerald-200 text-xs mb-1 font-semibold">
@@ -216,18 +216,14 @@ export default function EmployeeStatsPage() {
           </div>
 
           {/* On-Time Rate */}
-          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-blue-500/30 flex flex-col justify-between">
-            {/* Background Image */}
+          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-blue-500/30 bg-[#0a1222] flex flex-col justify-between">
+            {/* Background Image with Controlled Opacity */}
             <div 
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
               style={{ backgroundImage: `url('/images/stats-ontime-bg.jpg')` }}
             />
-            {/* Frosted Gradient Overlay */}
-            <div className={`absolute inset-0 transition-colors duration-300 ${
-              isDark 
-                ? 'bg-gradient-to-br from-slate-950/85 via-blue-950/80 to-slate-900/90 backdrop-blur-[1px]'
-                : 'bg-gradient-to-br from-slate-900/80 via-blue-950/75 to-slate-800/85 backdrop-blur-[1px]'
-            }`} />
+            {/* Solid Seamless Frosted Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-blue-950/85 to-[#0a1222] pointer-events-none" />
 
             <div className="relative z-10">
               <div className="flex items-center justify-between text-xs text-blue-200 mb-1 font-semibold">
@@ -272,20 +268,14 @@ export default function EmployeeStatsPage() {
         </div>
 
         {/* Calendar Grid */}
-        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-xl border border-white/10 ${
-          isDark ? 'neumorph-dark' : 'neumorph-light'
-        } space-y-3`}>
-          {/* Custom Calendar Background Image */}
+        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-white/10 bg-[#0c121e] space-y-3">
+          {/* Custom Calendar Background Image with Controlled Opacity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700"
+            className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/stats-calendar-bg.jpg')` }}
           />
-          {/* Frosted Glass Overlay */}
-          <div className={`absolute inset-0 transition-colors duration-300 ${
-            isDark 
-              ? 'bg-gradient-to-b from-[#090d16]/90 via-[#0c121e]/90 to-[#090d16]/95 backdrop-blur-[2px]' 
-              : 'bg-gradient-to-b from-slate-900/85 via-slate-800/85 to-[#18223c]/90 backdrop-blur-[2px]'
-          }`} />
+          {/* Solid Seamless Dark Frosted Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16] via-[#0c121e]/90 to-[#090d16] pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-300 mb-1">

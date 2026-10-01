@@ -247,20 +247,14 @@ export default function EmployeeLeavePage() {
       <main className="p-4 flex-1 space-y-4 relative z-10">
         
         {/* Form Card with Vacation/Leave Custom Background */}
-        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-xl border border-purple-500/30 ${
-          isDark ? 'neumorph-dark' : 'neumorph-light'
-        } space-y-3`}>
-          {/* Custom Vacation / Leave Background Image */}
+        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-purple-500/20 bg-[#0c121e] space-y-3`}>
+          {/* Custom Vacation / Leave Background Image with Controlled Opacity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
+            className="absolute inset-0 bg-cover bg-center opacity-20 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/leave-form-bg.jpg')` }}
           />
-          {/* High-Contrast Frosted Overlay */}
-          <div className={`absolute inset-0 transition-colors duration-300 ${
-            isDark 
-              ? 'bg-gradient-to-b from-[#090d16]/85 via-[#0c121e]/85 to-[#090d16]/95 backdrop-blur-[2px]' 
-              : 'bg-gradient-to-b from-slate-900/80 via-slate-800/80 to-[#18223c]/85 backdrop-blur-[2px]'
-          }`} />
+          {/* Solid Seamless Dark Frosted Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16] via-[#0c121e]/90 to-[#090d16] pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">

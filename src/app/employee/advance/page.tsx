@@ -242,14 +242,14 @@ export default function EmployeeSalaryAdvancePage() {
       <main className="p-4 flex-1 space-y-4 relative z-10">
         
         {/* Quota Card */}
-        <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-amber-500/30">
-          {/* Custom Background Image */}
+        <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-amber-500/30 bg-[#160f08]">
+          {/* Custom Background Image with Controlled Opacity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+            className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700 group-hover:scale-110"
             style={{ backgroundImage: `url('/images/advance-quota-bg.jpg')` }}
           />
-          {/* Frosted Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-950/85 via-orange-950/80 to-amber-900/90 backdrop-blur-[1px]" />
+          {/* Solid Seamless Frosted Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-950/90 via-orange-950/85 to-[#160f08] pointer-events-none" />
 
           <div className="relative z-10">
             <div className="flex items-center justify-between text-amber-200 text-xs mb-1 font-semibold">
@@ -266,20 +266,14 @@ export default function EmployeeSalaryAdvancePage() {
         </div>
 
         {/* Advance Request Form */}
-        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-xl border border-amber-500/30 ${
-          isDark ? 'neumorph-dark' : 'neumorph-light'
-        } space-y-3`}>
-          {/* Custom Background Image */}
+        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-amber-500/20 bg-[#0c121e] space-y-3">
+          {/* Custom Background Image with Controlled Opacity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
+            className="absolute inset-0 bg-cover bg-center opacity-20 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/advance-form-bg.jpg')` }}
           />
-          {/* Frosted Glass Overlay */}
-          <div className={`absolute inset-0 transition-colors duration-300 ${
-            isDark 
-              ? 'bg-gradient-to-b from-[#090d16]/85 via-[#0c121e]/85 to-[#090d16]/95 backdrop-blur-[2px]' 
-              : 'bg-gradient-to-b from-slate-900/80 via-slate-800/80 to-[#18223c]/85 backdrop-blur-[2px]'
-          }`} />
+          {/* Solid Seamless Dark Frosted Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16] via-[#0c121e]/90 to-[#090d16] pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">

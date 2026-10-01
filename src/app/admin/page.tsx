@@ -1668,6 +1668,7 @@ export default function WebExecutiveDashboard() {
                 onRefresh={() => loadDashboardData(true)}
                 reviewerId="00000000-0000-0000-0000-000000000000"
                 onActionCompleted={handleOptimisticAdvanceAction}
+                storeSettings={storeSettingsForm}
               />
             </div>
           )}
