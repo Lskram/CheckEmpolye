@@ -20,7 +20,7 @@
 | **Styling & UI** | **Tailwind CSS + Lucide Icons** | Dark Slate Glassmorphism Theme (ธีมร้านยาง Yokohama) |
 | **Mobile PWA** | **PWA Service Worker + Manifest** | รองรับการติดตั้งลง Homescreen, Push API, Auto-Hide Nav |
 | **3D & Visuals** | **Three.js / WebGL + Recharts** | แอนิเมชัน 3D Energy Core & กราฟสถิติ 2D Live Attendance |
-| **Map & GIS** | **Leaflet GIS + OpenStreetMap** | Interactive Geofence Map Picker แสดงรัศมีวงกลม 50m |
+| **Map & GIS** | **Leaflet GIS + OpenStreetMap** | Interactive Dynamic Geofence Map Picker ปรับขนาดรัศมีได้อิสระตามที่ Admin กำหนด |
 | **Audio Engine** | **Web Audio API Synthesizer** | สังเคราะห์เสียง Chime ระดับ Sub-millisecond (ไม่ต้องโหลดไฟล์ .mp3) |
 | **State & Storage** | **`db-store.ts` (IndexedDB / LocalStore) -> Supabase PostgreSQL** | Schema รองรับ PostgreSQL พร้อมใช้งาน |
 
@@ -60,7 +60,7 @@ attendance-pwa/
 │   │   ├── NotificationCenter.tsx # Live Notification Drawer + 1-Click Clear
 │   │   ├── SalaryAdvanceManager.tsx # ระบบจัดการและอนุมัติเงินเบิกล่วงหน้า
 │   │   ├── SecurityLogsViewer.tsx # หน้าจอตรวจจับความผิดปกติ HWID & Mock GPS
-│   │   ├── StoreMapPicker.tsx     # Leaflet Map เลือกพิกัดและรัศมี 50m
+│   │   ├── StoreMapPicker.tsx     # Leaflet Map เลือกพิกัดและกำหนดรัศมี Geofence (Dynamic Radius ปรับเปลี่ยนได้อิสระ)
 │   │   ├── ThreeBarChart3D.tsx    # กราฟแท่ง 3D WebGL
 │   │   └── ThreeDonut3D.tsx       # กราฟโดนัท 3D WebGL
 │   └── lib/
@@ -79,9 +79,10 @@ attendance-pwa/
 ## 🔍 4. System Review: ฟีเจอร์ที่พัฒนาเสร็จแล้ว 100%
 
 ### 📱 4.1 ฝั่งแอปพนักงาน (Mobile Employee PWA):
-1. **📍 Hardware GPS Geofencing (50m Radius):**
-   - คำนวณพิกัดดาวเทียมด้วยสูตร Haversine เทียบกับพิกัดร้าน (Default: `13.7563, 100.5018`)
-   - อยู่นอกระยะ 50 เมตร ปุ่มลงเวลาจะถูกล็อก พร้อมแสดงระยะห่างจริงแบบเรียลไทม์
+1. **📍 Hardware GPS Geofencing (Dynamic Radius - ปรับตาม Admin กำหนด):**
+   - คำนวณพิกัดดาวเทียมด้วยสูตร Haversine เทียบกับพิกัดร้านที่ Admin ตั้งค่าไว้
+   - **รัศมีการลงเวลาไม่ได้ล็อกตายตัว**: ระบบดึงค่า `radius_meters` จากการตั้งค่าของ Admin (เช่น 30m, 50m, 100m ฯลฯ) มาคำนวณแบบ Real-time
+   - หากพนักงานอยู่นอกระยะที่ Admin กำหนด ปุ่มลงเวลาจะถูกล็อกอัตโนมัติ พร้อมแสดงระยะห่างจริงและระยะที่อนุญาต
 2. **⏱️ One-Tap Check-In / Check-Out & Live Clock:**
    - หน้าปัดนาฬิกาดิจิทัล + ตัวนับเวลาทำงานแบบสดวินาทีต่อวินาที
    - คำนวณเบี้ยเลี้ยงขยัน (+50 บาท) ให้อัตโนมัติเมื่อลงเวลาก่อน 08:30 น.
@@ -104,7 +105,7 @@ attendance-pwa/
    - ปุ่ม **Approve** (เขียว) และ **Reject** (แดง) จัดการคำขอเบิกเงินและใบลาใน 1 คลิก
    - **Auto-Clear Notification Badge**: เมื่อกดอนุมัติ Badge แจ้งเตือนจะถูกเคลียร์ออกทันที ไม่ค้างบนหน้าจอ
 4. **🗺️ Interactive Leaflet GPS Store Geofence Picker:**
-   - แผนที่ดาวเทียมพร้อมหมุดพิกัดร้านและวงรัศมี Geofence 50 เมตร สามารถคลิกเปลี่ยนตำแหน่งได้
+   - แผนที่ดาวเทียมพร้อมหมุดพิกัดร้านและวงรัศมี Geofence สามารถคลิกย้ายหมุดและปรับเปลี่ยนขนาดรัศมี (เมตร) ได้อย่างอิสระ เมื่อบันทึกแล้วฝั่งพนักงานจะซิงค์ค่าใหม่ทันที
 5. **🔒 Security & Fraud Prevention Center:**
    - ตรวจจับ HWID Overlap (เครื่องเดียวตอกบัตรหลายคน), Mock Location, และบันทึก IP Logs
 6. **📄 CSV Export:**
@@ -128,7 +129,7 @@ sequenceDiagram
     Staff->>GPS: ดึงพิกัด Real-time & Hardware Fingerprint
     GPS-->>Staff: Lat, Lng, Accuracy, HWID
     Staff->>API: POST /api/check-in {userId, lat, lng, hwid}
-    API->>API: 1) ตรวจสอบ Haversine (distance <= 50m)
+    API->>API: 1) ตรวจสอบ Haversine (distance <= storeConfig.radius_meters ที่ Admin กำหนด)
     API->>API: 2) ตรวจสอบ HWID Binding
     API->>API: 3) คำนวณเบี้ยเลี้ยง (+50 บาท ถ้าก่อน 08:30)
     API->>DB: INSERT INTO attendance_logs (status: 'COMPLETED')
