@@ -39,7 +39,8 @@ import {
   ArrowUpRight,
   WifiOff,
   CloudSync,
-  UploadCloud
+  UploadCloud,
+  RotateCcw
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -525,13 +526,23 @@ export default function ExactEmployeeApp() {
         setCheckInResult(data.data);
         playWebAlertSound('checkin');
 
-        setMobileToast({
-          type: 'checkin',
-          title: data.data.status === 'PRESENT' ? '🎉 ลงชื่อเข้างานเรียบร้อย (ตรงเวลา)' : '⚠️ ลงชื่อเข้างานเรียบร้อย (มาสาย)',
-          message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '• รับเบี้ยขยัน +50฿' : ''} • ข้อมูลซิงค์เข้าฐานข้อมูลเรียบร้อย`,
-          isLate: data.data.status !== 'PRESENT',
-          timeStr: data.data.checkInTime || time.hhmm,
-        });
+        if (data.isReentry) {
+          setMobileToast({
+            type: 'checkin',
+            title: '🎉 กลับเข้าปฏิบัติงานเรียบร้อย!',
+            message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. • ยกเลิกการออกงานชั่วคราวและเริ่มจับเวลาต่อทันที`,
+            isLate: data.data.status !== 'PRESENT',
+            timeStr: data.data.checkInTime || time.hhmm,
+          });
+        } else {
+          setMobileToast({
+            type: 'checkin',
+            title: data.data.status === 'PRESENT' ? '🎉 ลงชื่อเข้างานเรียบร้อย (ตรงเวลา)' : '⚠️ ลงชื่อเข้างานเรียบร้อย (มาสาย)',
+            message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '• รับเบี้ยขยัน +50฿' : ''} • ข้อมูลซิงค์เข้าฐานข้อมูลเรียบร้อย`,
+            isLate: data.data.status !== 'PRESENT',
+            timeStr: data.data.checkInTime || time.hhmm,
+          });
+        }
 
         MobileNotificationService.showCheckInSuccess(
           data.data.checkInTime || time.hhmm,
@@ -953,13 +964,38 @@ export default function ExactEmployeeApp() {
       {/* ------------------------------------------------------------- */}
       <div className="max-w-md w-full mx-auto px-4 py-2 space-y-4 flex-1 relative z-10">
         
+        {/* Accidental Check-out Recovery Alert Card */}
+        {checkInResult && checkInResult.checkOutTime && (
+          <div className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 border transition-all ${
+            isDark ? 'bg-indigo-950/40 border-indigo-500/40 text-indigo-200 shadow-indigo-950/40' : 'bg-indigo-50 border-indigo-200 text-indigo-900 shadow-indigo-100'
+          } shadow-md`}>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 shrink-0">
+                <RotateCcw className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold leading-tight">เผลอกดออกงานระหว่างวัน?</h4>
+                <p className="text-[10px] opacity-80 mt-0.5">แตะกลับเข้างานเพื่อล้างสถานะและจับเวลาต่อ (ต้องอยู่ในรัศมีร้าน)</p>
+              </div>
+            </div>
+            <button
+              onClick={handleCheckIn}
+              disabled={isCheckingIn}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-[11px] shadow-sm shrink-0 flex items-center gap-1 active:scale-95 transition-all"
+            >
+              {isCheckingIn ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+              <span>กลับเข้างาน</span>
+            </button>
+          </div>
+        )}
+
         {/* 6 Neumorphic 3D Tiles Grid */}
         <div className="grid grid-cols-3 gap-2.5">
           
-          {/* Tile 1: Check-in / Main Action */}
+          {/* Tile 1: Check-in / Check-out / Re-entry Main Action */}
           <button
-            onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? promptCheckOut : undefined}
-            disabled={isCheckingIn || isCheckingOut || (!!checkInResult && !!checkInResult.checkOutTime)}
+            onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? promptCheckOut : handleCheckIn}
+            disabled={isCheckingIn || isCheckingOut}
             className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all cursor-pointer ${
               isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
             }`}
@@ -969,7 +1005,7 @@ export default function ExactEmployeeApp() {
                 ? 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-blue-500/30'
                 : !checkInResult.checkOutTime
                   ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-amber-500/30'
-                  : 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-500/30'
+                  : 'bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-indigo-500/30 ring-2 ring-sky-400/40'
             }`}>
               {isCheckingIn || isCheckingOut ? (
                 <RefreshCw className="w-5 h-5 animate-spin" />
@@ -978,14 +1014,14 @@ export default function ExactEmployeeApp() {
               ) : !checkInResult.checkOutTime ? (
                 <LogOut className="w-5 h-5" />
               ) : (
-                <CheckCircle2 className="w-5 h-5" />
+                <RotateCcw className="w-5 h-5" />
               )}
             </div>
             <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-              {!checkInResult ? 'เข้างาน' : !checkInResult.checkOutTime ? 'ออกงาน' : 'เสร็จสิ้น'}
+              {!checkInResult ? 'เข้างาน' : !checkInResult.checkOutTime ? 'ออกงาน' : 'กลับเข้างาน'}
             </div>
             <div className="text-[9px] text-slate-400 mt-0.5 font-mono">
-              {checkInResult?.checkInTime ? checkInResult.checkInTime.slice(0, 5) : '08:00'}
+              {!checkInResult ? '08:00' : !checkInResult.checkOutTime ? (checkInResult?.checkInTime ? checkInResult.checkInTime.slice(0, 5) : '08:00') : 'แตะเพื่อเริ่มต่อ'}
             </div>
           </button>
 

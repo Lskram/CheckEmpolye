@@ -28,12 +28,15 @@ import {
   Fingerprint,
   FileSpreadsheet
 } from 'lucide-react';
+import { getEncryptedExecutiveRoute } from '@/lib/encrypted-route';
 
 export default function VercelPortalLandingPage() {
   const [currentTime, setCurrentTime] = useState<string>('');
   const [currentDate, setCurrentDate] = useState<string>('');
+  const [encryptedConsoleUrl, setEncryptedConsoleUrl] = useState<string>('/console/0x7F9B1E4A');
 
   useEffect(() => {
+    setEncryptedConsoleUrl(getEncryptedExecutiveRoute());
     const updateTime = () => {
       const now = new Date();
       setCurrentTime(
@@ -106,13 +109,13 @@ export default function VercelPortalLandingPage() {
         {/* Right Action */}
         <div className="flex items-center gap-3">
           <Link 
-            href="/admin" 
+            href={encryptedConsoleUrl} 
             className="text-xs font-mono text-neutral-400 hover:text-white transition-colors hidden sm:block"
           >
             Executive Login →
           </Link>
           <Link 
-            href="/admin" 
+            href={encryptedConsoleUrl} 
             className="px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-bold transition-all hover:scale-105 shadow-sm flex items-center gap-1.5"
           >
             <span>Console</span>
@@ -159,11 +162,11 @@ export default function VercelPortalLandingPage() {
             </Link>
 
             <Link 
-              href="/admin"
+              href={encryptedConsoleUrl}
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-neutral-900/90 text-white font-bold text-base border border-neutral-700 hover:border-neutral-500 hover:bg-neutral-800 transition-all duration-200 flex items-center justify-center gap-2"
             >
               <LayoutDashboard className="w-4 h-4 text-neutral-400" />
-              <span>ศูนย์ควบคุมผู้บริหาร (Web Admin)</span>
+              <span>ศูนย์ควบคุมผู้บริหาร (Console Vault)</span>
             </Link>
           </div>
         </div>
@@ -259,7 +262,7 @@ export default function VercelPortalLandingPage() {
 
           {/* Card 2: Executive Web Dashboard Gateway */}
           <Link 
-            href="/admin"
+            href={encryptedConsoleUrl}
             className="group relative vercel-card p-8 sm:p-10 flex flex-col justify-between overflow-hidden"
           >
             {/* Top Border Glow */}

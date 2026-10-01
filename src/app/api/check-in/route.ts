@@ -64,53 +64,144 @@ export async function POST(request: Request) {
     const timeString = timeFormatter.format(checkInDate);
 
     // -------------------------------------------------------------
-    // CHECKPOINT 0: DUPLICATE CHECK-IN PREVENTION
+    // CHECKPOINT 0: DUPLICATE CHECK-IN OR RE-ENTRY HANDLING
     // -------------------------------------------------------------
     const existingLogs = await db.getAttendanceLogs(200);
     const todayExistingLog = existingLogs.find(
       (l) => l.employee_id === employee.id &&
              l.check_in_time &&
              getBangkokDateStr(l.check_in_time) === targetDateStr &&
-             (l.status === 'PRESENT' || l.status === 'LATE')
+             (l.status === 'PRESENT' || l.status === 'LATE' || l.status === 'EARLY_LEAVE')
     );
 
     if (todayExistingLog) {
-      const timeStr = new Date(todayExistingLog.check_in_time).toLocaleTimeString('th-TH', {
+      // CASE 1: Employee already checked in and is CURRENTLY on shift (check_out_time is null)
+      if (!todayExistingLog.check_out_time) {
+        const timeStr = new Date(todayExistingLog.check_in_time).toLocaleTimeString('th-TH', {
+          timeZone: 'Asia/Bangkok',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }) + ' น.';
+
+        const shortLogId = `#LOG-${todayExistingLog.id.slice(0, 8).toUpperCase()}`;
+
+        return NextResponse.json({
+          success: true,
+          alreadyCheckedIn: true,
+          code: 'ALREADY_CHECKED_IN',
+          message: `คุณได้ลงเวลาเข้างานของวันนี้ไปแล้ว (${timeStr}) [${shortLogId}]`,
+          data: {
+            id: todayExistingLog.id,
+            logReference: shortLogId,
+            status: todayExistingLog.status,
+            rawCheckInTime: todayExistingLog.check_in_time,
+            rawCheckOutTime: null,
+            checkInTime: timeStr,
+            checkOutTime: null,
+            allowance: Number(todayExistingLog.allowance) || 0,
+            distance: todayExistingLog.distance_from_store,
+            isLate: todayExistingLog.status === 'LATE',
+            employeeName: employee.full_name,
+          },
+        });
+      }
+
+      // CASE 2: Employee previously checked out (e.g. accidentally or left temporarily)
+      // Re-entry / Resume shift is permitted within the working day, but MUST be within store geofence!
+      const settings = await db.getStoreSettings();
+      const storeCoord = { latitude: Number(settings.store_lat), longitude: Number(settings.store_lng) };
+      const userCoord = { latitude: Number(latitude), longitude: Number(longitude) };
+      const radiusMeters = Number(settings.radius_meters) || 50;
+
+      const { isInside, distance } = isWithinGeofence(userCoord, storeCoord, radiusMeters);
+
+      if (!isInside) {
+        // Record violation and block
+        await db.createViolationLog({
+          employee_id: employee.id,
+          violation_type: 'OUT_OF_GEOFENCE_BLOCKED',
+          severity: 'MEDIUM',
+          description: `พนักงาน ${employee.full_name} (${employee.employee_code}) พยายามกลับเข้าทำงานนอกรัศมีร้าน (${distance.toFixed(1)} ม.)`,
+          hwid: hwid || '',
+        });
+
+        sendLineOutOfGeofenceAlert({
+          employeeCode: employee.employee_code,
+          fullName: employee.full_name,
+          nickname: employee.nickname,
+          attemptTime: timeString,
+          distance,
+          allowedRadius: radiusMeters,
+          latitude,
+          longitude,
+        }).catch((err) => console.warn('[LINE] Out of geofence alert error:', err));
+
+        return NextResponse.json(
+          {
+            success: false,
+            code: 'OUT_OF_GEOFENCE_BLOCKED',
+            message: `🚫 คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} ม., กำหนดไม่เกิน ${radiusMeters} ม.) ไม่อนุญาตให้กลับเข้าทำงาน`,
+            distance,
+            allowedRadius: radiusMeters,
+            latitude,
+            longitude,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Re-entry Approved: Calculate original punctuality & restore allowance
+      const [deadHours, deadMinutes] = (settings.late_deadline || '08:00:00').split(':').map(Number);
+      const deadlineTotalMinutes = deadHours * 60 + deadMinutes;
+
+      const inTime = new Date(todayExistingLog.check_in_time);
+      const inTimeString = new Intl.DateTimeFormat('th-TH', {
         timeZone: 'Asia/Bangkok',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
+        hour12: false,
+      }).format(inTime);
+      const [inHours, inMins] = inTimeString.split(':').map(Number);
+      const inTotalMinutes = inHours * 60 + inMins;
+      const wasLate = inTotalMinutes > deadlineTotalMinutes;
+      const restoredStatus = wasLate ? 'LATE' : 'PRESENT';
+      const restoredAllowance = wasLate ? 0.00 : Number(settings.allowance_amount || 50.00);
+
+      const previousOutTimeStr = new Date(todayExistingLog.check_out_time).toLocaleTimeString('th-TH', {
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit',
         hour12: false,
       }) + ' น.';
 
-      const checkOutTimeStr = todayExistingLog.check_out_time
-        ? new Date(todayExistingLog.check_out_time).toLocaleTimeString('th-TH', {
-            timeZone: 'Asia/Bangkok',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-          }) + ' น.'
-        : null;
+      const updatedNotes = `${todayExistingLog.notes || ''} | [กลับเข้าปฏิบัติงานต่อเวลา ${timeString} น. ยกเลิกการออกงานชั่วคราวเมื่อ ${previousOutTimeStr}]`;
+
+      await db.updateAttendanceLog(todayExistingLog.id, {
+        check_out_time: null,
+        status: restoredStatus,
+        allowance: restoredAllowance,
+        notes: updatedNotes,
+      });
 
       const shortLogId = `#LOG-${todayExistingLog.id.slice(0, 8).toUpperCase()}`;
 
       return NextResponse.json({
         success: true,
-        alreadyCheckedIn: true,
-        code: 'ALREADY_CHECKED_IN',
-        message: `คุณได้ลงเวลาเข้างานของวันนี้ไปแล้ว (${timeStr}) [${shortLogId}]`,
+        isReentry: true,
+        message: `🎉 กลับเข้าทำงานเรียบร้อย! (${timeString} น.) [${shortLogId}] ระบบเริ่มจับเวลาทำงานต่อทันที`,
         data: {
           id: todayExistingLog.id,
           logReference: shortLogId,
-          status: todayExistingLog.status,
+          status: restoredStatus,
           rawCheckInTime: todayExistingLog.check_in_time,
-          rawCheckOutTime: todayExistingLog.check_out_time || null,
-          checkInTime: timeStr,
-          checkOutTime: checkOutTimeStr,
-          allowance: Number(todayExistingLog.allowance) || 0,
-          distance: todayExistingLog.distance_from_store,
-          isLate: todayExistingLog.status === 'LATE',
+          rawCheckOutTime: null,
+          checkInTime: inTimeString + ' น.',
+          checkOutTime: null,
+          allowance: restoredAllowance,
+          distance,
+          isLate: wasLate,
           employeeName: employee.full_name,
         },
       });
