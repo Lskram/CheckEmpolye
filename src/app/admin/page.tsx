@@ -735,15 +735,17 @@ export default function WebExecutiveDashboard() {
   const pendingAdvancesCount = overview?.pendingAdvancesCount !== undefined 
     ? overview.pendingAdvancesCount 
     : salaryAdvances.filter((r: any) => r.status === 'PENDING').length;
-  const weeklyData = analyticsData?.weeklyStats || [
-    { day: 'จ.', ontime: 4, late: 0 },
-    { day: 'อ.', ontime: 4, late: 0 },
-    { day: 'พ.', ontime: 3, late: 1 },
-    { day: 'พฤ.', ontime: 4, late: 0 },
-    { day: 'ศ.', ontime: 4, late: 0 },
-    { day: 'ส.', ontime: 4, late: 0 },
-    { day: 'อา.', ontime: 0, late: 0 },
-  ];
+  const weeklyData = Array.isArray(analyticsData?.weeklyStats) && analyticsData.weeklyStats.length > 0
+    ? analyticsData.weeklyStats
+    : [
+        { day: 'จ.', ontime: 4, late: 0, total: 4, allowance: 200 },
+        { day: 'อ.', ontime: 4, late: 0, total: 4, allowance: 200 },
+        { day: 'พ.', ontime: 3, late: 1, total: 4, allowance: 150 },
+        { day: 'พฤ.', ontime: 4, late: 0, total: 4, allowance: 200 },
+        { day: 'ศ.', ontime: 4, late: 0, total: 4, allowance: 200 },
+        { day: 'ส.', ontime: 4, late: 0, total: 4, allowance: 200 },
+        { day: 'อา.', ontime: 0, late: 0, total: 0, allowance: 0 },
+      ];
 
   // CSV Export with UTF-8 BOM
   const handleExportCSV = () => {

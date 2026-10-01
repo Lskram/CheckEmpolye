@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
-interface DataPoint {
+export interface DataPoint {
   day: string;
   ontime: number;
   late: number;
@@ -12,8 +12,18 @@ interface DataPoint {
 }
 
 interface ThreeBarChart3DProps {
-  data: DataPoint[];
+  data?: DataPoint[];
 }
+
+const DEFAULT_DAYS: DataPoint[] = [
+  { day: 'จ.', ontime: 0, late: 0, total: 0, allowance: 0 },
+  { day: 'อ.', ontime: 0, late: 0, total: 0, allowance: 0 },
+  { day: 'พ.', ontime: 0, late: 0, total: 0, allowance: 0 },
+  { day: 'พฤ.', ontime: 0, late: 0, total: 0, allowance: 0 },
+  { day: 'ศ.', ontime: 0, late: 0, total: 0, allowance: 0 },
+  { day: 'ส.', ontime: 0, late: 0, total: 0, allowance: 0 },
+  { day: 'อา.', ontime: 0, late: 0, total: 0, allowance: 0 },
+];
 
 export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -21,6 +31,9 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
   const [hoveredData, setHoveredData] = useState<DataPoint | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [webGlError, setWebGlError] = useState(false);
+
+  // Guard: Ensure safeData is ALWAYS an array
+  const safeData: DataPoint[] = Array.isArray(data) && data.length > 0 ? data : DEFAULT_DAYS;
 
   useEffect(() => {
     const container = mountRef.current;
@@ -77,12 +90,13 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
 
       const barMeshes: THREE.Mesh[] = [];
       const spacing = 1.8;
-      const startX = -((data.length - 1) * spacing) / 2;
-      const maxOntime = Math.max(...data.map((d) => d.ontime), 1);
+      const startX = -((safeData.length - 1) * spacing) / 2;
+      const maxOntime = Math.max(...safeData.map((d) => d.ontime || 0), 1);
 
-      data.forEach((item, index) => {
-        const isActive = item.ontime > 0;
-        const barHeight = isActive ? Math.max(0.6, (item.ontime / maxOntime) * 4.5) : 0.08;
+      safeData.forEach((item, index) => {
+        const ontimeCount = item.ontime || 0;
+        const isActive = ontimeCount > 0;
+        const barHeight = isActive ? Math.max(0.6, (ontimeCount / maxOntime) * 4.5) : 0.08;
         const barGeometry = new THREE.BoxGeometry(1.0, barHeight, 1.0);
 
         const barColor = isActive ? 0x0ea5e9 : 0x1e293b;
@@ -213,7 +227,7 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
       console.warn('[ThreeBarChart3D] WebGL not supported or failed, using fallback:', err);
       setWebGlError(true);
     }
-  }, [data]);
+  }, [safeData]);
 
   if (webGlError) {
     return (
@@ -223,12 +237,13 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
           <span className="text-blue-400">สัปดาห์นี้</span>
         </div>
         <div className="flex items-end justify-between gap-2 h-44 pt-4">
-          {data.map((item, idx) => {
-            const maxVal = Math.max(...data.map((d) => d.ontime), 1);
-            const heightPct = Math.max(10, (item.ontime / maxVal) * 100);
+          {safeData.map((item, idx) => {
+            const ontimeCount = item.ontime || 0;
+            const maxVal = Math.max(...safeData.map((d) => d.ontime || 0), 1);
+            const heightPct = Math.max(10, (ontimeCount / maxVal) * 100);
             return (
               <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
-                <span className="text-[10px] font-mono text-emerald-400 font-bold">{item.ontime}</span>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold">{ontimeCount}</span>
                 <div
                   style={{ height: `${heightPct}%` }}
                   className="w-full rounded-xl bg-gradient-to-t from-blue-600 to-cyan-400 shadow-md transition-all"
@@ -255,13 +270,13 @@ export default function ThreeBarChart3D({ data }: ThreeBarChart3DProps) {
           className="absolute -translate-x-1/2 pointer-events-none bg-slate-900/95 backdrop-blur-md text-white text-[11px] py-2 px-3.5 rounded-xl shadow-2xl border border-slate-700 z-20 whitespace-nowrap animate-fadeIn"
         >
           <div className="font-bold text-sky-400">
-            {hoveredData.day} (รวม {hoveredData.total} คน)
+            {hoveredData.day} (รวม {hoveredData.total || 0} คน)
           </div>
           <div className="text-[10px] text-slate-300">
-            ตรงเวลา: <strong className="text-emerald-400">{hoveredData.ontime} คน</strong> (+{hoveredData.allowance}฿)
+            ตรงเวลา: <strong className="text-emerald-400">{hoveredData.ontime || 0} คน</strong> (+{hoveredData.allowance || 0}฿)
           </div>
           <div className="text-[10px] text-amber-300">
-            มาสาย: {hoveredData.late} คน
+            มาสาย: {hoveredData.late || 0} คน
           </div>
         </div>
       )}
