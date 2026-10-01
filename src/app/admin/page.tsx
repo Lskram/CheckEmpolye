@@ -581,7 +581,7 @@ export default function WebExecutiveDashboard() {
       } else {
         setIsLoggingIn(false);
         setLoginStep(0);
-        setExecutivePinError(data.message || '❌ รหัสผู้บริหารหรือรหัส PIN ไม่ถูกต้อง (รหัสผ่านเริ่มต้น: 1234 หรือ 5101)');
+        setExecutivePinError(data.message || '❌ รหัสผู้บริหารหรือรหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
       }
     } catch (err: any) {
       setIsLoggingIn(false);
@@ -881,11 +881,6 @@ export default function WebExecutiveDashboard() {
   // 1. EXECUTIVE AUTH LOCK SCREEN (Vercel Style Deep Obsidian)
   // -------------------------------------------------------------
   if (!isExecutiveUnlocked) {
-    const detectedCode = (executiveCodeInput.trim() || 'SI01').toUpperCase();
-    const isMasterAdmin = detectedCode === 'SI01';
-    const isTechStaff = detectedCode === '01';
-    const isFinanceStaff = detectedCode === '02';
-
     return (
       <div className="min-h-screen bg-black text-white font-sans flex flex-col justify-between p-4 sm:p-8 select-none relative vercel-bg">
         {/* Header Bar with Live Clock */}
@@ -976,7 +971,7 @@ export default function WebExecutiveDashboard() {
                   type="text"
                   value={executiveCodeInput}
                   onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
-                  placeholder="เช่น SI01 (หรือเว้นว่างเพื่อใช้บัญชีประธาน)"
+                  placeholder="รหัสผู้บริหาร (Executive Code)"
                   disabled={isLoggingIn}
                   className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white font-mono font-bold text-sm focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all disabled:opacity-50"
                 />
@@ -1000,7 +995,7 @@ export default function WebExecutiveDashboard() {
                   type={showPassword ? 'text' : 'password'}
                   value={executivePinInput}
                   onChange={(e) => setExecutivePinInput(e.target.value)}
-                  placeholder="•••• (รหัสเริ่มต้น: 1234 หรือ 5101)"
+                  placeholder="••••••••"
                   disabled={isLoggingIn}
                   className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-sm font-mono font-bold tracking-widest focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all disabled:opacity-50"
                   required
