@@ -6,7 +6,8 @@
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "lint": "next lint"
+    "lint": "next lint",
+    "report:discord": "node scripts/send-discord-report.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

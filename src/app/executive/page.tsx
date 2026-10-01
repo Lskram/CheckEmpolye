@@ -35,7 +35,9 @@ import {
   Lock,
   User,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
@@ -46,7 +48,7 @@ import { WebNotification, playWebAlertSound, showBrowserDesktopNotification } fr
 const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-64 rounded-2xl bg-slate-100 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+    <div className="w-full h-64 rounded-2xl bg-slate-900/60 border border-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
       กำลังโหลดแผนที่ร้านและระบบพิกัด GPS...
     </div>
   ),
@@ -86,6 +88,7 @@ export default function MobileExecutiveApp() {
   // Executive Login Fallback State
   const [executiveCodeInput, setExecutiveCodeInput] = useState('');
   const [executivePinInput, setExecutivePinInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [executivePinError, setExecutivePinError] = useState('');
 
   // Live Clock
@@ -108,9 +111,9 @@ export default function MobileExecutiveApp() {
   const [addLoading, setAddLoading] = useState(false);
   const [addMsg, setAddMsg] = useState('');
 
-  // Store Settings Form
+  // Store Settings
   const [storeSettingsForm, setStoreSettingsForm] = useState<any>({
-    store_name: 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS',
+    store_name: 'สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS)',
     store_lat: 15.110412,
     store_lng: 104.358434,
     radius_meters: 50,
@@ -121,49 +124,26 @@ export default function MobileExecutiveApp() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState('');
 
-  // Notification & Audio Alert System
+  // Notification & Audio Alerts
   const [notificationsList, setNotificationsList] = useState<WebNotification[]>([]);
   const [activeToast, setActiveToast] = useState<WebNotification | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const prevDataRef = useRef<{
-    logMap: Map<string, any>;
-    advanceMap: Map<string, any>;
-    leaveMap: Map<string, any>;
-    violationMap: Map<string, any>;
-    isFirstLoad: boolean;
-  }>({
-    logMap: new Map(),
-    advanceMap: new Map(),
-    leaveMap: new Map(),
-    violationMap: new Map(),
-    isFirstLoad: true,
-  });
-
-  const triggerNotification = (notif: Omit<WebNotification, 'id' | 'time' | 'timestamp' | 'read'>) => {
-    const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const fullNotif: WebNotification = {
-      ...notif,
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      time,
-      timestamp: Date.now(),
-      read: false,
+  // Update Clock
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTimeStr({
+        time: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+        dateThai: now.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      });
     };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-    setNotificationsList((prev) => [fullNotif, ...prev.slice(0, 49)]);
-    setActiveToast(fullNotif);
-
-    if (soundEnabled) {
-      playWebAlertSound(notif.type);
-    }
-    showBrowserDesktopNotification(notif.title, notif.message);
-
-    setTimeout(() => {
-      setActiveToast((current) => (current?.id === fullNotif.id ? null : current));
-    }, 7000);
-  };
-
-  // 1. Session & Auth Guard Check
+  // Auth Guard
   useEffect(() => {
     const savedToken = localStorage.getItem('executive_auth_token');
     const savedProfile = localStorage.getItem('attendance_employee_profile');
@@ -181,270 +161,23 @@ export default function MobileExecutiveApp() {
     }
   }, []);
 
-  // 2. Real-time Clock Ticker
-  useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      const timeFormatted = now.toLocaleTimeString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      });
-      const dateFormatted = now.toLocaleDateString('th-TH', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      setTimeStr({ time: timeFormatted, dateThai: dateFormatted });
-    };
-    updateClock();
-    const timer = setInterval(updateClock, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // 3. Data Fetching & Smart Diff Detection (Dual-Engine Live Sync)
-  const loadData = async (silent = false) => {
+  // Data Fetching
+  const loadDashboardData = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/analytics?period=${period}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.data) {
-        const d = data.data;
-        setAnalyticsData(d);
-
-        if (d.settings) {
+        setAnalyticsData(data.data);
+        if (data.data.settings) {
           if (!hasLoadedSettingsRef.current || activeTabRef.current !== 'settings') {
-            setStoreSettingsForm(d.settings);
+            setStoreSettingsForm(data.data.settings);
             hasLoadedSettingsRef.current = true;
           }
         }
-
-        // Map employees for fast name lookup
-        const empMap = new Map<string, any>();
-        (d.employees || []).forEach((emp: any) => {
-          empMap.set(emp.id, emp);
-          if (emp.employee_code) empMap.set(emp.employee_code, emp);
-        });
-
-        const logs = d.attendanceLogs || [];
-        const advances = d.salaryAdvanceRequests || [];
-        const leaves = d.leaveRequests || [];
-        const violations = d.violations || [];
-
-        if (prevDataRef.current.isFirstLoad) {
-          // Initialize maps and populate Notification Center timeline from today's logs & requests
-          const initialNotifs: WebNotification[] = [];
-
-          // Add check-ins & check-outs from logs
-          logs.forEach((log: any) => {
-            prevDataRef.current.logMap.set(log.id, log);
-            const emp = empMap.get(log.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-
-            if (log.check_in_time) {
-              const timeStr = new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-              const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
-              initialNotifs.push({
-                id: `init-in-${log.id}`,
-                type: 'checkin',
-                relatedId: log.id,
-                title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างาน`,
-                message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
-                time: timeStr,
-                timestamp: new Date(log.check_in_time).getTime(),
-                read: true,
-                targetTab: 'overview',
-              });
-            }
-
-            if (log.check_out_time) {
-              const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-              initialNotifs.push({
-                id: `init-out-${log.id}`,
-                type: 'checkout',
-                relatedId: log.id,
-                title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงาน`,
-                message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
-                time: timeStr,
-                timestamp: new Date(log.check_out_time).getTime(),
-                read: true,
-                targetTab: 'overview',
-              });
-            }
-          });
-
-          // Add advance requests
-          advances.forEach((adv: any) => {
-            prevDataRef.current.advanceMap.set(adv.id, adv);
-            const emp = empMap.get(adv.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-            const timeStr = adv.created_at ? new Date(adv.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            initialNotifs.push({
-              id: `init-adv-${adv.id}`,
-              type: 'advance',
-              relatedId: adv.id,
-              status: adv.status,
-              title: `💵 คำขอเบิกเงิน (${adv.status === 'APPROVED' ? 'อนุมัติแล้ว' : adv.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'})`,
-              message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
-              time: timeStr,
-              timestamp: adv.created_at ? new Date(adv.created_at).getTime() : Date.now(),
-              read: adv.status !== 'PENDING',
-              targetTab: 'advances',
-            });
-          });
-
-          // Add leave requests
-          leaves.forEach((lv: any) => {
-            prevDataRef.current.leaveMap.set(lv.id, lv);
-            const emp = empMap.get(lv.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-            const timeStr = lv.created_at ? new Date(lv.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            initialNotifs.push({
-              id: `init-lv-${lv.id}`,
-              type: 'leave',
-              relatedId: lv.id,
-              status: lv.status,
-              title: `📄 คำขอยื่นใบลา (${lv.status === 'APPROVED' ? 'อนุมัติแล้ว' : lv.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'})`,
-              message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
-              time: timeStr,
-              timestamp: lv.created_at ? new Date(lv.created_at).getTime() : Date.now(),
-              read: lv.status !== 'PENDING',
-              targetTab: 'leaves',
-            });
-          });
-
-          // Add security violations
-          violations.forEach((v: any) => {
-            prevDataRef.current.violationMap.set(v.id, v);
-            const timeStr = v.created_at ? new Date(v.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            initialNotifs.push({
-              id: `init-v-${v.id}`,
-              type: 'violation',
-              relatedId: v.id,
-              title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
-              message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
-              time: timeStr,
-              timestamp: v.created_at ? new Date(v.created_at).getTime() : Date.now(),
-              read: !!v.is_resolved,
-              targetTab: 'violations',
-            });
-          });
-
-          // Sort newest first
-          initialNotifs.sort((a, b) => b.timestamp - a.timestamp);
-          setNotificationsList(initialNotifs.slice(0, 50));
-          prevDataRef.current.isFirstLoad = false;
-        } else {
-          // 1. Detect New Advance Requests & Status Changes
-          advances.forEach((adv: any) => {
-            const prevAdv = prevDataRef.current.advanceMap.get(adv.id);
-            const emp = empMap.get(adv.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-
-            if (!prevAdv) {
-              triggerNotification({
-                type: 'advance',
-                relatedId: adv.id,
-                status: adv.status,
-                title: `💵 มีคำขอเบิกเงินล่วงหน้าใหม่!`,
-                message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
-                targetTab: 'advances',
-              });
-            } else if (prevAdv.status !== adv.status) {
-              setNotificationsList((prevList) =>
-                prevList.map((n) =>
-                  n.relatedId === adv.id ? { ...n, read: true, status: adv.status } : n
-                )
-              );
-              if (activeToast?.relatedId === adv.id) {
-                setActiveToast(null);
-              }
-            }
-          });
-
-          // 2. Detect New Check-in / Check-out Logs
-          logs.forEach((log: any) => {
-            const prevLog = prevDataRef.current.logMap.get(log.id);
-            const emp = empMap.get(log.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-
-            if (!prevLog) {
-              const timeStr = log.check_in_time ? new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-              const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
-              triggerNotification({
-                type: 'checkin',
-                relatedId: log.id,
-                title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างานแล้ว`,
-                message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
-                targetTab: 'overview',
-              });
-            } else if (!prevLog.check_out_time && log.check_out_time) {
-              const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-              triggerNotification({
-                type: 'checkout',
-                relatedId: log.id,
-                title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงานแล้ว`,
-                message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
-                targetTab: 'overview',
-              });
-            }
-          });
-
-          // 3. Detect New Leave Requests
-          leaves.forEach((lv: any) => {
-            const prevLv = prevDataRef.current.leaveMap.get(lv.id);
-            const emp = empMap.get(lv.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-
-            if (!prevLv) {
-              triggerNotification({
-                type: 'leave',
-                relatedId: lv.id,
-                status: lv.status,
-                title: `📄 มีการยื่นใบลาใหม่!`,
-                message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
-                targetTab: 'leaves',
-              });
-            } else if (prevLv.status !== lv.status) {
-              setNotificationsList((prevList) =>
-                prevList.map((n) =>
-                  n.relatedId === lv.id ? { ...n, read: true, status: lv.status } : n
-                )
-              );
-            }
-          });
-
-          // 4. Detect New Violations
-          violations.forEach((v: any) => {
-            const prevV = prevDataRef.current.violationMap.get(v.id);
-            if (!prevV) {
-              triggerNotification({
-                type: 'violation',
-                relatedId: v.id,
-                title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
-                message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
-                targetTab: 'violations',
-              });
-            }
-          });
-
-          // Update cache maps
-          logs.forEach((l: any) => prevDataRef.current.logMap.set(l.id, l));
-          advances.forEach((a: any) => prevDataRef.current.advanceMap.set(a.id, a));
-          leaves.forEach((lv: any) => prevDataRef.current.leaveMap.set(lv.id, lv));
-          violations.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
-        }
       }
     } catch (e) {
-      console.error('Failed to load executive data:', e);
+      console.error('Mobile Executive fetch error:', e);
     } finally {
       if (!silent) setIsLoading(false);
     }
@@ -452,163 +185,72 @@ export default function MobileExecutiveApp() {
 
   useEffect(() => {
     if (!isExecutiveUnlocked) return;
+    loadDashboardData(false);
 
-    loadData(false);
-
-    // 1. Supabase Realtime Channel Subscription (<100ms instant broadcast)
     let channel: any = null;
     if (isSupabaseConfigured && supabase) {
       channel = supabase
-        .channel('executive-mobile-realtime-room')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'salary_advance_requests' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'violation_logs' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
-          loadData(true);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
-          loadData(true);
-        })
+        .channel('executive-mobile-room')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => loadDashboardData(true))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'salary_advance_requests' }, () => loadDashboardData(true))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'violation_logs' }, () => loadDashboardData(true))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => loadDashboardData(true))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => loadDashboardData(true))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => loadDashboardData(true))
         .subscribe();
     }
 
-    // 2. Adaptive Fast Background Polling (3s)
-    const pollTimer = setInterval(() => {
-      loadData(true);
-    }, 3000);
-
-    // 3. Auto-sync on Tab/Window Focus
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        loadData(true);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('focus', handleVisibility);
-
+    const timer = setInterval(() => loadDashboardData(true), 3500);
     return () => {
-      if (channel && supabase) {
-        supabase.removeChannel(channel);
-      }
-      clearInterval(pollTimer);
-      document.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('focus', handleVisibility);
+      if (channel) supabase?.removeChannel(channel);
+      clearInterval(timer);
     };
   }, [isExecutiveUnlocked, period]);
 
   // Auth Handlers
-  const handleExecutiveLogin = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const code = executiveCodeInput.trim().toUpperCase();
-    const pin = executivePinInput.trim();
+  const handleExecutiveLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setExecutivePinError('');
 
-    if (code === 'SI01' && pin === '5101') {
-      setIsExecutiveUnlocked(true);
-      setExecutivePinError('');
-      localStorage.setItem('executive_auth_token', 'true');
-      localStorage.setItem('executive_user_code', code);
-    } else {
-      setExecutivePinError('รหัสผู้บริหารหรือ PIN ไม่ถูกต้อง (SI01 / PIN 5101)');
-      setExecutivePinInput('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeCode: executiveCodeInput.trim().toUpperCase(), pinCode: executivePinInput.trim() }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        if (data.data.role === 'ADMIN' || data.data.employee_code === 'SI01') {
+          localStorage.setItem('executive_auth_token', 'true');
+          localStorage.setItem('attendance_employee_profile', JSON.stringify(data.data));
+          setIsExecutiveUnlocked(true);
+        } else {
+          setExecutivePinError('บัญชีนี้ไม่มีสิทธิ์ระดับผู้บริหาร');
+        }
+      } else {
+        setExecutivePinError(data.message || 'รหัสผู้บริหารหรือรหัส PIN ไม่ถูกต้อง');
+      }
+    } catch (err: any) {
+      setExecutivePinError('เกิดข้อผิดพลาด: ' + err.message);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('executive_auth_token');
     localStorage.removeItem('attendance_employee_profile');
-    localStorage.removeItem('executive_user_code');
     setIsExecutiveUnlocked(false);
-    setExecutivePinInput('');
-    setExecutivePinError('');
-    router.push('/employee/login');
   };
 
-  // CRUD Handlers
-  const handleCreateEmployee = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAddLoading(true);
-    setAddMsg('');
-    try {
-      const res = await fetch('/api/admin/employee', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeCode: newCode.trim().toUpperCase(),
-          fullName: newName.trim(),
-          nickname: newNick.trim(),
-          pin: newPin.trim(),
-          role: newRole,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setAddMsg(data.message || 'ไม่สามารถสร้างบัญชีได้');
-        setAddLoading(false);
-        return;
-      }
-      setAddMsg('สร้างบัญชีพนักงานสำเร็จ!');
-      setTimeout(() => {
-        setShowAddModal(false);
-        setNewCode('');
-        setNewName('');
-        setNewNick('');
-        setNewPin('1234');
-        setAddMsg('');
-        loadData(true);
-      }, 700);
-    } catch (e: any) {
-      setAddMsg('เกิดข้อผิดพลาด: ' + e.message);
-    } finally {
-      setAddLoading(false);
-    }
+  const handleMarkAsRead = (id: string) => {
+    setNotificationsList((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
-  const handleResetHWID = async (id: string, name: string) => {
-    if (!confirm(`ต้องการปลดล็อกอุปกรณ์ (Reset HWID) สำหรับ "${name}" หรือไม่?`)) return;
-    try {
-      const res = await fetch('/api/admin/employee', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, clearHWID: true }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('ปลดล็อกอุปกรณ์สำเร็จ พนักงานสามารถผูกเครื่องใหม่ได้ในการเข้าสู่ระบบครั้งถัดไป');
-        loadData(true);
-      }
-    } catch (e: any) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
-    }
+  const handleMarkAllAsRead = () => {
+    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  const handleDeleteEmployee = async (id: string, code: string, name: string) => {
-    if (code === 'SI01') {
-      alert('ไม่สามารถลบบัญชีผู้บริหารสูงสุด (SI01) ได้');
-      return;
-    }
-    if (!confirm(`ยืนยันการลบบัญชีพนักงาน "${name}" (${code}) หรือไม่?`)) return;
-    try {
-      const res = await fetch(`/api/admin/employee?id=${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        loadData(true);
-      } else {
-        alert(data.message || 'ไม่สามารถลบข้อมูลได้');
-      }
-    } catch (e: any) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
-    }
-  };
-
+  // Leave Action
   const handleLeaveAction = async (leaveId: string, status: 'APPROVED' | 'REJECTED') => {
     try {
       const res = await fetch('/api/leave', {
@@ -622,35 +264,36 @@ export default function MobileExecutiveApp() {
       });
       const data = await res.json();
       if (data.success) {
-        loadData(true);
-      } else {
-        alert(data.message || 'ไม่สามารถบันทึกผลได้');
+        loadDashboardData(true);
       }
-    } catch (e: any) {
-      alert('เกิดข้อผิดพลาด: ' + e.message);
-    }
+    } catch (e) {}
   };
 
-  const handleMarkAsRead = (notifId: string) => {
-    setNotificationsList((prev) =>
-      prev.map((n) => (n.id === notifId ? { ...n, read: true } : n))
-    );
+  // Reset HWID
+  const handleResetHWID = async (id: string, name: string) => {
+    if (!confirm(`ปลดล็อกอุปกรณ์ (Reset HWID) สำหรับ "${name}" หรือไม่?`)) return;
+    try {
+      const res = await fetch('/api/admin/employee', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, clearHWID: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('ปลดล็อกอุปกรณ์สำเร็จ');
+        loadDashboardData(true);
+      }
+    } catch (e) {}
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  const handleAdvanceActionCompleted = (requestId: string, status: 'APPROVED' | 'REJECTED') => {
-    setNotificationsList((prevList) =>
-      prevList.map((n) =>
-        n.relatedId === requestId ? { ...n, read: true, status } : n
-      )
-    );
-    if (activeToast?.relatedId === requestId) {
-      setActiveToast(null);
-    }
-    loadData(true);
+  const handleDeleteEmployee = async (id: string, code: string, name: string) => {
+    if (code === 'SI01') return;
+    if (!confirm(`ยืนยันการลบ "${name}" หรือไม่?`)) return;
+    try {
+      const res = await fetch(`/api/admin/employee?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) loadDashboardData(true);
+    } catch (e) {}
   };
 
   const handleSaveSettings = async (e?: React.FormEvent) => {
@@ -665,16 +308,13 @@ export default function MobileExecutiveApp() {
       });
       const data = await res.json();
       if (data.success) {
-        if (data.data) {
-          setStoreSettingsForm(data.data);
-        }
-        setSettingsMsg('✅ บันทึกนโยบายและพิกัดร้านเรียบร้อยแล้ว');
-        setTimeout(() => setSettingsMsg(''), 4000);
+        setSettingsMsg('✅ บันทึกพิกัดและนโยบายร้านสำเร็จ!');
+        setTimeout(() => setSettingsMsg(''), 3500);
       } else {
-        setSettingsMsg('❌ ไม่สามารถบันทึกได้: ' + (data.message || 'เกิดข้อผิดพลาด'));
+        setSettingsMsg('❌ ไม่สามารถบันทึกได้');
       }
     } catch (err: any) {
-      setSettingsMsg('❌ เกิดข้อผิดพลาด: ' + err.message);
+      setSettingsMsg('❌ ผิดพลาด: ' + err.message);
     } finally {
       setSettingsLoading(false);
     }
@@ -690,9 +330,7 @@ export default function MobileExecutiveApp() {
   const totalAllowancePaid = overview?.totalAllowancePaid || 0;
   const onTimeRate = overview?.onTimeRate || 0;
 
-  const rawStaffList = (analyticsData?.allowanceReports || [])
-    .filter((emp: any) => emp.role !== 'ADMIN');
-
+  const rawStaffList = (analyticsData?.allowanceReports || []).filter((emp: any) => emp.role !== 'ADMIN');
   const formattedStaff: StaffItem[] = rawStaffList.map((emp: any): StaffItem => {
     const status: 'PRESENT' | 'LATE' | 'PENDING' = emp.todayStatus || (emp.presentCount > 0 ? 'PRESENT' : emp.lateCount > 0 ? 'LATE' : 'PENDING');
     const isPresent = status === 'PRESENT';
@@ -702,126 +340,91 @@ export default function MobileExecutiveApp() {
       code: emp.employeeCode,
       name: emp.fullName,
       nickname: emp.nickname || '-',
-      role: emp.role === 'SUPERVISOR' ? 'หัวหน้างาน (Supervisor)' : 'พนักงาน (Staff)',
+      role: emp.role === 'SUPERVISOR' ? 'หัวหน้างาน' : 'พนักงาน',
       status,
       allowance: emp.todayAllowance !== undefined ? emp.todayAllowance : (emp.totalAllowance || 0),
       hwid: emp.hwid || null,
-      statusLabel: isPresent ? 'ตรงเวลา (+50฿)' : isLate ? 'มาสาย (>08:00)' : 'ยังไม่ลงเวลา',
-      checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45:00 น.' : isLate ? '08:15:00 น.' : '-'),
+      statusLabel: isPresent ? 'ตรงเวลา (+50฿)' : isLate ? 'มาสาย' : 'ยังไม่ลงเวลา',
+      checkInTimeStr: emp.todayCheckInTime && emp.todayCheckInTime !== '-' ? emp.todayCheckInTime : (isPresent ? '07:45' : isLate ? '08:15' : '-'),
       rawCheckInTime: emp.todayRawCheckInTime || null,
-      distanceStr: emp.todayDistance && emp.todayDistance !== '-' ? emp.todayDistance : (isPresent || isLate ? 'ในร้าน (5 ม.)' : '-'),
-      badgeColor: isPresent ? 'bg-emerald-100 text-emerald-800' : isLate ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
+      distanceStr: emp.todayDistance && emp.todayDistance !== '-' ? emp.todayDistance : '-',
+      badgeColor: isPresent ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : isLate ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'
     };
-  });
-
-  const filteredStaff: StaffItem[] = formattedStaff.filter((emp: StaffItem) => {
-    if (staffFilter === 'present' && emp.status !== 'PRESENT') return false;
-    if (staffFilter === 'late' && emp.status !== 'LATE') return false;
-    if (staffFilter === 'pending' && emp.status !== 'PENDING') return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        emp.name.toLowerCase().includes(q) ||
-        emp.code.toLowerCase().includes(q) ||
-        emp.nickname.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  }).sort((a: StaffItem, b: StaffItem) => {
-    // 1. Both checked in today: sort by latest check-in timestamp descending
-    if (a.rawCheckInTime && b.rawCheckInTime) {
-      return new Date(b.rawCheckInTime).getTime() - new Date(a.rawCheckInTime).getTime();
-    }
-    // 2. Staff who checked in comes before pending
-    if (a.rawCheckInTime) return -1;
-    if (b.rawCheckInTime) return 1;
-    // 3. Fallback code ordering
-    return a.code.localeCompare(b.code);
   });
 
   const leaveRequests = analyticsData?.leaveRequests || [];
   const violationLogs = analyticsData?.violationLogs || [];
-  const unresolvedViolationsCount = (violationLogs || []).filter((v: any) => !v.is_resolved).length;
-  const salaryAdvances = analyticsData?.salaryAdvanceRequests || [];
-  const pendingAdvancesCount = overview?.pendingAdvancesCount !== undefined 
-    ? overview.pendingAdvancesCount 
-    : salaryAdvances.filter((a: any) => a.status === 'PENDING').length;
 
-  // Export CSV
+  // CSV Export
   const handleExportCSV = () => {
-    const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'สถานะวันนี้', 'เบี้ยขยันสะสม (บาท)'];
-    const rows = formattedStaff.map((e: StaffItem) => [
-      e.code,
+    const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'สถานะ', 'เบี้ยขยัน (บาท)'];
+    const rows = formattedStaff.map((e) => [
+      `"${e.code}"`,
       `"${e.name}"`,
       `"${e.nickname}"`,
-      e.statusLabel,
+      `"${e.statusLabel}"`,
       e.allowance,
     ]);
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Executive_Attendance_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `สรุปรายวัน_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   // -------------------------------------------------------------
-  // FALLBACK MOBILE LOGIN (If not logged in)
+  // FALLBACK LOGIN
   // -------------------------------------------------------------
   if (!isExecutiveUnlocked) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-5 font-sans select-none">
-        <div className="w-full max-w-sm bg-white p-7 rounded-3xl shadow-xl border border-slate-100 space-y-5">
+      <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-center items-center p-6 font-sans bg-grid-pattern relative">
+        <div className="bento-card max-w-sm w-full p-6 space-y-6">
           <div className="text-center space-y-1">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center mx-auto text-2xl shadow-md shadow-blue-500/20">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white mx-auto shadow-lg shadow-blue-500/25 font-black text-2xl">
               👑
             </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight pt-2">
-              เข้าสู่ระบบผู้บริหาร
-            </h1>
-            <p className="text-xs text-slate-400">
-              สีแสงยางยนต์ YOKOHAMA NAYA COSMIS
-            </p>
+            <h2 className="text-xl font-black text-white pt-2">เข้าสู่ระบบผู้บริหาร (Mobile)</h2>
+            <p className="text-xs text-slate-400">ระบุรหัสผู้บริหารและรหัส PIN</p>
           </div>
 
           {executivePinError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{executivePinError}</span>
+            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold">
+              {executivePinError}
             </div>
           )}
 
-          <form onSubmit={handleExecutiveLogin} className="space-y-3.5">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">รหัสผู้บริหาร</label>
+          <form onSubmit={handleExecutiveLogin} className="space-y-4">
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-300">รหัสผู้บริหาร</label>
               <input
                 type="text"
                 value={executiveCodeInput}
                 onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
                 placeholder="เช่น SI01"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:outline-none focus:border-blue-600"
+                className="w-full px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-500"
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">รหัส PIN 4 หลัก</label>
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-300">รหัส PIN 4 หลัก</label>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 maxLength={4}
                 value={executivePinInput}
                 onChange={(e) => setExecutivePinInput(e.target.value)}
                 placeholder="••••"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-mono tracking-widest focus:outline-none focus:border-blue-600"
+                className="w-full px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-center text-lg font-mono font-bold tracking-widest text-white focus:outline-none focus:border-blue-500"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-md shadow-blue-500/25 active:scale-95 transition-all"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-sm shadow-lg shadow-blue-600/30 transition-all active:scale-[0.98]"
             >
-              เข้าสู่ระบบผู้บริหาร
+              เข้าสู่ระบบ
             </button>
           </form>
         </div>
@@ -830,23 +433,19 @@ export default function MobileExecutiveApp() {
   }
 
   // -------------------------------------------------------------
-  // MAIN EXECUTIVE MOBILE APP VIEW (No top header bar)
+  // MAIN VIEW
   // -------------------------------------------------------------
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-24">
+    <div className="min-h-screen w-full bg-[#070a12] flex flex-col justify-between select-none font-sans text-slate-100 pb-24 bg-grid-pattern relative">
       
-      {/* ------------------------------------------------------------- */}
-      {/* MAIN SCROLLABLE CONTENT                                       */}
-      {/* ------------------------------------------------------------- */}
+      {/* Scrollable Container */}
       <div className="flex-1 px-4 pt-4 space-y-4 max-w-lg mx-auto w-full">
         
-        {/* Blue Gradient Hero Card */}
-        <div className="bg-gradient-to-br from-[#2563eb] via-[#1d4ed8] to-[#1e40af] rounded-3xl p-5 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          
-          <div className="flex items-center justify-between text-xs text-blue-100 font-medium mb-2">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block shadow-xs shadow-emerald-400/50" />
+        {/* Bento Hero Card */}
+        <div className="bento-card p-5 space-y-3 relative overflow-hidden">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center gap-1.5 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>{timeStr.dateThai}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -856,93 +455,119 @@ export default function MobileExecutiveApp() {
                 onMarkAllAsRead={handleMarkAllAsRead}
                 onMarkAsRead={handleMarkAsRead}
                 onSelectNotification={(notif) => {
-                  if (notif.targetTab) {
-                    setActiveTab(notif.targetTab as any);
-                  }
+                  if (notif.targetTab) setActiveTab(notif.targetTab as any);
                 }}
                 activeToast={activeToast}
                 onDismissToast={() => setActiveToast(null)}
                 soundEnabled={soundEnabled}
                 onToggleSound={() => setSoundEnabled(!soundEnabled)}
               />
-              <span className="font-mono font-bold bg-blue-900/40 px-2.5 py-1.5 rounded-xl border border-blue-400/20">
-                {timeStr.time} น.
+              <span className="font-mono font-bold bg-slate-950/90 text-white px-2.5 py-1 rounded-xl border border-slate-800 text-[11px]">
+                {timeStr.time}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between my-2">
+          <div className="flex items-center justify-between pt-1">
             <div>
-              <div className="text-[11px] text-blue-200 font-semibold">สรุปพนักงานวันนี้</div>
-              <div className="text-3xl font-black font-mono tracking-tight">
-                {totalPresent + totalLate} <span className="text-base font-normal text-blue-100">/ {totalEmployees} คน</span>
+              <div className="text-[11px] text-slate-400 font-bold">พนักงานเข้างานวันนี้</div>
+              <div className="text-3xl font-black font-mono text-white tracking-tight">
+                {totalPresent + totalLate} <span className="text-sm font-normal text-slate-400">/ {totalEmployees} คน</span>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="text-[11px] text-blue-200 font-semibold">ยอดจ่ายเบี้ยขยันวันนี้</div>
-              <div className="text-2xl font-black font-mono text-amber-300">
-                +{totalAllowancePaid} <span className="text-xs text-amber-200 font-normal">บาท</span>
+              <div className="text-[11px] text-slate-400 font-bold">เบี้ยขยันจ่ายวันนี้</div>
+              <div className="text-2xl font-black font-mono text-amber-400">
+                +{totalAllowancePaid} <span className="text-xs text-slate-400 font-normal">บาท</span>
               </div>
             </div>
           </div>
 
-          {/* 3 Pillar Summary Badges */}
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-blue-400/25 text-center text-xs">
-            <div className="bg-blue-900/40 rounded-xl p-2 border border-blue-400/20">
-              <div className="font-black text-sm font-mono text-emerald-300">{totalPresent}</div>
-              <div className="text-[10px] text-blue-200 font-medium">ตรงเวลา</div>
+          {/* 3 Pillar Summary */}
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-center text-xs">
+            <div className="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
+              <div className="font-black text-sm font-mono text-emerald-400">{totalPresent}</div>
+              <div className="text-[10px] text-slate-400 font-bold">ตรงเวลา</div>
             </div>
-            <div className="bg-blue-900/40 rounded-xl p-2 border border-blue-400/20">
-              <div className="font-black text-sm font-mono text-amber-300">{totalLate}</div>
-              <div className="text-[10px] text-blue-200 font-medium">มาสาย</div>
+            <div className="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
+              <div className="font-black text-sm font-mono text-amber-400">{totalLate}</div>
+              <div className="text-[10px] text-slate-400 font-bold">มาสาย</div>
             </div>
-            <div className="bg-blue-900/40 rounded-xl p-2 border border-blue-400/20">
-              <div className="font-black text-sm font-mono text-slate-300">{pendingCount}</div>
-              <div className="text-[10px] text-blue-200 font-medium">ยังไม่ลงเวลา</div>
+            <div className="bg-slate-950/80 rounded-xl p-2 border border-slate-800">
+              <div className="font-black text-sm font-mono text-slate-400">{pendingCount}</div>
+              <div className="text-[10px] text-slate-400 font-bold">ยังไม่ลง</div>
             </div>
           </div>
         </div>
 
-        {/* ------------------------------------------------------------- */}
-        {/* TAB 1: OVERVIEW (ภาพรวม)                                      */}
-        {/* ------------------------------------------------------------- */}
+        {/* Minimalist Sub-Tab Navigation */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 p-1 bg-slate-900/80 rounded-2xl border border-slate-800 backdrop-blur-md">
+          {[
+            { id: 'overview', label: 'ภาพรวม', icon: TrendingUp },
+            { id: 'staff', label: 'ลูกน้อง', icon: Users },
+            { id: 'leaves', label: 'ใบลา', icon: Calendar, badge: pendingLeavesCount },
+            { id: 'advances', label: 'เบิกเงิน', icon: Coins },
+            { id: 'violations', label: 'Security', icon: Shield },
+            { id: 'settings', label: 'ตั้งค่าร้าน', icon: Settings },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-slate-950">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-4">
-            
-            {/* Quick Metrics */}
+          <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-                <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-1">
-                  <span>ความตรงต่อเวลา</span>
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+              <div className="bento-card p-4 space-y-1">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                  <span>ความตรงเวลา</span>
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
                 </div>
-                <div className="text-2xl font-black font-mono text-slate-900">{onTimeRate}%</div>
-                <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                  {onTimeRate >= 90 ? 'ตรงตามเป้าหมาย' : 'ต่ำกว่าเป้าหมาย'}
-                </div>
+                <div className="text-2xl font-black font-mono text-white">{onTimeRate}%</div>
+                <div className="text-[10px] text-slate-400">{onTimeRate >= 90 ? 'ตรงตามเป้าหมาย' : 'ต่ำกว่าเป้าหมาย'}</div>
               </div>
 
-              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-                <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-1">
-                  <span>คำขอลาที่รออนุมัติ</span>
-                  <Calendar className="w-4 h-4 text-amber-500" />
+              <div className="bento-card p-4 space-y-1">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                  <span>คำขอลาค้าง</span>
+                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
                 </div>
-                <div className="text-2xl font-black font-mono text-slate-900">{pendingLeavesCount}</div>
-                <div className="text-[10px] text-slate-400 font-medium mt-0.5">รอผู้บริหารพิจารณา</div>
+                <div className="text-2xl font-black font-mono text-white">{pendingLeavesCount}</div>
+                <div className="text-[10px] text-slate-400">รอการพิจารณา</div>
               </div>
             </div>
 
-            {/* Staff Attendance Summary List */}
-            <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-xs space-y-3">
+            {/* Quick Staff Status List */}
+            <div className="bento-card p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-black text-slate-900">สถานะการเข้างานของลูกน้อง</span>
+                  <UserCheck className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-black text-white">สถานะเข้างานลูกน้อง</span>
                 </div>
                 <button
                   onClick={() => setActiveTab('staff')}
-                  className="text-xs text-blue-600 font-bold hover:underline"
+                  className="text-xs text-blue-400 font-bold hover:underline"
                 >
                   ดูทั้งหมด ({formattedStaff.length}) →
                 </button>
@@ -952,91 +577,76 @@ export default function MobileExecutiveApp() {
                 {formattedStaff.map((emp) => (
                   <div
                     key={emp.id}
-                    className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-center justify-between"
+                    className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-black text-xs flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 font-black text-xs flex items-center justify-center border border-blue-500/30">
                         {emp.nickname[0] || 'U'}
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-slate-900">
+                        <div className="text-xs font-bold text-white">
                           {emp.name} ({emp.nickname})
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">
-                          {emp.code}
+                          {emp.code} • {emp.checkInTimeStr}
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${emp.badgeColor}`}>
-                        {emp.statusLabel}
-                      </span>
-                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${emp.badgeColor}`}>
+                      {emp.statusLabel}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Quick CSV Export */}
+            {/* Export CSV */}
             <button
               onClick={handleExportCSV}
-              className="w-full py-3.5 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-xs flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bento-card border-slate-800 hover:border-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"
             >
-              <Download className="w-4 h-4 text-emerald-600" />
-              <span>ดาวน์โหลดรายงานสรุปการทำงาน (Excel / CSV)</span>
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span>ดาวน์โหลดรายงานสรุป (Excel / CSV)</span>
             </button>
           </div>
         )}
 
-        {/* ------------------------------------------------------------- */}
-        {/* TAB 2: STAFF (ลูกน้อง)                                         */}
-        {/* ------------------------------------------------------------- */}
+        {/* TAB 2: STAFF */}
         {activeTab === 'staff' && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-sm text-slate-900">รายชื่อลูกน้อง ({formattedStaff.length} คน)</h3>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-1 shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>เพิ่มพนักงาน</span>
-              </button>
-            </div>
-
             <div className="space-y-2">
               {formattedStaff.map((emp) => (
-                <div key={emp.id} className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs space-y-2">
+                <div key={emp.id} className="bento-card p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-xs flex items-center justify-center">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 font-black text-xs flex items-center justify-center border border-blue-500/30">
                         {emp.nickname[0] || 'U'}
                       </div>
                       <div>
-                        <div className="font-bold text-xs text-slate-900">{emp.name}</div>
+                        <div className="font-bold text-xs text-white">{emp.name}</div>
                         <div className="text-[10px] text-slate-400 font-mono">{emp.code} • {emp.nickname}</div>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/30">
                       {emp.role}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                    <div className="text-[10px] text-slate-500">
-                      อุปกรณ์: {emp.hwid ? <span className="text-emerald-600 font-bold">ผูกแล้ว</span> : 'ยังไม่ผูก'}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                    <div className="text-[10px] text-slate-400">
+                      อุปกรณ์: {emp.hwid ? <span className="text-emerald-400 font-bold">ผูกแล้ว</span> : 'ยังไม่ผูก'}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleResetHWID(emp.id, emp.name)}
-                        className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold"
+                        className="px-2 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-bold"
                       >
                         Reset HWID
                       </button>
                       <button
                         onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
-                        className="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-bold"
+                        className="px-2 py-1 rounded-lg bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[10px] font-bold"
                       >
                         ลบ
                       </button>
@@ -1048,39 +658,35 @@ export default function MobileExecutiveApp() {
           </div>
         )}
 
-        {/* ------------------------------------------------------------- */}
-        {/* TAB 3: LEAVES (ใบลา)                                          */}
-        {/* ------------------------------------------------------------- */}
+        {/* TAB 3: LEAVES */}
         {activeTab === 'leaves' && (
           <div className="space-y-3">
-            <h3 className="font-black text-sm text-slate-900">คำขอลางาน ({leaveRequests.length})</h3>
             {leaveRequests.length === 0 ? (
-              <div className="p-8 text-center bg-white rounded-2xl border border-slate-100 text-slate-400 text-xs font-bold">
+              <div className="p-8 text-center bento-card text-slate-400 text-xs font-bold">
                 ไม่มีรายการขอลางานในขณะนี้
               </div>
             ) : (
               <div className="space-y-2">
                 {leaveRequests.map((req: any) => (
-                  <div key={req.id} className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-xs space-y-2">
+                  <div key={req.id} className="bento-card p-4 space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <div>
-                        <span className="font-bold text-slate-900">
+                        <span className="font-bold text-white">
                           {req.employee?.full_name || req.employees?.full_name || 'พนักงาน'}
-                          {(req.employee?.nickname || req.employees?.nickname) ? ` (${req.employee?.nickname || req.employees?.nickname})` : ''}
                         </span>
-                        <span className="ml-1.5 font-mono text-[10px] text-blue-600 font-bold">
+                        <span className="ml-1.5 font-mono text-[10px] text-blue-400 font-bold">
                           [{req.employee?.employee_code || req.employees?.employee_code || req.employee_id?.slice(0, 8)}]
                         </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-100 text-amber-800">
+                      <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30">
                         {req.leave_type === 'SICK' ? 'ลาป่วย 🩺' : req.leave_type === 'BUSINESS' ? 'ลากิจ 💼' : req.leave_type === 'ANNUAL' ? 'ลาพักร้อน 🏖️' : 'อื่นๆ 📝'}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-600">
-                      {req.start_date} {req.end_date && req.end_date !== req.start_date ? `ถึง ${req.end_date}` : ''} ({req.days_count || 1} วัน) • <span className="italic text-slate-500">"{req.reason || 'ไม่ระบุเหตุผล'}"</span>
+                    <div className="text-xs text-slate-400">
+                      {req.start_date} {req.end_date && req.end_date !== req.start_date ? `ถึง ${req.end_date}` : ''} ({req.days_count || 1} วัน) • <span className="italic text-slate-300">"{req.reason || 'ไม่ระบุเหตุผล'}"</span>
                     </div>
                     {req.status === 'PENDING' && (
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
                         <button
                           onClick={() => handleLeaveAction(req.id, 'APPROVED')}
                           className="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold text-xs"
@@ -1089,7 +695,7 @@ export default function MobileExecutiveApp() {
                         </button>
                         <button
                           onClick={() => handleLeaveAction(req.id, 'REJECTED')}
-                          className="px-3 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold text-xs"
+                          className="px-3 py-1 rounded-lg bg-rose-600 text-white font-bold text-xs"
                         >
                           ปฏิเสธ
                         </button>
@@ -1102,330 +708,112 @@ export default function MobileExecutiveApp() {
           </div>
         )}
 
-        {/* ------------------------------------------------------------- */}
-        {/* TAB 4: SETTINGS (ตั้งค่า)                                      */}
-        {/* ------------------------------------------------------------- */}
+        {/* TAB 4: ADVANCES */}
+        {activeTab === 'advances' && (
+          <div className="bento-card p-4">
+            <SalaryAdvanceManager 
+              requests={analyticsData?.salaryAdvanceRequests || []}
+              onRefresh={() => loadDashboardData(true)}
+              reviewerId="00000000-0000-0000-0000-000000000000"
+            />
+          </div>
+        )}
+
+        {/* TAB 5: VIOLATIONS */}
+        {activeTab === 'violations' && (
+          <div className="bento-card p-4">
+            <SecurityLogsViewer 
+              logs={violationLogs}
+              onRefresh={() => loadDashboardData(true)}
+              isMobileCompact={true}
+            />
+          </div>
+        )}
+
+        {/* TAB 6: SETTINGS */}
         {activeTab === 'settings' && (
           <div className="space-y-4">
-            <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center text-xl shadow-xs">
-                👑
-              </div>
-              <div>
-                <div className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md w-fit">
-                  SI01 • ผู้บริหารสูงสุด
-                </div>
-                <div className="text-sm font-black text-slate-900 mt-0.5">ศูนย์บัญชาการผู้บริหาร</div>
-                <div className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  ระบบเชื่อมต่อเรียลไทม์ (Live Sync)
-                </div>
-              </div>
+            <div className="bento-card p-4 space-y-3">
+              <h3 className="font-black text-sm text-white flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-400" />
+                <span>พิกัดร้านและ Geofence</span>
+              </h3>
+              <StoreMapPicker
+                lat={Number(storeSettingsForm.store_lat) || 15.110412}
+                lng={Number(storeSettingsForm.store_lng) || 104.358434}
+                radius={Number(storeSettingsForm.radius_meters) || 50}
+                storeName={storeSettingsForm.store_name}
+                onChange={(lat, lng) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    store_lat: lat,
+                    store_lng: lng,
+                  }));
+                }}
+                onStoreNameChange={(name) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    store_name: name,
+                  }));
+                }}
+                onRadiusChange={(radius) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    radius_meters: radius,
+                  }));
+                }}
+                onSave={handleSaveSettings}
+                isSaving={settingsLoading}
+              />
             </div>
 
-            {/* Store Policy Form */}
-            <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                <MapPin className="w-4 h-4 text-blue-600" />
-                <span>พิกัดร้านและนโยบายลงเวลา (GPS Geofence)</span>
-              </div>
+            <div className="bento-card p-4 space-y-3">
+              <h3 className="font-black text-sm text-white flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-400" />
+                <span>นโยบายเวลาเข้างาน</span>
+              </h3>
 
               {settingsMsg && (
-                <div className={`p-3 rounded-2xl text-xs font-bold ${
-                  settingsMsg.includes('✅') || settingsMsg.includes('สำเร็จ')
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                    : 'bg-rose-50 border border-rose-200 text-rose-800'
-                }`}>
+                <div className="p-3 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
                   {settingsMsg}
                 </div>
               )}
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">ชื่อร้าน / สาขา</label>
-                <input
-                  type="text"
-                  value={storeSettingsForm.store_name}
-                  onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_name: e.target.value })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">เวลากะปกติ</label>
-                  <input
-                    type="text"
-                    value={storeSettingsForm.standard_time}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                  />
+              <form onSubmit={handleSaveSettings} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300">เวลาเข้างาน</label>
+                    <input
+                      type="time"
+                      value={storeSettingsForm.standard_time || '07:40:00'}
+                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-300">ตัดสาย</label>
+                    <input
+                      type="time"
+                      value={storeSettingsForm.late_deadline || '08:00:00'}
+                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs font-bold"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">ตัดสาย (Deadline)</label>
-                  <input
-                    type="text"
-                    value={storeSettingsForm.late_deadline}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">รัศมีเช็คอิน (เมตร)</label>
-                  <input
-                    type="number"
-                    value={storeSettingsForm.radius_meters}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">เบี้ยขยัน (บาท/วัน)</label>
-                  <input
-                    type="number"
-                    value={storeSettingsForm.allowance_amount}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Map Picker on Mobile Executive */}
-              <div className="pt-2">
-                <label className="block text-[11px] font-bold text-slate-700 mb-1.5">แผนที่ปักหมุดจุดร้านค้า (Leaflet Map Picker)</label>
-                <StoreMapPicker
-                  lat={Number(storeSettingsForm.store_lat) || 15.110412}
-                  lng={Number(storeSettingsForm.store_lng) || 104.358434}
-                  radius={Number(storeSettingsForm.radius_meters) || 50}
-                  storeName={storeSettingsForm.store_name}
-                  onChange={(lat, lng) => {
-                    setStoreSettingsForm((prev: any) => ({
-                      ...prev,
-                      store_lat: lat,
-                      store_lng: lng
-                    }));
-                  }}
-                  onStoreNameChange={(name) => {
-                    setStoreSettingsForm((prev: any) => ({
-                      ...prev,
-                      store_name: name
-                    }));
-                  }}
-                  onRadiusChange={(r) => {
-                    setStoreSettingsForm((prev: any) => ({
-                      ...prev,
-                      radius_meters: r
-                    }));
-                  }}
-                  onSave={handleSaveSettings}
-                  isSaving={settingsLoading}
-                />
-              </div>
-
-              <button
-                onClick={handleSaveSettings}
-                disabled={settingsLoading}
-                className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
-              >
-                <Check className="w-4 h-4" />
-                <span>{settingsLoading ? 'กำลังบันทึกลงฐานข้อมูล...' : 'บันทึกการตั้งค่านโยบายและพิกัดร้าน'}</span>
-              </button>
-            </div>
-
-            {/* Security Logs */}
-            <div 
-              onClick={() => setActiveTab('violations')}
-              className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs space-y-2 cursor-pointer hover:border-slate-300 transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                  <ShieldAlert className="w-4 h-4 text-rose-600" />
-                  <span>บันทึกความปลอดภัย & ป้องกันทุจริต</span>
-                </div>
-                <span className="text-[10px] font-bold text-blue-600">ดูทั้งหมด →</span>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 text-[11px] text-slate-500 text-center">
-                {violationLogs.length === 0 ? 'ไม่มีประวัติความผิดปกติ ทุกอย่างปลอดภัย 100%' : `พบ ${violationLogs.length} รายการ (${unresolvedViolationsCount} รอดำเนินการ)`}
-              </div>
-            </div>
-
-            {/* Logout Button in Settings Tab */}
-            <button
-              onClick={handleLogout}
-              className="w-full py-3.5 rounded-2xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-98"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>ออกจากระบบผู้บริหาร (Logout)</span>
-            </button>
-          </div>
-        )}
-
-        {/* TAB 4: SALARY ADVANCE REQUESTS */}
-        {activeTab === 'advances' && (
-          <SalaryAdvanceManager
-            requests={salaryAdvances}
-            onRefresh={() => loadData(false)}
-            reviewerId="00000000-0000-0000-0000-000000000000"
-            onActionCompleted={handleAdvanceActionCompleted}
-          />
-        )}
-
-        {/* TAB 5: VIOLATIONS & SECURITY LOGS */}
-        {activeTab === 'violations' && (
-          <SecurityLogsViewer
-            logs={violationLogs}
-            onRefresh={() => loadData(false)}
-            isMobileCompact={true}
-          />
-        )}
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* BOTTOM FLOATING NAVIGATION TABS (Mobile Only)                 */}
-      {/* ------------------------------------------------------------- */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 shadow-lg">
-        <div className="max-w-lg mx-auto flex items-center justify-around">
-          {[
-            { id: 'overview', label: 'ภาพรวม', icon: TrendingUp },
-            { id: 'staff', label: 'ลูกน้อง', icon: Users },
-            { id: 'leaves', label: 'ใบลา', icon: Calendar, badge: pendingLeavesCount },
-            { id: 'advances', label: 'เบิกเงิน', icon: Coins, badge: pendingAdvancesCount },
-            { id: 'violations', label: 'ความปลอดภัย', icon: ShieldAlert, badge: unresolvedViolationsCount },
-            { id: 'settings', label: 'ตั้งค่า', icon: Settings },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all relative ${
-                  isActive ? 'text-blue-600 font-black' : 'text-slate-400 hover:text-slate-600 font-medium'
-                }`}
-              >
-                <div className="relative">
-                  <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                  {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="absolute -top-1.5 -right-2.5 bg-amber-500 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                      {tab.badge}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px]">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* MODAL: ADD EMPLOYEE                                           */}
-      {/* ------------------------------------------------------------- */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                  <Plus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900">เพิ่มพนักงานใหม่ (Add Staff)</h3>
-                  <p className="text-[10px] text-slate-500">บันทึกข้อมูลเข้าฐานข้อมูล Supabase ทันที</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs"
-              >
-                ✕
-              </button>
-            </div>
-
-            {addMsg && (
-              <div className={`p-3 rounded-xl text-xs font-bold ${
-                addMsg.includes('สำเร็จ')
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                  : 'bg-rose-50 border border-rose-200 text-rose-800'
-              }`}>
-                {addMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateEmployee} className="space-y-3 text-xs font-bold">
-              <div>
-                <label className="block text-slate-700 mb-1">รหัสพนักงาน: <span className="text-rose-500">*</span></label>
-                <input
-                  type="text"
-                  value={newCode}
-                  onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                  placeholder="เช่น EMP003, TECH01"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 mb-1">ชื่อ-นามสกุล: <span className="text-rose-500">*</span></label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="เช่น สมชาย สายตรง"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 mb-1">ชื่อเล่น:</label>
-                  <input
-                    type="text"
-                    value={newNick}
-                    onChange={(e) => setNewNick(e.target.value)}
-                    placeholder="เช่น ชาย"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 mb-1">รหัส PIN / รหัสผ่าน: <span className="text-rose-500">*</span></label>
-                  <input
-                    type="password"
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="เช่น 1234 หรือรหัสผ่าน"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-center tracking-widest focus:outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 mb-1">ตำแหน่ง / สิทธิ์ (Role):</label>
-                <select
-                  value={newRole}
-                  onChange={(e: any) => setNewRole(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 font-medium"
+                <button
+                  type="submit"
+                  disabled={settingsLoading}
+                  className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-md shadow-blue-600/30"
                 >
-                  <option value="STAFF">👷 พนักงานปฏิบัติการ (STAFF - ตอกบัตร/เบี้ยเลี้ยง 50฿)</option>
-                  <option value="SUPERVISOR">👨‍🔧 หัวหน้างาน (SUPERVISOR - ตอกบัตร/เบี้ยเลี้ยง 50฿)</option>
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={addLoading}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-500/20 transition-all active:scale-98 flex items-center justify-center gap-2"
-              >
-                {addLoading ? <span>กำลังบันทึกลง Supabase...</span> : <> <Plus className="w-4 h-4" /> <span>บันทึกและสร้างบัญชีพนักงาน</span> </>}
-              </button>
-            </form>
+                  {settingsLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
     </div>
   );
 }

@@ -31,7 +31,14 @@ import {
   Sparkles, 
   Check,
   PieChart,
-  Radio
+  Radio,
+  Sliders,
+  Shield,
+  CheckCircle2,
+  XCircle,
+  Smartphone,
+  ChevronRight,
+  Activity
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import SecurityLogsViewer from '@/components/SecurityLogsViewer';
@@ -42,7 +49,7 @@ import { WebNotification, playWebAlertSound, showBrowserDesktopNotification } fr
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-72 rounded-2xl bg-slate-50 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+    <div className="w-full h-72 rounded-2xl bg-slate-900/60 border border-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
       กำลังเรนเดอร์กราฟ 3D WebGL...
     </div>
   ),
@@ -51,7 +58,7 @@ const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
 const StoreMapPicker = dynamic(() => import('@/components/StoreMapPicker'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-80 rounded-2xl bg-slate-100 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
+    <div className="w-full h-80 rounded-2xl bg-slate-900/60 border border-slate-800 animate-pulse flex items-center justify-center text-xs text-slate-400 font-bold">
       กำลังโหลดแผนที่ร้านและระบบพิกัด GPS...
     </div>
   ),
@@ -126,6 +133,12 @@ export default function WebExecutiveDashboard() {
   });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState('');
+
+  // Discord AI Reporter Settings
+  const [discordWebhookUrl, setDiscordWebhookUrl] = useState('');
+  const [discordLoading, setDiscordLoading] = useState(false);
+  const [discordMsg, setDiscordMsg] = useState('');
+
   // Notification & Audio Alert System
   const [notificationsList, setNotificationsList] = useState<WebNotification[]>([]);
   const [activeToast, setActiveToast] = useState<WebNotification | null>(null);
@@ -184,6 +197,10 @@ export default function WebExecutiveDashboard() {
     if (savedToken === 'true') {
       setIsExecutiveUnlocked(true);
     }
+    const savedDiscord = localStorage.getItem('discord_webhook_url');
+    if (savedDiscord) {
+      setDiscordWebhookUrl(savedDiscord);
+    }
   }, []);
 
   // 2. Data Fetching & Smart Diff Detection (100% Reliable Dual-Engine)
@@ -203,126 +220,22 @@ export default function WebExecutiveDashboard() {
           }
         }
 
-        // Map employees for fast name lookup
-        const empMap = new Map<string, any>();
-        (d.employees || []).forEach((emp: any) => {
-          empMap.set(emp.id, emp);
-          if (emp.employee_code) empMap.set(emp.employee_code, emp);
-        });
-
-        const logs = d.attendanceLogs || [];
-        const advances = d.salaryAdvanceRequests || [];
-        const leaves = d.leaveRequests || [];
-        const violations = d.violations || [];
-
+        // Smart Diff Engine for Real-Time Sound & Popups
         if (prevDataRef.current.isFirstLoad) {
-          // Initialize maps and populate Notification Center timeline from today's logs & requests
-          const initialNotifs: WebNotification[] = [];
-
-          // Add check-ins & check-outs from logs
-          logs.forEach((log: any) => {
-            prevDataRef.current.logMap.set(log.id, log);
-            const emp = empMap.get(log.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-
-            if (log.check_in_time) {
-              const timeStr = new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-              const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
-              initialNotifs.push({
-                id: `init-in-${log.id}`,
-                type: 'checkin',
-                relatedId: log.id,
-                title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างาน`,
-                message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
-                time: timeStr,
-                timestamp: new Date(log.check_in_time).getTime(),
-                read: true,
-                targetTab: 'overview',
-              });
-            }
-
-            if (log.check_out_time) {
-              const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-              initialNotifs.push({
-                id: `init-out-${log.id}`,
-                type: 'checkout',
-                relatedId: log.id,
-                title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงาน`,
-                message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
-                time: timeStr,
-                timestamp: new Date(log.check_out_time).getTime(),
-                read: true,
-                targetTab: 'overview',
-              });
-            }
-          });
-
-          // Add advance requests
-          advances.forEach((adv: any) => {
-            prevDataRef.current.advanceMap.set(adv.id, adv);
-            const emp = empMap.get(adv.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-            const timeStr = adv.created_at ? new Date(adv.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            initialNotifs.push({
-              id: `init-adv-${adv.id}`,
-              type: 'advance',
-              relatedId: adv.id,
-              status: adv.status,
-              title: `💵 คำขอเบิกเงิน (${adv.status === 'APPROVED' ? 'อนุมัติแล้ว' : adv.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'})`,
-              message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
-              time: timeStr,
-              timestamp: adv.created_at ? new Date(adv.created_at).getTime() : Date.now(),
-              read: adv.status !== 'PENDING',
-              targetTab: 'advances',
-            });
-          });
-
-          // Add leave requests
-          leaves.forEach((lv: any) => {
-            prevDataRef.current.leaveMap.set(lv.id, lv);
-            const emp = empMap.get(lv.employee_id) || {};
-            const empName = emp.nickname || emp.full_name || 'พนักงาน';
-            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
-            const timeStr = lv.created_at ? new Date(lv.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            initialNotifs.push({
-              id: `init-lv-${lv.id}`,
-              type: 'leave',
-              relatedId: lv.id,
-              status: lv.status,
-              title: `📄 คำขอยื่นใบลา (${lv.status === 'APPROVED' ? 'อนุมัติแล้ว' : lv.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'})`,
-              message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
-              time: timeStr,
-              timestamp: lv.created_at ? new Date(lv.created_at).getTime() : Date.now(),
-              read: lv.status !== 'PENDING',
-              targetTab: 'leaves',
-            });
-          });
-
-          // Add security violations
-          violations.forEach((v: any) => {
-            prevDataRef.current.violationMap.set(v.id, v);
-            const timeStr = v.created_at ? new Date(v.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            initialNotifs.push({
-              id: `init-v-${v.id}`,
-              type: 'violation',
-              relatedId: v.id,
-              title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
-              message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
-              time: timeStr,
-              timestamp: v.created_at ? new Date(v.created_at).getTime() : Date.now(),
-              read: !!v.is_resolved,
-              targetTab: 'violations',
-            });
-          });
-
-          // Sort newest first
-          initialNotifs.sort((a, b) => b.timestamp - a.timestamp);
-          setNotificationsList(initialNotifs.slice(0, 50));
+          d.attendanceLogs?.forEach((l: any) => prevDataRef.current.logMap.set(l.id, l));
+          d.salaryAdvanceRequests?.forEach((a: any) => prevDataRef.current.advanceMap.set(a.id, a));
+          d.leaveRequests?.forEach((lv: any) => prevDataRef.current.leaveMap.set(lv.id, lv));
+          d.violationLogs?.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
           prevDataRef.current.isFirstLoad = false;
         } else {
-          // 1. Detect New Advance Requests & Status Changes
+          const logs: any[] = d.attendanceLogs || [];
+          const advances: any[] = d.salaryAdvanceRequests || [];
+          const leaves: any[] = d.leaveRequests || [];
+          const violations: any[] = d.violationLogs || [];
+          const employees: any[] = d.employees || [];
+          const empMap = new Map(employees.map((e) => [e.id, e]));
+
+          // 1. Detect New Salary Advances
           advances.forEach((adv: any) => {
             const prevAdv = prevDataRef.current.advanceMap.get(adv.id);
             const emp = empMap.get(adv.employee_id) || {};
@@ -334,20 +247,16 @@ export default function WebExecutiveDashboard() {
                 type: 'advance',
                 relatedId: adv.id,
                 status: adv.status,
-                title: `💵 มีคำขอเบิกเงินล่วงหน้าใหม่!`,
-                message: `คุณ ${empName} ${empCode} ขอเบิก ${Number(adv.amount || 0).toLocaleString()} บาท (เหตุผล: ${adv.reason || '-'})`,
+                title: `💵 มีคำขอเบิกเงินใหม่ (${Number(adv.amount).toLocaleString()} บาท)`,
+                message: `คุณ ${empName} ${empCode} ขอยอด ${Number(adv.amount).toLocaleString()}฿ (เหตุผล: ${adv.reason || '-'})`,
                 targetTab: 'advances',
               });
             } else if (prevAdv.status !== adv.status) {
-              // Status changed (e.g. APPROVED / REJECTED)
               setNotificationsList((prevList) =>
                 prevList.map((n) =>
                   n.relatedId === adv.id ? { ...n, read: true, status: adv.status } : n
                 )
               );
-              if (activeToast?.relatedId === adv.id) {
-                setActiveToast(null);
-              }
             }
           });
 
@@ -479,9 +388,7 @@ export default function WebExecutiveDashboard() {
     window.addEventListener('focus', handleVisibility);
 
     return () => {
-      if (channel && supabase) {
-        supabase.removeChannel(channel);
-      }
+      if (channel) supabase?.removeChannel(channel);
       clearInterval(pollTimer);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleVisibility);
@@ -489,60 +396,78 @@ export default function WebExecutiveDashboard() {
   }, [isExecutiveUnlocked, period]);
 
   // Auth Handlers
-  const handleExecutiveLogin = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleExecutiveLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setExecutivePinError('');
+
     const code = executiveCodeInput.trim().toUpperCase();
     const pin = executivePinInput.trim();
 
-    if (code === 'SI01' && pin === '5101') {
-      setIsExecutiveUnlocked(true);
-      setExecutivePinError('');
-      if (rememberSession) {
-        localStorage.setItem('executive_auth_token', 'true');
-        localStorage.setItem('executive_user_code', code);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeCode: code, pinCode: pin }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        if (data.data.role === 'ADMIN' || data.data.employee_code === 'SI01') {
+          if (rememberSession) {
+            localStorage.setItem('executive_auth_token', 'true');
+            localStorage.setItem('attendance_employee_profile', JSON.stringify(data.data));
+          }
+          setIsExecutiveUnlocked(true);
+        } else {
+          setExecutivePinError('บัญชีนี้ไม่มีสิทธิ์เข้าถึงแดชบอร์ดผู้บริหาร');
+        }
+      } else {
+        setExecutivePinError(data.message || 'รหัสผู้บริหารหรือรหัส PIN ไม่ถูกต้อง');
       }
-    } else {
-      setExecutivePinError('รหัสผู้บริหารหรือรหัส PIN ไม่ถูกต้อง (สำหรับผู้บริหาร SI01 / 5101)');
-      setExecutivePinInput('');
+    } catch (err: any) {
+      setExecutivePinError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ: ' + err.message);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('executive_auth_token');
     localStorage.removeItem('attendance_employee_profile');
-    localStorage.removeItem('executive_user_code');
     setIsExecutiveUnlocked(false);
+    setExecutiveCodeInput('');
     setExecutivePinInput('');
-    setExecutivePinError('');
-  };
-
-  const handleMarkAllAsRead = () => {
-    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const handleMarkAsRead = (id: string) => {
     setNotificationsList((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
-  const handleAdvanceActionCompleted = (id: string, newStatus: 'APPROVED' | 'REJECTED') => {
-    setNotificationsList((prev) =>
-      prev.map((n) => {
-        if (n.relatedId === id || n.id.includes(id)) {
-          return { ...n, read: true, status: newStatus };
-        }
-        return n;
-      })
+  const handleMarkAllAsRead = () => {
+    setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  // Optimistic Salary Advance Action
+  const handleOptimisticAdvanceAction = (requestId: string, newStatus: 'APPROVED' | 'REJECTED') => {
+    setNotificationsList((prevList) =>
+      prevList.map((n) =>
+        n.relatedId === requestId
+          ? { ...n, read: true, status: newStatus }
+          : n
+      )
     );
-    if (activeToast?.relatedId === id) {
-      setActiveToast(null);
-    }
-    // Immediate optimistic update of pending counter
+
+    setActiveToast((currentToast) =>
+      currentToast?.relatedId === requestId ? null : currentToast
+    );
+
     setAnalyticsData((prev: any) => {
       if (!prev) return prev;
-      const updatedAdvances = (prev.salaryAdvanceRequests || []).map((a: any) =>
-        a.id === id ? { ...a, status: newStatus } : a
+      const updatedAdvances = (prev.salaryAdvanceRequests || []).map((req: any) =>
+        req.id === requestId
+          ? { ...req, status: newStatus, reviewed_at: new Date().toISOString() }
+          : req
       );
-      const newPendingCount = updatedAdvances.filter((a: any) => a.status === 'PENDING').length;
+      const newPendingCount = updatedAdvances.filter((r: any) => r.status === 'PENDING').length;
+
       return {
         ...prev,
         salaryAdvanceRequests: updatedAdvances,
@@ -683,6 +608,40 @@ export default function WebExecutiveDashboard() {
     }
   };
 
+  const handleSaveDiscord = (e: React.FormEvent) => {
+    e.preventDefault();
+    localStorage.setItem('discord_webhook_url', discordWebhookUrl.trim());
+    setDiscordMsg('✅ บันทึก Discord Webhook URL สำเร็จแล้ว');
+    setTimeout(() => setDiscordMsg(''), 4000);
+  };
+
+  const handleTestDiscord = async () => {
+    if (!discordWebhookUrl.trim()) {
+      setDiscordMsg('⚠️ กรุณาระบุ Discord Webhook URL ก่อนกดทดสอบ');
+      return;
+    }
+    setDiscordLoading(true);
+    setDiscordMsg('');
+    try {
+      localStorage.setItem('discord_webhook_url', discordWebhookUrl.trim());
+      const res = await fetch('/api/dev/discord-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test', webhookUrl: discordWebhookUrl.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDiscordMsg('🎉 ส่งข้อความทดสอบเข้า Discord สำเร็จแล้ว! ตรวจสอบห้อง Discord ของคุณได้เลย');
+      } else {
+        setDiscordMsg('❌ ไม่สามารถส่งข้อความได้: ' + (data.message || 'โปรดตรวจสอบ URL Webhook'));
+      }
+    } catch (e: any) {
+      setDiscordMsg('❌ เกิดข้อผิดพลาด: ' + e.message);
+    } finally {
+      setDiscordLoading(false);
+    }
+  };
+
   // Extract Stats & Staff
   const overview = analyticsData?.overview;
   const totalEmployees = overview?.totalEmployees || 0;
@@ -715,7 +674,7 @@ export default function WebExecutiveDashboard() {
       rawCheckInTime: emp.todayRawCheckInTime || null,
       rawCheckOutTime: emp.todayRawCheckOutTime || null,
       distanceStr: emp.todayDistance && emp.todayDistance !== '-' ? emp.todayDistance : (isPresent || isLate ? 'พิกัดในร้าน (5 ม.)' : '-'),
-      badgeColor: isPresent ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : isLate ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200'
+      badgeColor: isPresent ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : isLate ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'
     };
   });
 
@@ -733,14 +692,11 @@ export default function WebExecutiveDashboard() {
     }
     return true;
   }).sort((a: StaffItem, b: StaffItem) => {
-    // 1. Both checked in today: sort by latest check_in_time descending (Most recent at top!)
     if (a.rawCheckInTime && b.rawCheckInTime) {
       return new Date(b.rawCheckInTime).getTime() - new Date(a.rawCheckInTime).getTime();
     }
-    // 2. Staff who checked in comes before pending
     if (a.rawCheckInTime) return -1;
     if (b.rawCheckInTime) return 1;
-    // 3. Fallback code ordering
     return a.code.localeCompare(b.code);
   });
 
@@ -749,32 +705,22 @@ export default function WebExecutiveDashboard() {
   const salaryAdvances = analyticsData?.salaryAdvanceRequests || [];
   const pendingAdvancesCount = overview?.pendingAdvancesCount !== undefined 
     ? overview.pendingAdvancesCount 
-    : salaryAdvances.filter((a: any) => a.status === 'PENDING').length;
+    : salaryAdvances.filter((r: any) => r.status === 'PENDING').length;
+  const weeklyData = analyticsData?.weeklyStats || [
+    { day: 'จ.', ontime: 4, late: 0 },
+    { day: 'อ.', ontime: 4, late: 0 },
+    { day: 'พ.', ontime: 3, late: 1 },
+    { day: 'พฤ.', ontime: 4, late: 0 },
+    { day: 'ศ.', ontime: 4, late: 0 },
+    { day: 'ส.', ontime: 4, late: 0 },
+    { day: 'อา.', ontime: 0, late: 0 },
+  ];
 
-  // Chart Data
-  const defaultDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
-  const defaultEmptyWeek = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return {
-      day: defaultDayNames[d.getDay()],
-      ontime: 0,
-      late: 0,
-      total: 0,
-      allowance: 0,
-      percent: 0,
-    };
-  });
-
-  const weeklyData = analyticsData?.weeklyStats?.data?.length
-    ? analyticsData.weeklyStats.data
-    : defaultEmptyWeek;
-
-  // Export CSV (UTF-8 BOM for Microsoft Excel Thai compatibility)
+  // CSV Export with UTF-8 BOM
   const handleExportCSV = () => {
-    const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'ตำแหน่ง', 'เวลาเข้างาน', 'เวลาออกงาน', 'สถานะวันนี้', 'เบี้ยขยันสะสม (บาท)', 'ระยะห่างร้าน'];
-    const rows = formattedStaff.map((e: StaffItem) => [
-      e.code,
+    const headers = ['รหัสพนักงาน', 'ชื่อ-นามสกุล', 'ชื่อเล่น', 'ตำแหน่ง', 'เวลาเข้างาน', 'เวลาออกงาน', 'สถานะ', 'เบี้ยขยัน (บาท)', 'ระยะห่าง'];
+    const rows = formattedStaff.map((e) => [
+      `"${e.code}"`,
       `"${e.name}"`,
       `"${e.nickname}"`,
       `"${e.role}"`,
@@ -799,48 +745,48 @@ export default function WebExecutiveDashboard() {
   // -------------------------------------------------------------
   if (!isExecutiveUnlocked) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 sm:p-8 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-between p-4 sm:p-8 font-sans relative overflow-hidden bg-grid-pattern">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[300px] bg-blue-600/15 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[300px] bg-emerald-600/15 rounded-full blur-[120px] pointer-events-none" />
 
         {/* Top Navbar */}
         <header className="max-w-6xl mx-auto w-full flex items-center justify-between py-2 z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 font-black text-xl">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 font-black text-xl group-hover:scale-105 transition-transform">
               👑
             </div>
             <div>
               <div className="font-black text-white text-sm tracking-tight leading-none flex items-center gap-2">
-                <span>YOKOHAMA • NAYA • COSMIS</span>
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  EXECUTIVE PORTAL (WEB)
+                <span>สีแสงยางยนต์</span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  EXECUTIVE PORTAL
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">ระบบควบคุมและแดชบอร์ดสำหรับผู้บริหาร (Web Browser Version)</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">ระบบควบคุมและแดชบอร์ดสำหรับผู้บริหาร</p>
             </div>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-slate-900 text-slate-400 border border-slate-800">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-slate-900/80 text-emerald-400 border border-slate-800 backdrop-blur-md">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Live Server Connected
             </span>
           </div>
         </header>
 
-        {/* Login Box */}
+        {/* Login Bento Box */}
         <main className="max-w-md w-full mx-auto my-auto py-8 z-10">
-          <div className="bg-slate-900/95 border border-slate-800 shadow-2xl rounded-3xl p-6 sm:p-8 backdrop-blur-xl space-y-6">
+          <div className="bento-card p-6 sm:p-8 space-y-6">
             <div className="space-y-1.5 text-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
                 <span>Executive Authentication</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 เข้าสู่ระบบ Web Dashboard
               </h1>
               <p className="text-xs text-slate-400">
-                กรุณาระบุรหัสผู้บริหารและรหัส PIN เพื่อเปิดแดชบอร์ดบนเบราว์เซอร์
+                กรุณาระบุรหัสผู้บริหารและรหัส PIN เพื่อเปิดแดชบอร์ดศูนย์ควบคุม
               </p>
             </div>
 
@@ -865,7 +811,7 @@ export default function WebExecutiveDashboard() {
                     value={executiveCodeInput}
                     onChange={(e) => setExecutiveCodeInput(e.target.value.toUpperCase())}
                     placeholder="เช่น SI01"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono font-bold tracking-wider text-sm focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950/90 border border-slate-800 rounded-2xl text-white font-mono font-bold tracking-wider text-sm focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-600"
                     required
                     autoFocus
                   />
@@ -874,7 +820,7 @@ export default function WebExecutiveDashboard() {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-300">
-                  รหัส PIN 4 หลัก
+                  รหัส PIN / รหัสผ่าน
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -882,11 +828,10 @@ export default function WebExecutiveDashboard() {
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    maxLength={4}
                     value={executivePinInput}
                     onChange={(e) => setExecutivePinInput(e.target.value)}
-                    placeholder="••••"
-                    className="w-full pl-10 pr-11 py-3 bg-slate-950 border border-slate-700/80 rounded-2xl text-white font-mono font-bold text-sm tracking-widest focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-600"
+                    placeholder="กรอกรหัสผ่าน..."
+                    className="w-full pl-10 pr-11 py-3 bg-slate-950/90 border border-slate-800 rounded-2xl text-white font-mono font-bold text-sm tracking-widest focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-600"
                     required
                   />
                   <button
@@ -905,7 +850,7 @@ export default function WebExecutiveDashboard() {
                     type="checkbox"
                     checked={rememberSession}
                     onChange={(e) => setRememberSession(e.target.checked)}
-                    className="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500"
+                    className="rounded border-slate-700 bg-slate-950 text-blue-600 focus:ring-blue-500"
                   />
                   <span>จดจำการเข้าสู่ระบบบนเบราว์เซอร์นี้</span>
                 </label>
@@ -913,7 +858,7 @@ export default function WebExecutiveDashboard() {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-lg shadow-blue-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <span>เข้าสู่ระบบแดชบอร์ด (Sign In)</span>
                 <ArrowRight className="w-4 h-4" />
@@ -923,47 +868,53 @@ export default function WebExecutiveDashboard() {
         </main>
 
         <footer className="max-w-6xl mx-auto w-full text-center py-2 text-xs text-slate-500 z-10">
-          © YOKOHAMA • NAYA • COSMIS WHEELS & TIRES — Web Executive Dashboard
+          © สีแสงยางยนต์ YOKOHAMA • NAYA • COSMIS WHEELS & TIRES — Web Executive Dashboard
         </footer>
       </div>
     );
   }
 
+  // -------------------------------------------------------------
+  // MAIN EXECUTIVE DASHBOARD (Bento Grid)
+  // -------------------------------------------------------------
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc] text-slate-800 font-sans select-none w-full">
+    <div className="min-h-screen bg-[#070a12] text-slate-100 font-sans select-none w-full bg-grid-pattern relative overflow-x-hidden flex flex-col justify-between">
       
+      {/* Ambient background glows */}
+      <div className="absolute top-0 left-1/3 w-[800px] h-[350px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[350px] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none" />
+
       {/* ------------------------------------------------------------- */}
-      {/* TOP HEADER BAR (Web Browser Desktop)                          */}
+      {/* TOP HEADER BAR                                                */}
       {/* ------------------------------------------------------------- */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+      <header className="bg-slate-950/80 backdrop-blur-xl border-b border-white/[0.08] sticky top-0 z-40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/30 font-black text-xl">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 font-black text-xl group-hover:scale-105 transition-transform">
               👑
             </div>
             <div>
-              <div className="font-black text-slate-900 text-sm leading-tight flex items-center gap-2">
-                <span>YOKOHAMA • NAYA • COSMIS</span>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-xs flex items-center gap-1">
+              <div className="font-black text-white text-sm leading-tight flex items-center gap-2">
+                <span>สีแสงยางยนต์</span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
                   <Lock className="w-2.5 h-2.5" />
                   SI01: EXECUTIVE
                 </span>
               </div>
-              <div className="text-[11px] text-slate-500 font-medium">ศูนย์บัญชาการผู้บริหารระดับสูง (Web Browser Dashboard)</div>
+              <div className="text-[11px] text-slate-400 font-medium">ศูนย์บัญชาการผู้บริหารระดับสูง (Web Dashboard)</div>
             </div>
-          </div>
+          </Link>
 
           {/* Actions & Tools */}
           <div className="flex items-center gap-2.5">
             {/* Brand Pills */}
             <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-bold">
-              <span className="px-2 py-0.5 rounded bg-red-600 text-white">YOKOHAMA</span>
-              <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-black">NAYA</span>
-              <span className="px-2 py-0.5 rounded bg-orange-600 text-white">COSMIS</span>
-              <span className="px-2 py-0.5 rounded bg-blue-600 text-white">LENSO</span>
-              <span className="px-2 py-0.5 rounded bg-black text-white">BRIDGESTONE</span>
+              <span className="px-2 py-0.5 rounded bg-red-600/80 text-white border border-red-500/40">YOKOHAMA</span>
+              <span className="px-2 py-0.5 rounded bg-amber-500/80 text-slate-950 border border-amber-400 font-black">NAYA</span>
+              <span className="px-2 py-0.5 rounded bg-orange-600/80 text-white border border-orange-500/40">COSMIS</span>
+              <span className="px-2 py-0.5 rounded bg-blue-600/80 text-white border border-blue-500/40">LENSO</span>
             </div>
 
             {/* 3D / 2D Switcher */}
@@ -971,8 +922,8 @@ export default function WebExecutiveDashboard() {
               onClick={() => setIs3DMode(!is3DMode)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
                 is3DMode
-                  ? 'bg-gradient-to-r from-blue-600 to-sky-500 text-white border-blue-400 shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20'
+                  : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
               }`}
             >
               <Box className="w-3.5 h-3.5" />
@@ -982,10 +933,10 @@ export default function WebExecutiveDashboard() {
             {/* Export CSV */}
             <button
               onClick={handleExportCSV}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-md shadow-emerald-600/20"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Export CSV</span>
+              <span className="hidden sm:inline">Export</span> CSV
             </button>
 
             {/* Live Notification Center (Sound + Popups + Drawer) */}
@@ -1008,16 +959,16 @@ export default function WebExecutiveDashboard() {
             {/* Live Reload */}
             <button
               onClick={() => loadDashboardData(false)}
-              className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors"
               title="รีเฟรชข้อมูลล่าสุด"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-400' : ''}`} />
             </button>
 
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 hover:border-rose-200 transition-colors"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-500/20 hover:text-rose-300 text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-800 hover:border-rose-500/40 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>ออกจากระบบ</span>
@@ -1027,35 +978,48 @@ export default function WebExecutiveDashboard() {
       </header>
 
       {/* ------------------------------------------------------------- */}
-      {/* STOREFRONT HERO BANNER                                        */}
+      {/* STOREFRONT HERO BANNER (Bento Card)                           */}
       {/* ------------------------------------------------------------- */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 w-full">
-        <div className="relative w-full h-36 sm:h-44 rounded-3xl overflow-hidden border border-slate-200 shadow-md bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900">
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-950/90 via-slate-900/80 to-transparent flex items-center p-6 text-white">
-            <div className="space-y-1.5 max-w-2xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 w-full">
+        <div className="relative bento-card p-6 sm:p-7 overflow-hidden border-white/[0.08]">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-600/20 via-indigo-600/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+            <div className="space-y-2 max-w-3xl">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] tracking-wider uppercase shadow-xs">
-                  ★ Executive Master Portal
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold text-[10px] tracking-wider uppercase border border-blue-500/30">
+                  ★ Executive Headquarters
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold text-[10px] border border-emerald-500/30 flex items-center gap-1">
                   <Clock className="w-3 h-3" /> เข้างาน: {storeSettingsForm.standard_time?.substring(0, 5) || '07:40'} น.
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-bold text-[10px] border border-amber-500/30 flex items-center gap-1">
                   <Clock3 className="w-3 h-3" /> ตัดสาย: {storeSettingsForm.late_deadline?.substring(0, 5) || '08:00'} น.
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/80 text-white font-bold text-[10px]">
+                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 font-bold text-[10px] border border-purple-500/30">
                   +{storeSettingsForm.allowance_amount || 50}฿ เบี้ยขยัน
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 text-white font-bold text-[10px]">
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold text-[10px] border border-slate-700">
                   GPS Geofence {storeSettingsForm.radius_meters || 50}m
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight drop-shadow-md">
-                ศูนย์บัญชาการผู้บริหาร • {storeSettingsForm.store_name || 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS'}
+
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {storeSettingsForm.store_name || 'สีแสงยางยนต์ YOKOHAMA NAYA COSMIS'}
               </h2>
-              <p className="text-xs text-indigo-100 font-medium drop-shadow-sm">
-                ระบบเชื่อมต่อฐานข้อมูล Supabase PostgreSQL แบบเรียลไทม์ ตรวจสอบการเข้างาน และอนุมัติใบลา
+              <p className="text-xs text-slate-400 font-medium">
+                ระบบเชื่อมต่อฐานข้อมูล Supabase PostgreSQL แบบ Real-time, ตรวจสอบการเข้างานผ่าน GPS ดาวเทียม, และอนุมัติคำขอใน 1 คลิก
               </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="px-4 py-2.5 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="text-left">
+                  <div className="text-[10px] text-slate-400 font-bold">Realtime Sync</div>
+                  <div className="text-xs font-mono font-bold text-emerald-400">Live &lt;100ms</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1064,34 +1028,35 @@ export default function WebExecutiveDashboard() {
       {/* ------------------------------------------------------------- */}
       {/* MAIN CONTENT AREA                                             */}
       {/* ------------------------------------------------------------- */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 w-full space-y-6 flex-1">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-6 flex-1">
         
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs (Minimalist Bento Segmented Bar) */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 p-1 bg-slate-900/80 border border-slate-800/90 rounded-2xl backdrop-blur-md">
             {[
-              { id: 'overview', label: '📈 ภาพรวม & รายชื่อเข้างาน', icon: BarChart3, color: 'bg-blue-600' },
-              { id: 'employees', label: '👥 จัดการพนักงาน', icon: Users, color: 'bg-sky-500' },
-              { id: 'leaves', label: '📅 อนุมัติใบลา', icon: Calendar, badge: pendingLeavesCount, color: 'bg-amber-500' },
-              { id: 'advances', label: '💵 ขอเบิกเงิน', icon: Coins, badge: pendingAdvancesCount, color: 'bg-emerald-600' },
-              { id: 'violations', label: '🛡️ Security Logs', icon: AlertTriangle, badge: violationLogs.filter((v: any) => !v.is_resolved).length, color: 'bg-red-500' },
-              { id: 'settings', label: '⚙️ ตั้งค่าระบบ', icon: Settings, color: 'bg-slate-700' },
+              { id: 'overview', label: 'ภาพรวมสถิติ', icon: BarChart3 },
+              { id: 'employees', label: 'จัดการพนักงาน', icon: Users },
+              { id: 'leaves', label: 'อนุมัติใบลา', icon: Calendar, badge: pendingLeavesCount },
+              { id: 'advances', label: 'คำขอเบิกเงิน', icon: Coins, badge: pendingAdvancesCount },
+              { id: 'violations', label: 'Security Logs', icon: AlertTriangle, badge: violationLogs.filter((v: any) => !v.is_resolved).length },
+              { id: 'settings', label: 'ตั้งค่าร้าน & แผนที่', icon: Settings },
             ].map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 ${
-                    activeTab === tab.id
-                      ? `${tab.color} text-white shadow-md`
-                      : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-900">
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-950">
                       {tab.badge}
                     </span>
                   )}
@@ -1101,15 +1066,15 @@ export default function WebExecutiveDashboard() {
           </div>
 
           {/* Period Selector */}
-          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center gap-1 bg-slate-900/80 p-1 rounded-2xl border border-slate-800 backdrop-blur-md">
             {(['daily', 'weekly', 'monthly'] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   period === p
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-slate-800 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {p === 'daily' ? 'รายวัน' : p === 'weekly' ? 'รายสัปดาห์' : 'รายเดือน'}
@@ -1118,120 +1083,146 @@ export default function WebExecutiveDashboard() {
           </div>
         </div>
 
-        {/* TAB 1: OVERVIEW */}
+        {/* ============================================================= */}
+        {/* TAB 1: OVERVIEW (Bento Grid)                                  */}
+        {/* ============================================================= */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* 3 Top Hero Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
-              {/* Allowance Total */}
-              <div className="bg-gradient-to-br from-amber-500 to-yellow-400 text-slate-950 p-6 rounded-3xl shadow-lg shadow-amber-500/20 flex flex-col justify-between space-y-2 border border-amber-300">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-900/80">
+            
+            {/* Top 4 Bento KPI Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              
+              {/* Card 1: Allowance Total */}
+              <div className="bento-card p-5 space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400">
                   <span className="flex items-center gap-1.5">
-                    <Coins className="w-4 h-4 text-slate-950" />
+                    <Coins className="w-4 h-4 text-amber-400" />
                     ยอดจ่ายเบี้ยขยันวันนี้
                   </span>
-                  <span className="bg-slate-950/15 px-2 py-0.5 rounded-full font-black text-[10px]">
+                  <span className="bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-black text-[10px]">
                     +{storeSettingsForm.allowance_amount || 50}฿ / คน
                   </span>
                 </div>
-                <div>
-                  <div className="text-4xl font-black tracking-tight font-mono">
-                    {totalAllowancePaid} <span className="text-lg font-bold font-sans">บาท</span>
-                  </div>
-                  <div className="text-xs font-bold text-slate-900/80 mt-1">
-                    สะสม {totalPresent} คน (ตรงเวลา 100%)
-                  </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-black font-mono text-white tracking-tight">
+                    {totalAllowancePaid}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">บาท</span>
                 </div>
-                <div className="text-[11px] font-black bg-slate-950 text-amber-300 px-3 py-1 rounded-xl w-fit shadow-xs">
-                  💰 จ่ายเบี้ยขยันตรงเวลาครบถ้วน
+                <div className="text-[11px] font-bold text-amber-300 flex items-center gap-1">
+                  <span>สะสม {totalPresent} คน (จ่ายตรงเวลาครบถ้วน)</span>
                 </div>
               </div>
 
-              {/* Big Headcount */}
-              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white p-6 rounded-3xl shadow-lg shadow-blue-500/25 flex flex-col justify-between items-center text-center space-y-3 border border-blue-400/30 relative overflow-hidden">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-100">
-                  <Users className="w-4 h-4 text-blue-200" />
-                  <span>สรุปพนักงานปฏิบัติการวันนี้</span>
-                </div>
-                <div className="my-auto space-y-0.5">
-                  <div className="text-5xl sm:text-6xl font-black tracking-tight font-mono drop-shadow-md">
-                    {totalPresent + totalLate} <span className="text-2xl font-bold font-sans">/ {totalEmployees} คน</span>
-                  </div>
-                  <div className="text-xs font-bold text-blue-100">
-                    พนักงานเข้างานจริงในระบบ
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2 w-full pt-2 border-t border-blue-400/30 text-[11px] font-bold">
-                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
-                    <div className="text-emerald-300 font-mono font-black text-sm">{totalPresent}</div>
-                    <div className="text-blue-200 text-[10px]">ตรงเวลา</div>
-                  </div>
-                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
-                    <div className="text-amber-300 font-mono font-black text-sm">{totalLate}</div>
-                    <div className="text-blue-200 text-[10px]">มาสาย</div>
-                  </div>
-                  <div className="bg-blue-900/40 p-1.5 rounded-xl border border-blue-400/20">
-                    <div className="text-slate-300 font-mono font-black text-sm">{pendingCount}</div>
-                    <div className="text-blue-200 text-[10px]">ยังไม่ลงเวลา</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Punctuality Rate */}
-              <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white p-6 rounded-3xl shadow-lg shadow-emerald-500/25 flex flex-col justify-between space-y-2 border border-emerald-400/30">
-                <div className="flex items-center justify-between text-xs font-bold text-emerald-100">
+              {/* Card 2: Headcount Ratio */}
+              <div className="bento-card p-5 space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400">
                   <span className="flex items-center gap-1.5">
-                    <TrendingUp className="w-4 h-4 text-emerald-200" />
+                    <Users className="w-4 h-4 text-blue-400" />
+                    พนักงานเข้างานวันนี้
+                  </span>
+                  <span className="bg-blue-500/15 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-black text-[10px]">
+                    {totalPresent + totalLate} / {totalEmployees} คน
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-black font-mono text-white tracking-tight">
+                    {totalPresent + totalLate}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">/ {totalEmployees} คนทั้งหมด</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 pt-1 text-[10px] font-bold">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 p-1 rounded-lg text-center text-emerald-300">
+                    {totalPresent} ตรงเวลา
+                  </div>
+                  <div className="bg-amber-500/10 border border-amber-500/20 p-1 rounded-lg text-center text-amber-300">
+                    {totalLate} มาสาย
+                  </div>
+                  <div className="bg-slate-800 border border-slate-700 p-1 rounded-lg text-center text-slate-300">
+                    {pendingCount} ยังไม่ลง
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Punctuality Target Rate */}
+              <div className="bento-card p-5 space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingUp className="w-4 h-4 text-emerald-400" />
                     อัตราความตรงต่อเวลา
                   </span>
-                  <span className="bg-emerald-950/40 px-2 py-0.5 rounded-full font-black text-[10px] text-emerald-200 border border-emerald-400/20">
+                  <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-black text-[10px]">
                     เป้าหมาย {'>'} 90%
                   </span>
                 </div>
-                <div>
-                  <div className="text-4xl font-black tracking-tight font-mono">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-black font-mono text-white tracking-tight">
                     {onTimePercent}%
-                  </div>
-                  <div className="text-xs font-bold text-emerald-100 mt-1">
-                    {onTimePercent >= 90 ? 'ยอดเยี่ยม! ตรงตามเป้าหมาย' : 'กำลังปรับปรุงความตรงต่อเวลา'}
-                  </div>
+                  </span>
+                  <span className="text-xs font-bold text-emerald-400">
+                    {onTimePercent >= 90 ? 'ยอดเยี่ยม!' : 'กำลังปรับปรุง'}
+                  </span>
                 </div>
-                <div className="w-full bg-emerald-950/50 h-2.5 rounded-full overflow-hidden border border-emerald-400/20">
+                <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
                   <div
-                    className="bg-amber-400 h-full rounded-full transition-all duration-1000"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-1000"
                     style={{ width: `${Math.max(onTimePercent, 5)}%` }}
                   />
                 </div>
               </div>
+
+              {/* Card 4: Security & Alerts */}
+              <div className="bento-card p-5 space-y-3 relative overflow-hidden">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-purple-400" />
+                    ความปลอดภัยระบบ
+                  </span>
+                  <span className="bg-purple-500/15 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-black text-[10px]">
+                    HWID Guard
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl sm:text-4xl font-black font-mono text-white tracking-tight">
+                    0
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">ความเสี่ยงค้าง</span>
+                </div>
+                <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>ระบบตรวจจับ 1 คน 1 เครื่อง ทำงานปกติ</span>
+                </div>
+              </div>
+
             </div>
 
-            {/* Staff Attendance Table */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            {/* Bento Staff Check-In Table */}
+            <div className="bento-card p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                    <UserCheck className="w-5 h-5 text-blue-600" />
-                    <span>รายชื่อพนักงานเข้างานวันนี้ (Staff Check-in List)</span>
+                  <h3 className="font-black text-base text-white flex items-center gap-2">
+                    <UserCheck className="w-5 h-5 text-blue-400" />
+                    <span>รายชื่อพนักงานเข้างานวันนี้ (Staff Live Roster)</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                    เวลาเช็คอินจริง, เบี้ยขยันสะสม, และสถานะการลงเวลา
+                  <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                    เวลาเช็คอินจริง, เวลาออกงาน, เบี้ยขยันสะสม, และระยะห่างจากร้าน
                   </p>
                 </div>
 
                 {/* Filter, Search & Export */}
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="text"
                       placeholder="ค้นหาชื่อ / รหัส..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-blue-500 w-32 sm:w-44 font-medium"
+                      className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-800 text-xs bg-slate-950/80 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 w-32 sm:w-48 font-medium transition-all"
                     />
                   </div>
 
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                  <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
                     {(['all', 'present', 'late', 'pending'] as const).map((f) => (
                       <button
                         key={f}
@@ -1239,10 +1230,10 @@ export default function WebExecutiveDashboard() {
                         className={`px-2.5 py-1 rounded-lg transition-all text-[11px] ${
                           statusFilter === f
                             ? 'bg-blue-600 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
+                            : 'text-slate-400 hover:text-white'
                         }`}
                       >
-                        {f === 'all' ? 'ทั้งหมด' : f === 'present' ? 'ตรงเวลา' : f === 'late' ? 'มาสาย' : 'ยังไม่ลงเวลา'}
+                        {f === 'all' ? 'ทั้งหมด' : f === 'present' ? 'ตรงเวลา' : f === 'late' ? 'มาสาย' : 'ยังไม่ลง'}
                       </button>
                     ))}
                   </div>
@@ -1250,7 +1241,7 @@ export default function WebExecutiveDashboard() {
                   {/* Export CSV Button */}
                   <button
                     onClick={handleExportCSV}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/80 hover:bg-emerald-600 text-white text-xs font-bold border border-emerald-500/30 transition-colors shrink-0"
                     title="ดาวน์โหลดรายงานสรุปเบี้ยขยันและการลงเวลาเป็นไฟล์ Excel/CSV (ภาษาไทย)"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1260,58 +1251,58 @@ export default function WebExecutiveDashboard() {
               </div>
 
               {filteredStaff.length === 0 ? (
-                <div className="py-12 px-4 text-center space-y-2 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <Users className="w-8 h-8 text-slate-400 mx-auto" />
-                  <p className="text-xs text-slate-500 font-bold">ไม่พบข้อมูลพนักงานในเงื่อนไขนี้</p>
+                <div className="py-12 px-4 text-center space-y-2 bg-slate-950/50 rounded-2xl border border-dashed border-slate-800">
+                  <Users className="w-8 h-8 text-slate-600 mx-auto" />
+                  <p className="text-xs text-slate-400 font-bold">ไม่พบข้อมูลพนักงานในเงื่อนไขนี้</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                        <th className="py-2.5 px-3">พนักงาน</th>
-                        <th className="py-2.5 px-3">รหัสพนักงาน</th>
-                        <th className="py-2.5 px-3">ตำแหน่ง / แผนก</th>
-                        <th className="py-2.5 px-3">เวลาเข้างาน</th>
-                        <th className="py-2.5 px-3">เวลาออกงาน</th>
-                        <th className="py-2.5 px-3">สถานะวันนี้</th>
-                        <th className="py-2.5 px-3">เบี้ยขยันสะสม</th>
-                        <th className="py-2.5 px-3 text-right">ระยะห่างร้าน</th>
+                      <tr className="border-b border-slate-800 text-slate-400 font-bold">
+                        <th className="py-3 px-3">พนักงาน</th>
+                        <th className="py-3 px-3">รหัสพนักงาน</th>
+                        <th className="py-3 px-3">ตำแหน่ง / แผนก</th>
+                        <th className="py-3 px-3">เวลาเข้างาน</th>
+                        <th className="py-3 px-3">เวลาออกงาน</th>
+                        <th className="py-3 px-3">สถานะวันนี้</th>
+                        <th className="py-3 px-3">เบี้ยขยันสะสม</th>
+                        <th className="py-3 px-3 text-right">ระยะห่างร้าน</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-800/60">
                       {filteredStaff.map((emp: StaffItem) => (
-                        <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-3">
+                        <tr key={emp.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3.5 px-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black flex items-center justify-center text-xs border border-blue-200">
+                              <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 font-black flex items-center justify-center text-xs border border-blue-500/30">
                                 {emp.nickname[0] || 'E'}
                               </div>
                               <div>
-                                <div className="font-bold text-slate-900">{emp.name}</div>
-                                <div className="text-[10px] text-slate-500">ชื่อเล่น: {emp.nickname}</div>
+                                <div className="font-bold text-white">{emp.name}</div>
+                                <div className="text-[10px] text-slate-400">ชื่อเล่น: {emp.nickname}</div>
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
-                          <td className="py-3 px-3">
-                            <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-slate-100 text-slate-700">
+                          <td className="py-3.5 px-3 font-mono font-bold text-blue-400">{emp.code}</td>
+                          <td className="py-3.5 px-3">
+                            <span className="px-2 py-0.5 rounded-lg font-bold text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
                               {emp.role}
                             </span>
                           </td>
-                          <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkInTimeStr}</td>
-                          <td className="py-3 px-3 font-mono font-bold text-slate-800">{emp.checkOutTimeStr}</td>
-                          <td className="py-3 px-3">
+                          <td className="py-3.5 px-3 font-mono font-bold text-slate-200">{emp.checkInTimeStr}</td>
+                          <td className="py-3.5 px-3 font-mono font-bold text-slate-200">{emp.checkOutTimeStr}</td>
+                          <td className="py-3.5 px-3">
                             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${emp.badgeColor}`}>
                               {emp.statusLabel}
                             </span>
                           </td>
-                          <td className="py-3 px-3">
-                            <span className={`font-mono font-black text-xs ${emp.allowance > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                          <td className="py-3.5 px-3">
+                            <span className={`font-mono font-black text-xs ${emp.allowance > 0 ? 'text-amber-400' : 'text-slate-500'}`}>
                               {emp.allowance > 0 ? `+${emp.allowance} บาท` : '0 บาท'}
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-right text-slate-700 font-mono font-bold text-[11px]">{emp.distanceStr}</td>
+                          <td className="py-3.5 px-3 text-right text-slate-300 font-mono font-bold text-[11px]">{emp.distanceStr}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1320,19 +1311,19 @@ export default function WebExecutiveDashboard() {
               )}
             </div>
 
-            {/* 3D / 2D Chart */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            {/* 3D / 2D Chart Bento Card */}
+            <div className="bento-card p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-blue-600" />
-                    <span>{is3DMode ? 'กราฟแท่ง 3 มิติ (Weekly Attendance 3D)' : 'สถิติการเข้างานประจำสัปดาห์'}</span>
+                  <h3 className="font-black text-sm text-white flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-blue-400" />
+                    <span>{is3DMode ? 'กราฟแท่ง 3 มิติ (Weekly Attendance 3D Hologram)' : 'สถิติการเข้างานประจำสัปดาห์'}</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  <p className="text-xs text-slate-400 mt-0.5 font-medium">
                     จำนวนพนักงานที่เข้างานตรงเวลาในแต่ละวัน
                   </p>
                 </div>
-                <span className="text-white bg-blue-600 px-3 py-1 rounded-full font-black text-[11px] shadow-xs flex items-center gap-1">
+                <span className="text-white bg-blue-600/80 border border-blue-500/40 px-3 py-1 rounded-full font-black text-[11px] shadow-sm flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-yellow-300" />
                   <span>{is3DMode ? '3D WebGL Mode' : '2D Chart Mode'}</span>
                 </span>
@@ -1341,19 +1332,19 @@ export default function WebExecutiveDashboard() {
               {is3DMode ? (
                 <ThreeBarChart3D data={weeklyData} />
               ) : (
-                <div className="h-64 w-full pt-4 flex items-end justify-between gap-3 border-b border-slate-100 pb-2">
+                <div className="h-64 w-full pt-4 flex items-end justify-between gap-3 border-b border-slate-800 pb-2">
                   {weeklyData.map((item: any, idx: number) => {
                     const maxOntime = Math.max(...weeklyData.map((w: any) => w.ontime), 1);
                     const barHeight = item.ontime > 0 ? (item.ontime / maxOntime) * 100 : 0;
                     return (
                       <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
-                        <div className="w-full max-w-[32px] bg-slate-100 rounded-xl overflow-hidden h-full flex flex-col justify-end">
+                        <div className="w-full max-w-[32px] bg-slate-900 rounded-xl overflow-hidden h-full flex flex-col justify-end border border-slate-800">
                           <div
                             style={{ height: `${barHeight}%` }}
-                            className={`w-full rounded-xl transition-all duration-500 ${item.ontime > 0 ? 'bg-blue-600' : 'bg-transparent'}`}
+                            className={`w-full rounded-xl transition-all duration-500 ${item.ontime > 0 ? 'bg-gradient-to-t from-blue-600 to-sky-400' : 'bg-transparent'}`}
                           />
                         </div>
-                        <span className="text-[11px] font-bold text-slate-600">{item.day}</span>
+                        <span className="text-[11px] font-bold text-slate-400">{item.day}</span>
                       </div>
                     );
                   })}
@@ -1363,23 +1354,25 @@ export default function WebExecutiveDashboard() {
           </div>
         )}
 
-        {/* TAB 2: EMPLOYEES */}
+        {/* ============================================================= */}
+        {/* TAB 2: EMPLOYEES                                              */}
+        {/* ============================================================= */}
         {activeTab === 'employees' && (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="bento-card p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <span>จัดการบัญชีพนักงาน (Staff Management)</span>
+                <h3 className="font-black text-base text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-400" />
+                  <span>จัดการบัญชีพนักงาน (Staff Roster & Devices)</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                <p className="text-xs text-slate-400 mt-0.5 font-medium">
                   เพิ่ม, ลบ, หรือปลดล็อกอุปกรณ์ประจำตัวพนักงาน (Reset HWID)
                 </p>
               </div>
 
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition-all"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center gap-1.5 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>+ เพิ่มพนักงานใหม่</span>
@@ -1389,43 +1382,43 @@ export default function WebExecutiveDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                    <th className="py-2.5 px-3">พนักงาน</th>
-                    <th className="py-2.5 px-3">รหัสพนักงาน</th>
-                    <th className="py-2.5 px-3">ตำแหน่ง</th>
-                    <th className="py-2.5 px-3">อุปกรณ์ประจำตัว (HWID)</th>
-                    <th className="py-2.5 px-3 text-right">การดำเนินการ</th>
+                  <tr className="border-b border-slate-800 text-slate-400 font-bold">
+                    <th className="py-3 px-3">พนักงาน</th>
+                    <th className="py-3 px-3">รหัสพนักงาน</th>
+                    <th className="py-3 px-3">ตำแหน่ง</th>
+                    <th className="py-3 px-3">อุปกรณ์ประจำตัว (HWID)</th>
+                    <th className="py-3 px-3 text-right">การดำเนินการ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-800/60">
                   {formattedStaff.map((emp: StaffItem) => (
-                    <tr key={emp.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-3">
-                        <div className="font-bold text-slate-900">{emp.name} ({emp.nickname})</div>
+                    <tr key={emp.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="py-3.5 px-3">
+                        <div className="font-bold text-white">{emp.name} ({emp.nickname})</div>
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-blue-600">{emp.code}</td>
-                      <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
+                      <td className="py-3.5 px-3 font-mono font-bold text-blue-400">{emp.code}</td>
+                      <td className="py-3.5 px-3">
+                        <span className="px-2.5 py-0.5 rounded-lg font-bold text-[10px] bg-blue-500/15 text-blue-300 border border-blue-500/30">
                           {emp.role}
                         </span>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-3">
                         {emp.hwid ? (
-                          <span className="font-mono text-[11px] text-emerald-600 font-bold">✓ ผูกเครื่องแล้ว</span>
+                          <span className="font-mono text-[11px] text-emerald-400 font-bold">✓ ผูกเครื่องแล้ว ({emp.hwid.slice(0, 10)}...)</span>
                         ) : (
-                          <span className="text-[11px] text-slate-400 font-medium">ยังไม่ผูกอุปกรณ์</span>
+                          <span className="text-[11px] text-slate-500 font-medium">ยังไม่ผูกอุปกรณ์</span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right space-x-2">
+                      <td className="py-3.5 px-3 text-right space-x-2">
                         <button
                           onClick={() => handleResetHWID(emp.id, emp.name)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold text-[11px] transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-[11px] transition-colors"
                         >
                           Reset HWID
                         </button>
                         <button
                           onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold text-[11px] transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-bold text-[11px] transition-colors"
                         >
                           ลบบัญชี
                         </button>
@@ -1438,56 +1431,58 @@ export default function WebExecutiveDashboard() {
           </div>
         )}
 
-        {/* TAB 3: LEAVES */}
+        {/* ============================================================= */}
+        {/* TAB 3: LEAVES                                                 */}
+        {/* ============================================================= */}
         {activeTab === 'leaves' && (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bento-card p-6 space-y-4">
             <div>
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-amber-500" />
+              <h3 className="font-black text-base text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-amber-400" />
                 <span>รายการขออนุมัติลางาน ({leaveRequests.length} รายการ)</span>
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">
+              <p className="text-xs text-slate-400 mt-0.5 font-medium">
                 พิจารณาคำขอลางานของพนักงาน
               </p>
             </div>
 
             {leaveRequests.length === 0 ? (
-              <div className="py-12 px-4 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs font-bold">
+              <div className="py-12 px-4 text-center bg-slate-950/50 rounded-2xl border border-dashed border-slate-800 text-slate-500 text-xs font-bold">
                 ไม่มีรายการขอลางานในขณะนี้
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-200 text-slate-400 font-bold">
-                      <th className="py-2.5 px-3">พนักงาน</th>
-                      <th className="py-2.5 px-3">ประเภทการลา</th>
-                      <th className="py-2.5 px-3">วันที่ลา</th>
-                      <th className="py-2.5 px-3">เหตุผล</th>
-                      <th className="py-2.5 px-3">สถานะ</th>
-                      <th className="py-2.5 px-3 text-right">การอนุมัติ</th>
+                    <tr className="border-b border-slate-800 text-slate-400 font-bold">
+                      <th className="py-3 px-3">พนักงาน</th>
+                      <th className="py-3 px-3">ประเภทการลา</th>
+                      <th className="py-3 px-3">วันที่ลา</th>
+                      <th className="py-3 px-3">เหตุผล</th>
+                      <th className="py-3 px-3">สถานะ</th>
+                      <th className="py-3 px-3 text-right">การอนุมัติ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-800/60">
                     {leaveRequests.map((req: any) => (
-                      <tr key={req.id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={req.id} className="hover:bg-slate-800/40 transition-colors">
                         <td className="py-3 px-3">
-                          <div className="font-bold text-slate-900">
+                          <div className="font-bold text-white">
                             {req.employee?.full_name || req.employees?.full_name || 'พนักงาน'}
                             {(req.employee?.nickname || req.employees?.nickname) ? ` (${req.employee?.nickname || req.employees?.nickname})` : ''}
                           </div>
-                          <div className="font-mono text-[10px] text-blue-600 font-bold">
+                          <div className="font-mono text-[10px] text-blue-400 font-bold">
                             {req.employee?.employee_code || req.employees?.employee_code || req.employee_id?.slice(0, 8)}
                           </div>
                         </td>
                         <td className="py-3 px-3 font-medium">
                           {req.leave_type === 'SICK' ? 'ลาป่วย 🩺' : req.leave_type === 'BUSINESS' ? 'ลากิจ 💼' : req.leave_type === 'ANNUAL' ? 'ลาพักร้อน 🏖️' : 'อื่นๆ 📝'}
                         </td>
-                        <td className="py-3 px-3 font-mono">{req.start_date} {req.end_date && req.end_date !== req.start_date ? `ถึง ${req.end_date}` : ''} ({req.days_count || 1} วัน)</td>
-                        <td className="py-3 px-3 text-slate-600">{req.reason || '-'}</td>
+                        <td className="py-3 px-3 font-mono text-slate-300">{req.start_date} {req.end_date && req.end_date !== req.start_date ? `ถึง ${req.end_date}` : ''} ({req.days_count || 1} วัน)</td>
+                        <td className="py-3 px-3 text-slate-400">{req.reason || '-'}</td>
                         <td className="py-3 px-3">
                           <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
-                            req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : req.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'
+                            req.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : req.status === 'REJECTED' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                           }`}>
                             {req.status === 'APPROVED' ? 'อนุมัติแล้ว' : req.status === 'REJECTED' ? 'ไม่อนุมัติ' : 'รอพิจารณา'}
                           </span>
@@ -1497,13 +1492,13 @@ export default function WebExecutiveDashboard() {
                             <>
                               <button
                                 onClick={() => handleLeaveAction(req.id, 'APPROVED')}
-                                className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px]"
+                                className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] shadow-sm"
                               >
                                 อนุมัติ
                               </button>
                               <button
                                 onClick={() => handleLeaveAction(req.id, 'REJECTED')}
-                                className="px-3 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-[11px]"
+                                className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] shadow-sm"
                               >
                                 ปฏิเสธ
                               </button>
@@ -1519,259 +1514,345 @@ export default function WebExecutiveDashboard() {
           </div>
         )}
 
-        {/* TAB 4: SALARY ADVANCE REQUESTS */}
+        {/* ============================================================= */}
+        {/* TAB 4: ADVANCES (Salary Advance Manager Component)            */}
+        {/* ============================================================= */}
         {activeTab === 'advances' && (
-          <SalaryAdvanceManager
-            requests={salaryAdvances}
-            onRefresh={() => loadDashboardData(false)}
-            reviewerId="00000000-0000-0000-0000-000000000000"
-            onActionCompleted={handleAdvanceActionCompleted}
-          />
-        )}
-
-        {/* TAB 5: VIOLATIONS & SECURITY LOGS */}
-        {activeTab === 'violations' && (
-          <SecurityLogsViewer
-            logs={violationLogs}
-            onRefresh={() => loadDashboardData(false)}
-          />
-        )}
-
-        {/* TAB 5: SETTINGS */}
-        {activeTab === 'settings' && (
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            <div>
-              <h3 className="font-black text-base text-slate-900 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-slate-700" />
-                <span>ตั้งค่าพิกัดร้าน & นโยบายลงเวลา (GPS Geofence Policy)</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                กำหนดพิกัดร้าน, รัศมีลงเวลา, เวลาเข้างาน, และจำนวนเงินเบี้ยขยัน
-              </p>
-            </div>
-
-            {settingsMsg && (
-              <div className={`p-3.5 rounded-2xl text-xs font-bold ${
-                settingsMsg.includes('เรียบร้อย')
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                  : 'bg-rose-50 border border-rose-200 text-rose-800'
-              }`}>
-                {settingsMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveSettings} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">ชื่อร้าน / สาขา</label>
-                  <input
-                    type="text"
-                    value={storeSettingsForm.store_name}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, store_name: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">เวลากะปกติ</label>
-                    <input
-                      type="text"
-                      value={storeSettingsForm.standard_time}
-                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">ตัดสาย (Deadline)</label>
-                    <input
-                      type="text"
-                      value={storeSettingsForm.late_deadline}
-                      onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">รัศมีเช็คอิน (เมตร)</label>
-                  <input
-                    type="number"
-                    value={storeSettingsForm.radius_meters}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">เบี้ยขยัน (บาท/วัน)</label>
-                  <input
-                    type="number"
-                    value={storeSettingsForm.allowance_amount}
-                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:border-blue-600"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Map Picker */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">เลือกพิกัดร้านบนแผนที่ (Leaflet Map Picker)</label>
-                <StoreMapPicker
-                  lat={Number(storeSettingsForm.store_lat) || 15.110412}
-                  lng={Number(storeSettingsForm.store_lng) || 104.358434}
-                  radius={Number(storeSettingsForm.radius_meters) || 50}
-                  storeName={storeSettingsForm.store_name}
-                  onChange={(lat, lng) => {
-                    setStoreSettingsForm((prev: any) => ({
-                      ...prev,
-                      store_lat: lat,
-                      store_lng: lng
-                    }));
-                  }}
-                  onStoreNameChange={(name) => {
-                    setStoreSettingsForm((prev: any) => ({
-                      ...prev,
-                      store_name: name
-                    }));
-                  }}
-                  onRadiusChange={(r) => {
-                    setStoreSettingsForm((prev: any) => ({
-                      ...prev,
-                      radius_meters: r
-                    }));
-                  }}
-                  onSave={handleSaveSettings}
-                  isSaving={settingsLoading}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={settingsLoading}
-                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all active:scale-98 flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                <span>{settingsLoading ? 'กำลังบันทึกลง Supabase...' : 'บันทึกการตั้งค่านโยบายและพิกัดร้าน'}</span>
-              </button>
-            </form>
+          <div className="bento-card p-6 space-y-4">
+            <SalaryAdvanceManager 
+              requests={salaryAdvances}
+              onRefresh={() => loadDashboardData(true)}
+              reviewerId="00000000-0000-0000-0000-000000000000"
+              onActionCompleted={(reqId, status) => {
+                handleOptimisticAdvanceAction(reqId, status);
+              }} 
+            />
           </div>
         )}
+
+        {/* ============================================================= */}
+        {/* TAB 5: VIOLATIONS (Security Logs Viewer Component)            */}
+        {/* ============================================================= */}
+        {activeTab === 'violations' && (
+          <div className="bento-card p-6 space-y-4">
+            <SecurityLogsViewer 
+              logs={violationLogs}
+              onRefresh={() => loadDashboardData(true)}
+            />
+          </div>
+        )}
+
+        {/* ============================================================= */}
+        {/* TAB 6: SETTINGS (Store Settings & Map Geofence)               */}
+        {/* ============================================================= */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            <div className="bento-card p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-base text-white flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-emerald-400" />
+                    <span>กำหนดพิกัดร้านและรัศมี Geofence (Interactive Map)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                    คลิกบนแผนที่เพื่อเลือกพิกัดร้านค้า และปรับรัศมีตรวจจับระยะห่าง
+                  </p>
+                </div>
+              </div>
+
+              <StoreMapPicker
+                lat={Number(storeSettingsForm.store_lat) || 15.110412}
+                lng={Number(storeSettingsForm.store_lng) || 104.358434}
+                radius={Number(storeSettingsForm.radius_meters) || 50}
+                storeName={storeSettingsForm.store_name}
+                onChange={(lat, lng) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    store_lat: lat,
+                    store_lng: lng,
+                  }));
+                }}
+                onStoreNameChange={(name) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    store_name: name,
+                  }));
+                }}
+                onRadiusChange={(radius) => {
+                  setStoreSettingsForm((prev: any) => ({
+                    ...prev,
+                    radius_meters: radius,
+                  }));
+                }}
+                onSave={handleSaveSettings}
+                isSaving={settingsLoading}
+              />
+            </div>
+
+            {/* Time Rules Form */}
+            <div className="bento-card p-6 space-y-5">
+              <h3 className="font-black text-base text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-blue-400" />
+                <span>นโยบายเวลาเข้างานและเบี้ยขยัน (Shift & Allowance Rules)</span>
+              </h3>
+
+              {settingsMsg && (
+                <div className={`p-3.5 rounded-2xl text-xs font-bold ${settingsMsg.startsWith('✅') ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'}`}>
+                  {settingsMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveSettings} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    เวลาเข้างานปกติ (Standard Time)
+                  </label>
+                  <input
+                    type="time"
+                    step="1"
+                    value={storeSettingsForm.standard_time || '07:40:00'}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, standard_time: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white font-mono text-sm font-bold focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    เวลาตัดสาย (Late Deadline)
+                  </label>
+                  <input
+                    type="time"
+                    step="1"
+                    value={storeSettingsForm.late_deadline || '08:00:00'}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, late_deadline: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white font-mono text-sm font-bold focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    ยอดเงินเบี้ยขยัน (บาท / วัน)
+                  </label>
+                  <input
+                    type="number"
+                    value={storeSettingsForm.allowance_amount || 50}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, allowance_amount: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white font-mono text-sm font-bold focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    รัศมี Geofence (เมตร)
+                  </label>
+                  <input
+                    type="number"
+                    value={storeSettingsForm.radius_meters || 50}
+                    onChange={(e) => setStoreSettingsForm({ ...storeSettingsForm, radius_meters: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white font-mono text-sm font-bold focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="sm:col-span-2 lg:col-span-4 pt-2">
+                  <button
+                    type="submit"
+                    disabled={settingsLoading}
+                    className="px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-[0.98] flex items-center gap-2"
+                  >
+                    {settingsLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    <span>บันทึกการตั้งค่านโยบายและกระจายข้อมูลสู่ระบบสด</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Discord AI Developer Reporter Card */}
+            <div className="bento-card p-6 space-y-5 border-indigo-500/30 bg-gradient-to-br from-slate-900/90 via-indigo-950/20 to-slate-900/90">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-black text-base text-white flex items-center gap-2">
+                    <span className="text-xl">🤖</span>
+                    <span>ระบบรายงานความคืบหน้า AI Developer สู่ Discord (Group Chat Feed)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                    รับการแจ้งเตือนความคืบหน้า สิ่งที่ AI ทำเสร็จ บั๊กที่พบ และ Git Commit ส่งตรงเข้าห้องแชท Discord ทันที
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 w-fit">
+                  Discord Webhook Active
+                </span>
+              </div>
+
+              {discordMsg && (
+                <div className={`p-3.5 rounded-2xl text-xs font-bold ${discordMsg.startsWith('🎉') || discordMsg.startsWith('✅') ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'}`}>
+                  {discordMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveDiscord} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    Discord Webhook URL
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://discord.com/api/webhooks/..."
+                      value={discordWebhookUrl}
+                      onChange={(e) => setDiscordWebhookUrl(e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-white font-mono text-xs font-medium focus:outline-none focus:border-indigo-500"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors shrink-0"
+                    >
+                      💾 บันทึก URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTestDiscord}
+                      disabled={discordLoading}
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 shrink-0"
+                    >
+                      {discordLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <span>🚀</span>}
+                      <span>ทดสอบส่งเข้า Discord</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+                  <div className="font-bold text-slate-300 flex items-center gap-1.5">
+                    <span>💡 วิธีสร้าง Webhook ใน Discord (ใช้เวลา 30 วินาที):</span>
+                  </div>
+                  <div>1. ไปที่ห้องแชทใน Discord ของคุณ &rarr; กดรูปฟันเฟือง ⚙️ (Edit Channel)</div>
+                  <div>2. เลือกเมนู <strong>Integrations</strong> &rarr; กดปุ่ม <strong>Webhooks</strong> &rarr; กด <strong>New Webhook</strong></div>
+                  <div>3. ตั้งชื่อบอท เช่น <code>"สีแสงยางยนต์ Dev Bot"</code> แล้วกด <strong>Copy Webhook URL</strong> มาวางที่นี่ได้เลย</div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* ------------------------------------------------------------- */}
-      {/* MODAL: ADD EMPLOYEE                                           */}
+      {/* ADD EMPLOYEE MODAL (Bento Glass Modal)                        */}
       {/* ------------------------------------------------------------- */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="max-w-md w-full p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                  <Plus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-black text-sm text-slate-900">เพิ่มพนักงานใหม่ (Add Staff)</h3>
-                  <p className="text-[10px] text-slate-500">บันทึกข้อมูลเข้าฐานข้อมูล Supabase ทันที</p>
-                </div>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="bento-card max-w-md w-full p-6 space-y-5 border-white/10 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-black text-white text-base flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-400" />
+                <span>เพิ่มบัญชีพนักงานใหม่</span>
+              </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-xs"
+                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
               >
                 ✕
               </button>
             </div>
 
             {addMsg && (
-              <div className={`p-3 rounded-xl text-xs font-bold ${
-                addMsg.includes('สำเร็จ')
-                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                  : 'bg-rose-50 border border-rose-200 text-rose-800'
-              }`}>
+              <div className={`p-3 rounded-xl text-xs font-bold ${addMsg.includes('สำเร็จ') ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'}`}>
                 {addMsg}
               </div>
             )}
 
-            <form onSubmit={handleCreateEmployee} className="space-y-3 text-xs font-bold">
-              <div>
-                <label className="block text-slate-700 mb-1">รหัสพนักงาน: <span className="text-rose-500">*</span></label>
+            <form onSubmit={handleCreateEmployee} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-300">รหัสพนักงาน (Employee Code)</label>
                 <input
                   type="text"
+                  placeholder="เช่น EMP004, 04"
                   value={newCode}
-                  onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-                  placeholder="เช่น EMP003, TECH01"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:outline-none focus:border-blue-500"
+                  onChange={(e) => setNewCode(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-white font-mono text-sm font-bold focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-700 mb-1">ชื่อ-นามสกุล: <span className="text-rose-500">*</span></label>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-300">ชื่อ-นามสกุล</label>
                 <input
                   type="text"
+                  placeholder="เช่น ประวิทย์ รักงาน"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="เช่น สมชาย สายตรง"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-700 mb-1">ชื่อเล่น:</label>
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-300">ชื่อเล่น</label>
                   <input
                     type="text"
+                    placeholder="เช่น โจ้"
                     value={newNick}
                     onChange={(e) => setNewNick(e.target.value)}
-                    placeholder="เช่น ชาย"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-white text-sm font-medium focus:outline-none focus:border-blue-500"
+                    required
                   />
                 </div>
-                <div>
-                  <label className="block text-slate-700 mb-1">รหัส PIN / รหัสผ่าน: <span className="text-rose-500">*</span></label>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-300">รหัส PIN เริ่มต้น</label>
                   <input
-                    type="password"
+                    type="text"
+                    placeholder="1234"
                     value={newPin}
                     onChange={(e) => setNewPin(e.target.value)}
-                    placeholder="เช่น 1234 หรือรหัสผ่าน"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-center tracking-widest focus:outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-white font-mono text-sm font-bold focus:outline-none focus:border-blue-500"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-700 mb-1">ตำแหน่ง / สิทธิ์ (Role):</label>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-300">ตำแหน่ง / สิทธิ์</label>
                 <select
                   value={newRole}
                   onChange={(e: any) => setNewRole(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-blue-500 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-slate-950/90 border border-slate-800 rounded-xl text-white text-xs font-bold focus:outline-none focus:border-blue-500"
                 >
-                  <option value="STAFF">👷 พนักงานปฏิบัติการ (STAFF - ตอกบัตร/เบี้ยเลี้ยง 50฿)</option>
-                  <option value="SUPERVISOR">👨‍🔧 หัวหน้างาน (SUPERVISOR - ตอกบัตร/เบี้ยเลี้ยง 50฿)</option>
+                  <option value="STAFF">พนักงานทั่วไป (Staff)</option>
+                  <option value="SUPERVISOR">หัวหน้างาน (Supervisor)</option>
                 </select>
               </div>
 
-              <button
-                type="submit"
-                disabled={addLoading}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md shadow-blue-500/20 transition-all active:scale-98 flex items-center justify-center gap-2"
-              >
-                {addLoading ? <span>กำลังบันทึกลง Supabase...</span> : <> <Plus className="w-4 h-4" /> <span>บันทึกและสร้างบัญชีพนักงาน</span> </>}
-              </button>
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={addLoading}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 flex items-center gap-1.5"
+                >
+                  {addLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>บันทึกบัญชีพนักงาน</span>
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
-
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto w-full text-center py-4 text-xs text-slate-500 border-t border-slate-900 mt-6">
+        © {new Date().getFullYear()} สีแสงยางยนต์ YOKOHAMA • NAYA • COSMIS WHEELS & TIRES — Web Executive Dashboard
+      </footer>
     </div>
   );
 }

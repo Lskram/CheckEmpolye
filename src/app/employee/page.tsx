@@ -29,7 +29,14 @@ import {
   AlertTriangle,
   X,
   Sparkles,
-  Coins
+  Coins,
+  Sun,
+  Moon,
+  Zap,
+  TrendingUp,
+  Folder,
+  Layers,
+  ArrowUpRight
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -37,10 +44,12 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { getLiveHardwarePosition, watchLivePosition, LiveLocationResult } from '@/lib/location';
 import { MobileNotificationService } from '@/lib/mobile-notifications';
 import { playWebAlertSound } from '@/lib/web-notifications';
+import { useAppTheme } from '@/lib/theme';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function ExactEmployeeApp() {
   const router = useRouter();
+  const { isDark, toggleTheme } = useAppTheme();
 
   // Employee Profile & HWID
   const [employee, setEmployee] = useState<any>(null);
@@ -121,7 +130,7 @@ export default function ExactEmployeeApp() {
     text: '00:00:00',
   });
 
-  // Recalculate Distance Helper (Always uses freshest references)
+  // Recalculate Distance Helper
   const recalculateDistance = useCallback((coords?: { lat: number; lng: number } | null, settings?: any) => {
     const effectiveCoords = coords || currentCoordsRef.current;
     const effectiveSettings = settings || storeSettingsRef.current;
@@ -141,265 +150,197 @@ export default function ExactEmployeeApp() {
     setDistance(dist);
   }, []);
 
-  // Fetch Today's Check-in & Check-out Status
-  const fetchTodayStatus = useCallback((empId: string, empName: string) => {
-    fetch(`/api/employee/stats?id=${empId}`, { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((resData) => {
-        if (resData.success && resData.data?.todayLog) {
-          const todayLog = resData.data.todayLog;
-          const shortLogId = todayLog.id ? `#LOG-${todayLog.id.slice(0, 8).toUpperCase()}` : null;
-          setCheckInResult({
-            id: todayLog.id,
-            logReference: shortLogId,
-            status: todayLog.status,
-            rawCheckInTime: todayLog.rawCheckInTime || todayLog.check_in_time,
-            rawCheckOutTime: todayLog.rawCheckOutTime || todayLog.check_out_time,
-            checkInTime: todayLog.checkInTime,
-            checkOutTime: todayLog.checkOutTime || null,
-            workingDuration: todayLog.workingDuration || null,
-            allowance: todayLog.allowance || 0,
-            distance: todayLog.distance || 0,
-            isLate: todayLog.status === 'LATE',
-            employeeName: empName,
-          });
-        }
-      })
-      .catch((err) => console.error('Error fetching today status:', err));
+  // 1. Authenticate Employee Profile
+  useEffect(() => {
+    const saved = localStorage.getItem('attendance_employee_profile');
+    if (!saved) {
+      router.push('/employee/login');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(saved);
+      setEmployee(parsed);
+      setIsAuthChecking(false);
+    } catch (e) {
+      router.push('/employee/login');
+    }
+  }, [router]);
+
+  // 2. HWID Device ID Acquisition
+  useEffect(() => {
+    const currentHWID = getDeviceHWID();
+    setHwid(currentHWID);
   }, []);
 
-  // Fetch Store Settings from DB
-  const fetchSettings = useCallback(() => {
-    fetch('/api/admin/settings', { cache: 'no-store' })
-      .then((res) => res.json())
-      .then((data) => {
+  // 3. Real-Time Bangkok Clock Tick
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const thaiDays = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
+      const thaiMonths = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+
+      const dayName = thaiDays[now.getDay()];
+      const dayNum = now.getDate();
+      const monthName = thaiMonths[now.getMonth()];
+      const yearBuddhist = now.getFullYear() + 543;
+
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+
+      setTime({
+        hhmm: `${hh}:${mm}`,
+        ss,
+        dateThai: `${dayName}ที่ ${dayNum} ${monthName} ${yearBuddhist}`,
+        rawTimeStr: `${hh}:${mm}:${ss}`,
+      });
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 4. Load Store Settings & Subscribe to Realtime Updates
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/settings');
+        const data = await res.json();
         if (data.success && data.data) {
           setStoreSettings(data.data);
-          storeSettingsRef.current = data.data;
-          // Recalculate distance immediately with current hardware coords
-          if (currentCoordsRef.current) {
-            recalculateDistance(currentCoordsRef.current, data.data);
-          }
-          if (data.data.standard_time) {
-            MobileNotificationService.scheduleShiftCountdown(data.data.standard_time);
-          }
+          recalculateDistance(currentCoordsRef.current, data.data);
         }
-      })
-      .catch((e) => console.error('Failed to fetch store settings:', e));
+      } catch (e) {
+        console.error('Failed to fetch store settings:', e);
+      }
+    };
+    fetchSettings();
+
+    if (isSupabaseConfigured && supabase) {
+      const channel = supabase
+        .channel('store_settings_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'store_settings' },
+          (payload: any) => {
+            if (payload.new) {
+              setStoreSettings(payload.new);
+              recalculateDistance(currentCoordsRef.current, payload.new);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        if (supabase) supabase.removeChannel(channel);
+      };
+    }
   }, [recalculateDistance]);
 
-  // Live Stopwatch Ticker for Elapsed Working Time
+  // 5. Hardware GPS Watcher
+  useEffect(() => {
+    let unwatchFn: (() => void) | null = null;
+
+    const startHardwareGps = async () => {
+      setGpsLoading(true);
+      try {
+        const initialPos = await getLiveHardwarePosition({
+          enableHighAccuracy: true,
+          timeout: 8000,
+          maximumAge: 0,
+        });
+
+        setCurrentCoords({ lat: initialPos.latitude, lng: initialPos.longitude });
+        setGpsAccuracy(initialPos.accuracy);
+        setGpsProvider(initialPos.provider);
+        setGpsError(null);
+        recalculateDistance({ lat: initialPos.latitude, lng: initialPos.longitude }, storeSettingsRef.current);
+      } catch (err: any) {
+        setGpsError(err.message || 'ไม่สามารถระบุพิกัดดาวเทียมได้');
+      } finally {
+        setGpsLoading(false);
+      }
+
+      unwatchFn = watchLivePosition(
+        (pos: LiveLocationResult) => {
+          setCurrentCoords({ lat: pos.latitude, lng: pos.longitude });
+          setGpsAccuracy(pos.accuracy);
+          setGpsProvider(pos.provider);
+          setGpsError(null);
+          recalculateDistance({ lat: pos.latitude, lng: pos.longitude }, storeSettingsRef.current);
+        },
+        (err: any) => {
+          console.warn('GPS Watch error:', err);
+        }
+      );
+    };
+
+    startHardwareGps();
+
+    return () => {
+      if (unwatchFn) unwatchFn();
+    };
+  }, [recalculateDistance]);
+
+  // 6. Live Working Stopwatch Ticker
   useEffect(() => {
     if (!checkInResult?.rawCheckInTime || checkInResult?.checkOutTime) {
       return;
     }
 
-    const inDate = new Date(checkInResult.rawCheckInTime);
+    const interval = setInterval(() => {
+      const start = new Date(checkInResult.rawCheckInTime).getTime();
+      const now = Date.now();
+      const diffSec = Math.max(0, Math.floor((now - start) / 1000));
 
-    const updateLiveDuration = () => {
-      const now = new Date();
-      const diffMs = Math.max(0, now.getTime() - inDate.getTime());
-      const totalSecs = Math.floor(diffMs / 1000);
-      const hrs = Math.floor(totalSecs / 3600);
-      const mins = Math.floor((totalSecs % 3600) / 60);
-      const secs = totalSecs % 60;
+      const hours = Math.floor(diffSec / 3600);
+      const minutes = Math.floor((diffSec % 3600) / 60);
+      const seconds = diffSec % 60;
 
-      const pad = (n: number) => String(n).padStart(2, '0');
       setLiveWorkDuration({
-        hours: hrs,
-        minutes: mins,
-        seconds: secs,
-        totalSeconds: totalSecs,
-        text: `${pad(hrs)}:${pad(mins)}:${pad(secs)}`,
+        hours,
+        minutes,
+        seconds,
+        totalSeconds: diffSec,
+        text: `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
       });
-    };
+    }, 1000);
 
-    updateLiveDuration();
-    const interval = setInterval(updateLiveDuration, 1000);
     return () => clearInterval(interval);
-  }, [checkInResult?.rawCheckInTime, checkInResult?.checkOutTime]);
+  }, [checkInResult]);
 
-  // Manual GPS Refresh Trigger
-  const refreshRealGPS = async () => {
+  // Manual GPS Refresh
+  const handleManualRefresh = async () => {
     setGpsLoading(true);
-    setGpsError(null);
     try {
-      const pos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
-      const newCoords = { lat: pos.latitude, lng: pos.longitude };
-      setCurrentCoords(newCoords);
-      currentCoordsRef.current = newCoords;
+      const pos = await getLiveHardwarePosition({
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0,
+      });
+      setCurrentCoords({ lat: pos.latitude, lng: pos.longitude });
       setGpsAccuracy(pos.accuracy);
       setGpsProvider(pos.provider);
-      recalculateDistance(newCoords, storeSettingsRef.current);
-    } catch (err: any) {
-      console.warn('GPS refresh error:', err);
-      setGpsError(err.message || 'ไม่สามารถรับสัญญาณดาวเทียม GPS ได้');
+      setGpsError(null);
+      recalculateDistance({ lat: pos.latitude, lng: pos.longitude }, storeSettings);
+    } catch (e: any) {
+      setGpsError('เกิดข้อผิดพลาดในการดึงพิกัด');
     } finally {
       setGpsLoading(false);
     }
   };
 
-  // Manual Full Refresh (both store coordinates & device GPS)
-  const handleManualRefresh = async () => {
-    fetchSettings();
-    await refreshRealGPS();
-  };
-
-  // 1. Core Lifecycle Setup & Real-Time Sync
-  useEffect(() => {
-    // 1.1 Auth Guard - Check saved profile
-    const saved = localStorage.getItem('attendance_employee_profile');
-    if (!saved) {
-      router.replace('/employee/login');
-      return;
-    }
-
-    let parsedEmp: any = null;
-    try {
-      parsedEmp = JSON.parse(saved);
-      if (parsedEmp?.role === 'ADMIN' || parsedEmp?.employee_code === 'SI01') {
-        router.replace('/executive');
-        return;
-      }
-      setEmployee(parsedEmp);
-      setIsAuthChecking(false);
-    } catch (e) {
-      router.replace('/employee/login');
-      return;
-    }
-
-    // 1.2 Fetch HWID
-    const deviceHwid = getDeviceHWID();
-    setHwid(deviceHwid);
-
-    // 1.3 Fetch Initial Settings & Status
-    fetchSettings();
-    MobileNotificationService.requestPermission();
-    if (parsedEmp?.id) {
-      fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
-    }
-
-    // 1.4 Start Continuous Live Hardware Satellite GPS Tracking
-    refreshRealGPS();
-    const cleanupLocationWatcher = watchLivePosition(
-      (pos: LiveLocationResult) => {
-        const newCoords = { lat: pos.latitude, lng: pos.longitude };
-        setCurrentCoords(newCoords);
-        currentCoordsRef.current = newCoords;
-        setGpsAccuracy(pos.accuracy);
-        setGpsProvider(pos.provider);
-        setGpsError(null);
-        recalculateDistance(newCoords, storeSettingsRef.current);
-      },
-      (err: any) => {
-        console.warn('Live location watch error:', err);
-      }
-    );
-
-    // 1.5 Supabase Realtime Channel Subscription (<100ms sync when Admin updates marker)
-    let channel: any = null;
-    if (isSupabaseConfigured && supabase && parsedEmp?.id) {
-      channel = supabase
-        .channel(`employee-geofence-sync-${parsedEmp.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, () => {
-          fetchSettings();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_logs' }, () => {
-          fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
-        })
-        .subscribe();
-    }
-
-    // 1.6 Fast Adaptive Heartbeat Polling (Every 4 seconds fallback)
-    const settingsPollTimer = setInterval(() => {
-      fetchSettings();
-    }, 4000);
-
-    // 1.7 Sync on App Focus / Visibility Change
-    const handleFocus = () => {
-      if (document.visibilityState === 'visible') {
-        fetchSettings();
-        refreshRealGPS();
-        if (parsedEmp?.id) {
-          fetchTodayStatus(parsedEmp.id, parsedEmp.full_name || parsedEmp.fullName);
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleFocus);
-    window.addEventListener('focus', handleFocus);
-
-    // 1.8 Clock Ticker
-    const updateClock = () => {
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
-
-      const thaiDays = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
-      const thaiMonths = [
-        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-        'กรกฎาคม', 'สหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-      ];
-
-      const dayName = thaiDays[now.getDay()];
-      const dayDate = now.getDate();
-      const monthName = thaiMonths[now.getMonth()];
-      const year = now.getFullYear() + 543;
-
-      setTime({
-        hhmm: `${hh}:${mm}`,
-        ss,
-        dateThai: `${dayName}, ${dayDate} ${monthName} ${year}`,
-        rawTimeStr: `${hh}:${mm}:${ss}`,
-      });
-    };
-
-    updateClock();
-    const clockInterval = setInterval(updateClock, 1000);
-
-    return () => {
-      clearInterval(clockInterval);
-      clearInterval(settingsPollTimer);
-      cleanupLocationWatcher();
-      document.removeEventListener('visibilitychange', handleFocus);
-      window.removeEventListener('focus', handleFocus);
-      if (channel && supabase) supabase.removeChannel(channel);
-    };
-  }, [router, fetchSettings, fetchTodayStatus, recalculateDistance]);
-
-  // Recalculate distance whenever storeSettings changes
-  useEffect(() => {
-    if (currentCoords && storeSettings) {
-      recalculateDistance(currentCoords, storeSettings);
-    }
-  }, [storeSettings, currentCoords, recalculateDistance]);
-
-  const allowedRadius = Number(storeSettings?.radius_meters) || 50;
-  const isInsideRadius = distance !== null && distance <= allowedRadius;
-
-  // Logout Handler
-  const handleLogout = () => {
-    if (confirm('คุณต้องการออกจากระบบหรือไม่?')) {
-      localStorage.removeItem('attendance_employee_profile');
-      router.replace('/employee/login');
-    }
-  };
-
-  // CHECK-IN HANDLER (Strict Geofence Enforcement + Live Satellite Fix)
+  // CHECK-IN HANDLER
   const handleCheckIn = async () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setErrorMessage('');
-
-    // 1. Strict Client-side Geofence Blocking
-    if (distance !== null && distance > allowedRadius) {
-      setErrorMessage(`🚫 คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} เมตร เกินกำหนด ${allowedRadius} ม.) ไม่อนุญาตให้ลงเวลาเข้างาน`);
-      return;
-    }
-
     setIsCheckingIn(true);
 
     try {
-      // 2. Fetch fresh live hardware satellite position on button press
       let freshLat = currentCoords?.lat;
       let freshLng = currentCoords?.lng;
       let freshAcc = gpsAccuracy || 5;
@@ -413,11 +354,11 @@ export default function ExactEmployeeApp() {
         setGpsAccuracy(livePos.accuracy);
         recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
       } catch (e) {
-        console.warn('Using last known coordinates for check-in:', e);
+        console.warn('Using cached coordinates:', e);
       }
 
       if (freshLat === undefined || freshLng === undefined) {
-        setErrorMessage('ไม่สามารถระบุพิกัดดาวเทียม GPS ได้ กรุณาเปิด GPS บนโทรศัพท์แล้วกดใหม่อีกครั้ง');
+        setErrorMessage('ไม่สามารถระบุตำแหน่ง GPS ได้ กรุณาเปิดระบบระบุตำแหน่ง');
         setIsCheckingIn(false);
         return;
       }
@@ -438,20 +379,22 @@ export default function ExactEmployeeApp() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        setErrorMessage(data.message || 'การเช็คอินถูกปฏิเสธ');
+        setErrorMessage(data.message || 'การลงเวลาถูกปฏิเสธ');
         setIsCheckingIn(false);
         return;
       }
 
       setCheckInResult(data.data);
       playWebAlertSound('checkin');
+
       setMobileToast({
         type: 'checkin',
-        title: data.data.status === 'PRESENT' ? '✅ ลงชื่อเข้างานสำเร็จแล้ว (ตรงเวลา)' : '⚠️ บันทึกเวลาเข้างานแล้ว (มาสาย)',
-        message: `บันทึกลงระบบสำเร็จ เวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '(+50฿ เบี้ยขยัน)' : ''}`,
+        title: data.data.status === 'PRESENT' ? '✅ ลงชื่อเข้างานสำเร็จ (ตรงเวลา)' : '⚠️ บันทึกเวลาเข้างานแล้ว (มาสาย)',
+        message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '(+50฿ เบี้ยขยัน)' : ''}`,
         isLate: data.data.status !== 'PRESENT',
         timeStr: data.data.checkInTime || time.hhmm,
       });
+
       MobileNotificationService.showCheckInSuccess(
         data.data.checkInTime || time.hhmm,
         data.data.status !== 'PRESENT',
@@ -467,27 +410,26 @@ export default function ExactEmployeeApp() {
         });
       }
     } catch (err: any) {
-      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
+      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
     } finally {
       setIsCheckingIn(false);
     }
   };
 
-  // CHECK-OUT SAFEGUARD TRIGGER (Shows Confirmation Modal)
+  // CHECK-OUT PROMPT
   const promptCheckOut = () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setErrorMessage('');
 
-    // Strict Client-side Geofence Blocking
-    if (distance !== null && distance > allowedRadius) {
-      setErrorMessage(`🚫 คุณอยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} เมตร เกินกำหนด ${allowedRadius} ม.) ไม่อนุญาตให้ลงเวลาออกงาน`);
+    if (distance !== null && distance > (storeSettings?.radius_meters || 50)) {
+      setErrorMessage(`🚫 อยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} ม.) ไม่อนุญาตให้ลงเวลาออกงาน`);
       return;
     }
 
     setShowCheckOutConfirmModal(true);
   };
 
-  // CHECK-OUT EXECUTION HANDLER
+  // CHECK-OUT EXECUTE
   const executeCheckOut = async () => {
     setShowCheckOutConfirmModal(false);
     setIsCheckingOut(true);
@@ -506,11 +448,11 @@ export default function ExactEmployeeApp() {
         setGpsAccuracy(livePos.accuracy);
         recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
       } catch (e) {
-        console.warn('Using last known coordinates for check-out:', e);
+        console.warn('Using cached coordinates:', e);
       }
 
       if (freshLat === undefined || freshLng === undefined) {
-        setErrorMessage('ไม่สามารถระบุพิกัดดาวเทียม GPS ได้ กรุณาเปิด GPS บนโทรศัพท์');
+        setErrorMessage('ไม่สามารถระบุพิกัดดาวเทียมได้');
         setIsCheckingOut(false);
         return;
       }
@@ -547,7 +489,7 @@ export default function ExactEmployeeApp() {
       setMobileToast({
         type: 'checkout',
         title: '🏁 ลงชื่อออกงานสำเร็จแล้ว!',
-        message: `บันทึกเวลาออกงานสำเร็จ เวลา ${data.data.checkOutTime || time.hhmm} น. ${data.data.workHours ? `(รวมทำงาน ${Number(data.data.workHours).toFixed(1)} ชม.)` : 'ขอบคุณสำหรับการทำงานวันนี้ครับ'}`,
+        message: `บันทึกเวลาออกงาน ${data.data.checkOutTime || time.hhmm} น.`,
         timeStr: data.data.checkOutTime || time.hhmm,
       });
 
@@ -563,25 +505,49 @@ export default function ExactEmployeeApp() {
         colors: ['#a855f7', '#3b82f6', '#10b981', '#fbbf24'],
       });
     } catch (err: any) {
-      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์: ' + err.message);
+      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
     } finally {
       setIsCheckingOut(false);
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('attendance_employee_profile');
+    router.push('/employee/login');
+  };
+
+  const allowedRadius = storeSettings?.radius_meters || 50;
+  const isInsideRadius = distance !== null && distance <= allowedRadius;
+
   if (isAuthChecking) {
     return (
-      <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-screen w-full bg-slate-950 flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex flex-col justify-between select-none font-sans text-slate-800 pb-20 relative">
+    <div className={`min-h-screen w-full flex flex-col justify-between select-none font-sans transition-colors duration-300 pb-28 relative overflow-x-hidden ${
+      isDark ? 'bg-[#090d16] text-slate-100' : 'bg-[#eef2f7] text-slate-800'
+    }`}>
       
+      {/* Ambient Glows */}
+      {isDark ? (
+        <>
+          <div className="absolute top-[-50px] left-[-50px] w-72 h-72 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-[30%] right-[-50px] w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-[-50px] left-[20%] w-72 h-72 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        </>
+      ) : (
+        <>
+          <div className="absolute top-[-50px] left-[-50px] w-72 h-72 bg-blue-300/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-[30%] right-[-50px] w-72 h-72 bg-emerald-300/20 rounded-full blur-3xl pointer-events-none" />
+        </>
+      )}
+
       {/* ------------------------------------------------------------- */}
-      {/* 0. IN-APP FLOATING NOTIFICATION BANNER (Top Slide Down)       */}
+      {/* 0. IN-APP FLOATING NOTIFICATION BANNER                        */}
       {/* ------------------------------------------------------------- */}
       <AnimatePresence>
         {mobileToast && (
@@ -593,12 +559,12 @@ export default function ExactEmployeeApp() {
             className="fixed top-3 left-3 right-3 z-50 max-w-md mx-auto"
           >
             <div
-              className={`p-4 rounded-3xl shadow-2xl backdrop-blur-xl border flex items-start gap-3.5 text-white ${
+              className={`p-4 rounded-3xl shadow-2xl backdrop-blur-2xl border flex items-start gap-3.5 text-white ${
                 mobileToast.type === 'checkin'
                   ? mobileToast.isLate
-                    ? 'bg-amber-600/95 border-amber-400/50 shadow-amber-900/40'
-                    : 'bg-emerald-600/95 border-emerald-400/50 shadow-emerald-900/40'
-                  : 'bg-gradient-to-r from-blue-600/95 to-indigo-700/95 border-blue-400/50 shadow-blue-900/40'
+                    ? 'bg-amber-600/90 border-amber-400/40 shadow-amber-950/60'
+                    : 'bg-emerald-600/90 border-emerald-400/40 shadow-emerald-950/60'
+                  : 'bg-gradient-to-r from-blue-600/90 to-indigo-700/90 border-blue-400/40 shadow-blue-950/60'
               }`}
             >
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
@@ -610,16 +576,13 @@ export default function ExactEmployeeApp() {
                   <h4 className="font-black text-xs tracking-tight text-white leading-tight">
                     {mobileToast.title}
                   </h4>
-                  <span className="font-mono text-[10px] bg-black/20 px-2 py-0.5 rounded-full text-white/90 shrink-0">
+                  <span className="font-mono text-[10px] bg-black/30 px-2 py-0.5 rounded-full text-white/90 shrink-0">
                     {mobileToast.timeStr} น.
                   </span>
                 </div>
                 <p className="text-[11px] text-white/90 mt-1 leading-snug font-medium">
                   {mobileToast.message}
                 </p>
-                <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/20 text-[10px] font-bold">
-                  <span>✓ บันทึกลงฐานข้อมูลสำเร็จ</span>
-                </div>
               </div>
 
               <button
@@ -634,592 +597,390 @@ export default function ExactEmployeeApp() {
       </AnimatePresence>
 
       {/* ------------------------------------------------------------- */}
-      {/* 1. TOP HEADER (Blue Brand Theme)                              */}
+      {/* 1. TOP DOME PROFILE & WAVE HEADER                             */}
       {/* ------------------------------------------------------------- */}
-      <div className="w-full bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white px-5 pt-8 pb-5 rounded-b-3xl shadow-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-inner font-extrabold text-sm">
-              {employee?.nickname ? employee.nickname[0] : (employee?.full_name ? employee.full_name[0] : 'พ')}
-            </div>
-            <div>
-              <div className="text-[11px] font-bold text-blue-100 flex items-center gap-1.5">
-                <span>พนักงาน</span>
-                <span className="font-mono bg-white/20 px-1.5 py-0.2 rounded-md text-[10px]">
-                  {employee?.employee_code || employee?.employeeCode || 'EMP'}
-                </span>
-              </div>
-              <div className="text-sm font-extrabold tracking-tight leading-tight">
-                {employee?.full_name || employee?.fullName || 'พนักงานปฏิบัติการ'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
-              title="ออกจากระบบ"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ------------------------------------------------------------- */}
-      {/* 2. MAIN INTERACTIVE CONTENT AREA                              */}
-      {/* ------------------------------------------------------------- */}
-      <div className="px-4 py-4 space-y-4 max-w-md w-full mx-auto flex-1">
-        
-        {/* Main Attendance Action Card */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-3 relative overflow-hidden">
+      <div className={`w-full relative z-10 pt-4 pb-2 transition-colors duration-300 ${
+        isDark ? 'bg-gradient-to-b from-[#131b2e] to-[#0c121e] text-white border-b border-white/5' : 'bg-gradient-to-b from-[#18223c] to-[#0f172a] text-white shadow-md'
+      }`}>
+        <div className="max-w-md mx-auto px-4">
           
-          {/* Subtle Top Accent */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
-
-          {/* Date Label */}
-          <div className="text-xs font-bold text-slate-400">
-            {time.dateThai}
-          </div>
-
-          {/* Big Digital Clock */}
-          <div className="flex items-baseline justify-center font-mono font-black text-slate-900 leading-none">
-            <span className="text-5xl tracking-tighter">{time.hhmm}</span>
-            <span className="text-xl text-slate-400 ml-1.5 font-medium">:{time.ss}</span>
-          </div>
-
-          {/* Geofence Status Indicator */}
-          <div className="flex items-center justify-center">
-            {currentCoords ? (
-              isInsideRadius ? (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>อยู่ในรัศมีร้าน ({distance?.toFixed(0)} ม.) พร้อมลงเวลา</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
-                  <span className="w-2 h-2 rounded-full bg-rose-500" />
-                  <span>อยู่นอกระยะร้าน ({distance !== null ? `${distance.toFixed(0)} ม.` : 'กำลังค้นหา'})</span>
-                </div>
-              )
-            ) : (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>กำลังระบุพิกัดดาวเทียม...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Big Circular Action Button */}
-          <div className="py-2 relative">
-            {/* Pulsing Ripple Effect */}
-            {isInsideRadius && (!checkInResult || (checkInResult && !checkInResult.checkOutTime)) && (
-              <motion.div
-                className={`absolute -top-3 -left-3 w-30 h-30 rounded-full ${
-                  !checkInResult ? 'bg-blue-500/25' : 'bg-amber-500/25'
-                }`}
-                animate={{ scale: [1, 1.4, 1.7], opacity: [0.8, 0.25, 0] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
-              />
-            )}
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? promptCheckOut : undefined}
-              disabled={isCheckingIn || isCheckingOut || (!!checkInResult && !!checkInResult.checkOutTime)}
-              className={`relative z-10 w-24 h-24 rounded-full flex flex-col items-center justify-center text-white ring-4 shadow-2xl transition-all ${
-                !checkInResult
-                  ? isInsideRadius
-                    ? 'bg-gradient-to-b from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] ring-white shadow-blue-600/50'
-                    : 'bg-gradient-to-b from-slate-600 via-slate-700 to-slate-800 ring-rose-300 shadow-slate-700/50'
-                  : !checkInResult.checkOutTime
-                    ? isInsideRadius
-                      ? 'bg-gradient-to-b from-amber-500 via-orange-500 to-rose-600 ring-white shadow-orange-500/50'
-                      : 'bg-gradient-to-b from-slate-600 via-slate-700 to-slate-800 ring-rose-300 shadow-slate-700/50'
-                    : 'bg-gradient-to-b from-emerald-500 to-teal-600 ring-white shadow-emerald-500/40'
-              }`}
-            >
-              {isCheckingIn || isCheckingOut ? (
-                <RefreshCw className="w-7 h-7 animate-spin text-white" />
-              ) : !checkInResult ? (
-                isInsideRadius ? (
-                  <div className="flex flex-col items-center justify-center">
-                    <svg
-                      className="w-8 h-8 text-white mb-0.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 11V3a1 1 0 0 0-2 0v9" />
-                      <path d="M10 8.5a1 1 0 0 1 2 0" />
-                      <path d="M14 9.5a1 1 0 0 1 2 0v2.5" />
-                      <path d="M18 11.5a1 1 0 0 1 2 0v3a8 8 0 1 1-16 0v-4" />
-                    </svg>
-                    <span className="text-xs font-bold tracking-tight">เข้างาน</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-rose-200">
-                    <Lock className="w-7 h-7 mb-0.5" />
-                    <span className="text-[10px] font-bold tracking-tight text-white">นอกพื้นที่</span>
-                  </div>
-                )
-              ) : !checkInResult.checkOutTime ? (
-                isInsideRadius ? (
-                  <div className="flex flex-col items-center justify-center">
-                    <LogOut className="w-7 h-7 text-white mb-0.5" />
-                    <span className="text-xs font-bold tracking-tight">ออกงาน</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-rose-200">
-                    <Lock className="w-7 h-7 mb-0.5" />
-                    <span className="text-[10px] font-bold tracking-tight text-white">นอกพื้นที่</span>
-                  </div>
-                )
-              ) : (
-                <div className="flex flex-col items-center justify-center">
-                  <CheckCircle2 className="w-7 h-7 text-white mb-0.5" />
-                  <span className="text-[11px] font-bold">เสร็จสิ้น</span>
-                </div>
-              )}
-            </motion.button>
-          </div>
-        </div>
-
-        {/* 3 Summary Stat Cards */}
-        <div className="grid grid-cols-3 gap-3 pt-1">
-          {/* Card 1: เข้างาน */}
-          <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
-              <Clock className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-bold font-mono text-slate-800">
-              {checkInResult ? checkInResult.checkInTime : '--:--'}
-            </span>
-            <span className="text-[11px] text-slate-400 font-medium">เข้างาน</span>
-          </div>
-
-          {/* Card 2: ออกงาน */}
-          <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
-              checkInResult?.checkOutTime ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-400'
-            }`}>
-              <LogOut className="w-4 h-4" />
-            </div>
-            <span className={`text-sm font-bold font-mono ${
-              checkInResult?.checkOutTime ? 'text-amber-600' : 'text-slate-400'
-            }`}>
-              {checkInResult?.checkOutTime ? checkInResult.checkOutTime : '--:--'}
-            </span>
-            <span className="text-[11px] text-slate-400 font-medium">ออกงาน</span>
-          </div>
-
-          {/* Card 3: เบี้ยขยัน */}
-          <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs text-center flex flex-col items-center justify-center">
-            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1">
-              <CreditCard className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-bold font-mono text-emerald-600">
-              {checkInResult ? `+${checkInResult.allowance}฿` : '0฿'}
-            </span>
-            <span className="text-[11px] text-slate-400 font-medium">เบี้ยขยันวันนี้</span>
-          </div>
-        </div>
-
-        {/* ----------------------------------------------------------- */}
-        {/* LIVE WORKING DURATION COUNTER (REAL-TIME STOPWATCH)         */}
-        {/* ----------------------------------------------------------- */}
-        {checkInResult && !checkInResult.checkOutTime && (
-          <div className="p-4 rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white shadow-lg space-y-3 relative overflow-hidden border border-blue-500/20">
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+          {/* Top Row with Profile Dome Center */}
+          <div className="flex items-center justify-between relative">
             
-            <div className="flex items-center justify-between">
+            {/* Left: Store Brand Pill */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shadow-sm">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-blue-300 tracking-wider">YOKOHAMA NAYA</div>
+                <div className="text-xs font-black text-white leading-none">สีแสงยางยนต์</div>
+              </div>
+            </div>
+
+            {/* Center Dome Profile Avatar Notch */}
+            <div className="relative -top-2 flex flex-col items-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-xl shadow-blue-500/30 flex items-center justify-center">
+                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center font-black text-xs text-white uppercase">
+                  {employee?.nickname ? employee.nickname.slice(0, 2) : (employee?.full_name ? employee.full_name.slice(0, 2) : 'EM')}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Theme Toggle & Logout */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-yellow-300 transition-transform active:scale-90 border border-white/10"
+                title="สลับโหมด Dark / Light"
+              >
+                {isDark ? <Sun className="w-4 h-4 text-yellow-300" /> : <Moon className="w-4 h-4 text-sky-200" />}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-300 transition-transform active:scale-90 border border-white/10"
+                title="ออกจากระบบ"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* User Name & Code Subtitle */}
+          <div className="text-center mt-1">
+            <span className="text-xs font-extrabold text-white tracking-wide">
+              {employee?.full_name || employee?.fullName || 'พนักงานปฏิบัติการ'}
+            </span>
+            <span className="ml-1.5 font-mono text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              {employee?.employee_code || employee?.employeeCode || 'EMP001'}
+            </span>
+          </div>
+
+          {/* ========================================================= */}
+          {/* "MyShift" Telemetry Card (Inspired by Reference Design)   */}
+          {/* ========================================================= */}
+          <div className="mt-3.5 p-4 rounded-3xl bg-slate-900/90 border border-white/10 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-400/30">
-                  <Timer className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
+                  <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-bold text-xs text-blue-200">นับเวลาปฏิบัติงานสด (Live Shift Timer)</div>
-                  <div className="text-[10px] text-slate-400">เช็คอินตั้งแต่ {checkInResult.checkInTime}</div>
+                  <h3 className="font-bold text-xs text-white">บันทึกกะปฏิบัติงาน (MyShift)</h3>
+                  <p className="text-[10px] text-slate-400">{time.dateThai}</p>
                 </div>
               </div>
-
-              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black flex items-center gap-1.5 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                กำลังทำงาน
-              </span>
-            </div>
-
-            {/* Big Digits Display */}
-            <div className="flex items-center justify-center gap-2 py-2">
-              <div className="bg-white/10 px-3.5 py-2 rounded-2xl border border-white/10 text-center min-w-[64px]">
-                <div className="text-2xl font-black font-mono tracking-tight text-white">{String(liveWorkDuration.hours).padStart(2, '0')}</div>
-                <div className="text-[9px] text-slate-400 uppercase font-bold">ชั่วโมง</div>
-              </div>
-              <span className="text-xl font-black text-blue-400">:</span>
-              <div className="bg-white/10 px-3.5 py-2 rounded-2xl border border-white/10 text-center min-w-[64px]">
-                <div className="text-2xl font-black font-mono tracking-tight text-white">{String(liveWorkDuration.minutes).padStart(2, '0')}</div>
-                <div className="text-[9px] text-slate-400 uppercase font-bold">นาที</div>
-              </div>
-              <span className="text-xl font-black text-blue-400">:</span>
-              <div className="bg-white/10 px-3.5 py-2 rounded-2xl border border-white/10 text-center min-w-[64px]">
-                <div className="text-2xl font-black font-mono tracking-tight text-emerald-400">{String(liveWorkDuration.seconds).padStart(2, '0')}</div>
-                <div className="text-[9px] text-slate-400 uppercase font-bold">วินาที</div>
+              <div className="text-right font-mono">
+                <div className="text-xl font-black text-white tracking-tight">{time.hhmm}<span className="text-xs text-blue-400">:{time.ss}</span></div>
               </div>
             </div>
 
-            {/* 8-Hour Target Progress Bar */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[10px] text-slate-300 font-medium">
+            {/* Shift Progress Bar */}
+            <div className="space-y-1 mt-2">
+              <div className="flex justify-between text-[10px] text-slate-300">
                 <span className="flex items-center gap-1">
-                  <span>เป้าหมายกะทำงาน (8 ชม.)</span>
-                  {liveWorkDuration.hours >= 8 && (
-                    <span className="px-1.5 py-0.2 bg-amber-500/30 text-amber-300 rounded text-[9px] font-bold">
-                      🔥 ครบเวลาแล้ว (OT)
-                    </span>
-                  )}
+                  <span>สถานะ:</span>
+                  <strong className={isInsideRadius ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                    {isInsideRadius ? `📍 ในพื้นที่ร้าน (${distance?.toFixed(0)}ม.)` : `🚫 อยู่นอกพื้นที่ (${distance?.toFixed(0)}ม.)`}
+                  </strong>
                 </span>
-                <span className="font-mono">{Math.min(100, Math.round((liveWorkDuration.totalSeconds / 28800) * 100))}%</span>
+                <span className="font-mono text-blue-400 font-bold">
+                  {checkInResult?.checkOutTime ? 'เสร็จสิ้น 100%' : checkInResult ? `${Math.min(100, Math.round((liveWorkDuration.totalSeconds / 28800) * 100))}%` : 'ยังไม่เข้างาน'}
+                </span>
               </div>
-              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden p-0.5 border border-white/5">
                 <div 
-                  className={`h-full transition-all duration-1000 ${
-                    liveWorkDuration.hours >= 8 
-                      ? 'bg-gradient-to-r from-amber-400 to-emerald-400' 
-                      : 'bg-gradient-to-r from-blue-500 to-indigo-400'
-                  }`}
-                  style={{ width: `${Math.min(100, (liveWorkDuration.totalSeconds / 28800) * 100)}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-400 transition-all duration-500"
+                  style={{ width: checkInResult?.checkOutTime ? '100%' : checkInResult ? `${Math.min(100, Math.max(8, (liveWorkDuration.totalSeconds / 28800) * 100))}%` : '5%' }}
                 />
               </div>
             </div>
           </div>
-        )}
 
-        {/* ----------------------------------------------------------- */}
-        {/* COMPLETED SHIFT SUMMARY CARD                                */}
-        {/* ----------------------------------------------------------- */}
-        {checkInResult?.checkOutTime && (
-          <div className="p-4 rounded-3xl bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 text-purple-950 shadow-sm space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-xs">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-extrabold text-xs text-purple-950">เสร็จสิ้นการทำงานวันนี้แล้ว</div>
-                  <div className="text-[10px] text-purple-700 font-medium">ออกงานเมื่อเวลา {checkInResult.checkOutTime}</div>
-                </div>
-              </div>
-              <span className="px-3 py-1 rounded-full bg-purple-200/80 text-purple-950 text-xs font-extrabold">
-                {checkInResult.workingDuration || 'ครบเวลา'}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------------------------------------------------- */}
-        {/* HIGH-PRECISION HARDWARE GEOFENCE STATUS CARD                */}
-        {/* ----------------------------------------------------------- */}
-        <div className="p-4 rounded-3xl bg-white border border-slate-100 shadow-sm space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2.5">
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs shrink-0 ${
-                isInsideRadius ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-              }`}>
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-extrabold text-slate-900 text-sm leading-tight">
-                  {storeSettings?.store_name || 'สีแสงยางยนต์ YOKOHAMA'}
-                </div>
-                <div className="text-[11px] text-slate-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
-                  <span className="font-bold text-slate-700">
-                    ระยะห่าง: {distance !== null ? `${distance.toFixed(1)} เมตร` : 'กำลังคำนวณ...'}
-                  </span>
-                  {gpsAccuracy !== null && (
-                    <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded-md">
-                      (±{gpsAccuracy}ม.)
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Geofence Tag */}
-            <span className={`px-2.5 py-1 rounded-full font-black text-[11px] shrink-0 ${
-              isInsideRadius ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'
-            }`}>
-              {isInsideRadius ? `🟢 ในรัศมี ${allowedRadius}ม.` : `🔴 นอกรัศมี (${distance !== null ? `${distance.toFixed(0)}ม.` : ''})`}
-            </span>
-          </div>
-
-          {/* Detailed Coordinates Comparison */}
-          <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5 text-[11px] font-mono">
-            <div className="flex items-center justify-between text-slate-600">
-              <span className="font-bold text-slate-500 flex items-center gap-1">
-                <span>🏢 จุดร้าน (Cloud):</span>
-              </span>
-              <span className="font-semibold text-slate-900">
-                {storeSettings?.store_lat ? `${Number(storeSettings.store_lat).toFixed(6)}, ${Number(storeSettings.store_lng).toFixed(6)}` : 'กำลังโหลด...'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-slate-600">
-              <span className="font-bold text-slate-500 flex items-center gap-1">
-                <span>📱 พิกัดมือถือ (GPS):</span>
-              </span>
-              <span className="font-semibold text-slate-900">
-                {currentCoords ? `${currentCoords.lat.toFixed(6)}, ${currentCoords.lng.toFixed(6)}` : '📡 กำลังจับสัญญาณ...'}
-              </span>
-            </div>
-          </div>
-
-          {/* Coordinates Details & Refresh */}
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-[10px] text-slate-400 font-medium">
-              {isInsideRadius ? '✅ ปลดล็อกปุ่มลงเวลาแล้ว' : `⚠️ เกินรัศมีอนุญาต ${allowedRadius} เมตร`}
-            </span>
-
-            <button
-              type="button"
-              onClick={handleManualRefresh}
-              disabled={gpsLoading}
-              className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 transition-all active:scale-95 text-xs shadow-xs"
-              title="ดึงพิกัดร้านล่าสุดจาก Cloud และรีเฟรช GPS สด"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} />
-              <span>{gpsLoading ? 'กำลังจับ GPS...' : 'รีเฟรชพิกัดสด'}</span>
-            </button>
-          </div>
         </div>
 
-        {/* History Tabs Section */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3">
-          <div className="text-sm font-bold text-slate-900 tracking-tight">
-            ประวัติการลงเวลาการทำงาน
-          </div>
-
-          {/* 3 Pill Buttons */}
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => setActiveHistoryTab('in')}
-              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
-                activeHistoryTab === 'in'
-                  ? 'bg-blue-50 text-blue-600 border-blue-200'
-                  : 'bg-slate-50 text-slate-500 border-slate-100'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>เข้างาน</span>
-            </button>
-
-            <button
-              onClick={() => setActiveHistoryTab('out')}
-              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
-                activeHistoryTab === 'out'
-                  ? 'bg-blue-50 text-blue-600 border-blue-200'
-                  : 'bg-slate-50 text-slate-500 border-slate-100'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>ออกงาน</span>
-            </button>
-
-            <button
-              onClick={() => setActiveHistoryTab('leave')}
-              className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
-                activeHistoryTab === 'leave'
-                  ? 'bg-blue-50 text-blue-600 border-blue-200'
-                  : 'bg-slate-50 text-slate-500 border-slate-100'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>ลางาน</span>
-            </button>
-          </div>
-
-          {/* Feedback & Result Card */}
-          <AnimatePresence>
-            {errorMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5"
-              >
-                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold">ไม่สามารถลงเวลาได้</div>
-                  <div className="text-[11px] mt-0.5 leading-relaxed">{errorMessage}</div>
-                </div>
-              </motion.div>
-            )}
-
-            {activeHistoryTab === 'in' && checkInResult && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`p-3.5 rounded-xl border text-xs ${
-                  checkInResult.status === 'PRESENT'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    : 'bg-amber-50 border-amber-200 text-amber-800'
-                }`}
-              >
-                <div className="flex items-center justify-between font-bold text-sm">
-                  <span className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    {checkInResult.status === 'PRESENT' ? 'เช็คอินตรงเวลาสำเร็จ' : 'เช็คอินสำเร็จ (มาสาย)'}
-                  </span>
-                  <span className="font-mono">{checkInResult.checkInTime}</span>
-                </div>
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-emerald-200/60 text-[11px]">
-                  <span>เบี้ยขยันวันนี้: <strong className="text-emerald-700 font-bold">+{checkInResult.allowance} บาท</strong></span>
-                  {checkInResult.logReference && (
-                    <span className="font-mono font-black px-2 py-0.5 rounded-md bg-emerald-200/80 text-emerald-900">
-                      {checkInResult.logReference}
-                    </span>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {activeHistoryTab === 'out' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`p-3.5 rounded-xl border text-xs ${
-                  checkInResult?.checkOutTime
-                    ? 'bg-purple-50 border-purple-200 text-purple-900'
-                    : 'bg-slate-50 border-slate-200 text-slate-600'
-                }`}
-              >
-                {checkInResult?.checkOutTime ? (
-                  <>
-                    <div className="flex items-center justify-between font-bold text-sm">
-                      <span className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-purple-600" />
-                        ลงเวลาออกงานเรียบร้อย
-                      </span>
-                      <span className="font-mono text-purple-700">{checkInResult.checkOutTime}</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-purple-200/60 text-[11px]">
-                      {checkInResult.workingDuration && (
-                        <span>รวมเวลาทำงาน: <strong className="text-purple-700 font-bold">{checkInResult.workingDuration}</strong></span>
-                      )}
-                      {checkInResult.logReference && (
-                        <span className="font-mono font-black px-2 py-0.5 rounded-md bg-purple-200/80 text-purple-900">
-                          {checkInResult.logReference}
-                        </span>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <span>ยังไม่ได้ลงเวลาออกงานของวันนี้</span>
-                    {checkInResult && (
-                      <button
-                        onClick={promptCheckOut}
-                        disabled={isCheckingOut}
-                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-[11px] transition-all"
-                      >
-                        {isCheckingOut ? 'กำลังบันทึก...' : 'กดออกงาน'}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {activeHistoryTab === 'leave' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="p-3.5 rounded-xl border border-blue-100 bg-blue-50/60 text-xs flex items-center justify-between"
-              >
-                <div className="text-slate-700">
-                  <div className="font-bold text-blue-900">ยื่นคำขอลางาน</div>
-                  <div className="text-[11px] text-slate-500">ลาป่วย, ลากิจ, ลาพักร้อน ผ่านระบบ</div>
-                </div>
-                <Link
-                  href="/employee/leave"
-                  className="px-3 py-1.5 bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-xs"
-                >
-                  <span>ส่งใบลา</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* Smooth S-Curve Wave SVG Cutout */}
+        <div className="w-full overflow-hidden leading-none mt-2">
+          <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="w-full h-7 text-[#090d16] dark:text-[#090d16]" style={{ color: isDark ? '#090d16' : '#eef2f7' }}>
+            <path d="M0,0 C150,40 350,0 500,40 L500,40 L0,40 Z" fill="currentColor" />
+          </svg>
         </div>
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. MODAL: CHECK-OUT SAFEGUARD CONFIRMATION DIALOG             */}
+      {/* 2. LOWER SECTION: TACTILE NEUMORPHIC QUICK ACTION TILES       */}
+      {/* ------------------------------------------------------------- */}
+      <div className="max-w-md w-full mx-auto px-4 py-2 space-y-4 flex-1 relative z-10">
+        
+        {/* 6 Neumorphic 3D Tiles Grid (Matching Reference Design) */}
+        <div className="grid grid-cols-3 gap-2.5">
+          
+          {/* Tile 1: Check-in / Main */}
+          <button
+            onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? promptCheckOut : undefined}
+            disabled={isCheckingIn || isCheckingOut || (!!checkInResult && !!checkInResult.checkOutTime)}
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all cursor-pointer ${
+              isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-md mb-1 ${
+              !checkInResult
+                ? 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-blue-500/30'
+                : !checkInResult.checkOutTime
+                  ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-amber-500/30'
+                  : 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-emerald-500/30'
+            }`}>
+              {isCheckingIn || isCheckingOut ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : !checkInResult ? (
+                <Zap className="w-5 h-5" />
+              ) : !checkInResult.checkOutTime ? (
+                <LogOut className="w-5 h-5" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5" />
+              )}
+            </div>
+            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              {!checkInResult ? 'เข้างาน' : !checkInResult.checkOutTime ? 'ออกงาน' : 'เสร็จสิ้น'}
+            </div>
+            <div className="text-[9px] text-slate-400 mt-0.5 font-mono">
+              {checkInResult?.checkInTime || '08:00'}
+            </div>
+          </button>
+
+          {/* Tile 2: Salary Advance */}
+          <Link
+            href="/employee/advance"
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+              isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 mb-1">
+              <Coins className="w-5 h-5" />
+            </div>
+            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              เบิกเงิน
+            </div>
+            <div className="text-[9px] text-amber-500 font-bold mt-0.5">
+              โควตา 50%
+            </div>
+          </Link>
+
+          {/* Tile 3: Leave Request */}
+          <Link
+            href="/employee/leave"
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+              isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-purple-500/30 mb-1">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              ยื่นใบลา
+            </div>
+            <div className="text-[9px] text-purple-400 font-bold mt-0.5">
+              ป่วย/กิจ/พักผ่อน
+            </div>
+          </Link>
+
+          {/* Tile 4: Calendar / Stats */}
+          <Link
+            href="/employee/stats"
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+              isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/30 mb-1">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              ปฏิทิน
+            </div>
+            <div className="text-[9px] text-emerald-400 font-bold mt-0.5">
+              +50฿ สะสม
+            </div>
+          </Link>
+
+          {/* Tile 5: Store Geofence */}
+          <button
+            onClick={handleManualRefresh}
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+              isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/30 mb-1">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              พิกัดร้าน
+            </div>
+            <div className="text-[9px] text-blue-400 font-bold mt-0.5">
+              {distance !== null ? `${distance.toFixed(0)}ม.` : 'ค้นหา'}
+            </div>
+          </button>
+
+          {/* Tile 6: Allowance Info */}
+          <div
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center ${
+              isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md shadow-rose-500/30 mb-1">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              เบี้ยขยัน
+            </div>
+            <div className="text-[9px] text-rose-400 font-bold mt-0.5">
+              50฿ / วัน
+            </div>
+          </div>
+
+        </div>
+
+        {/* ----------------------------------------------------------- */}
+        {/* CAPSULE DATE PIANO KEYS (From Reference Image Right Phone)   */}
+        {/* ----------------------------------------------------------- */}
+        <div className={`p-3.5 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-2`}>
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>ประวัติเวลาสัปดาห์นี้</span>
+            <span className="text-[10px] text-blue-500">ตรงเวลา = +50฿</span>
+          </div>
+
+          <div className="grid grid-cols-5 gap-1.5 text-center">
+            {/* Capsule 1 */}
+            <div className={`p-2 rounded-2xl flex flex-col items-center justify-between h-20 ${
+              isDark ? 'capsule-pill-dark border border-white/5' : 'capsule-pill-light border border-white/70'
+            }`}>
+              <span className="text-[10px] font-bold text-slate-400">จ.</span>
+              <span className="text-xs font-black text-emerald-400">28</span>
+              <span className="text-[8px] font-mono font-bold px-1 rounded bg-emerald-500/20 text-emerald-300">+50฿</span>
+            </div>
+            {/* Capsule 2 */}
+            <div className={`p-2 rounded-2xl flex flex-col items-center justify-between h-20 ${
+              isDark ? 'capsule-pill-dark border border-white/5' : 'capsule-pill-light border border-white/70'
+            }`}>
+              <span className="text-[10px] font-bold text-slate-400">อ.</span>
+              <span className="text-xs font-black text-emerald-400">29</span>
+              <span className="text-[8px] font-mono font-bold px-1 rounded bg-emerald-500/20 text-emerald-300">+50฿</span>
+            </div>
+            {/* Capsule 3 */}
+            <div className={`p-2 rounded-2xl flex flex-col items-center justify-between h-20 ${
+              isDark ? 'capsule-pill-dark border border-white/5' : 'capsule-pill-light border border-white/70'
+            }`}>
+              <span className="text-[10px] font-bold text-slate-400">พ.</span>
+              <span className="text-xs font-black text-amber-400">30</span>
+              <span className="text-[8px] font-mono font-bold px-1 rounded bg-amber-500/20 text-amber-300">สาย</span>
+            </div>
+            {/* Capsule 4: Today Active */}
+            <div className={`p-2 rounded-2xl flex flex-col items-center justify-between h-20 bg-gradient-to-b from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-500/30 border border-blue-400/40`}>
+              <span className="text-[10px] font-bold text-blue-200">พฤ.</span>
+              <span className="text-xs font-black text-white">01</span>
+              <span className="text-[8px] font-mono font-bold px-1 rounded bg-white/20 text-white">วันนี้</span>
+            </div>
+            {/* Capsule 5 */}
+            <div className={`p-2 rounded-2xl flex flex-col items-center justify-between h-20 opacity-40 ${
+              isDark ? 'capsule-pill-dark border border-white/5' : 'capsule-pill-light border border-white/70'
+            }`}>
+              <span className="text-[10px] font-bold text-slate-400">ศ.</span>
+              <span className="text-xs font-black">02</span>
+              <span className="text-[8px] text-slate-400">--</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ----------------------------------------------------------- */}
+        {/* LIVE WORKING STOPWATCH WIDGET                               */}
+        {/* ----------------------------------------------------------- */}
+        {checkInResult && !checkInResult.checkOutTime && (
+          <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark border-emerald-500/30' : 'neumorph-light border-emerald-400/40'} space-y-2`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                กำลังปฏิบัติหน้าที่สะสม
+              </span>
+              <span className="text-[10px] font-mono text-slate-400">เข้างาน: {checkInResult.checkInTime}</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 py-1 font-mono">
+              <div className={`px-3 py-1.5 rounded-xl ${isDark ? 'neumorph-dark-inset' : 'neumorph-light-inset'} text-center min-w-[56px]`}>
+                <span className="text-xl font-black">{String(liveWorkDuration.hours).padStart(2, '0')}</span>
+                <span className="text-[8px] text-slate-400 block font-sans">ชั่วโมง</span>
+              </div>
+              <span className="text-lg font-bold text-blue-400">:</span>
+              <div className={`px-3 py-1.5 rounded-xl ${isDark ? 'neumorph-dark-inset' : 'neumorph-light-inset'} text-center min-w-[56px]`}>
+                <span className="text-xl font-black">{String(liveWorkDuration.minutes).padStart(2, '0')}</span>
+                <span className="text-[8px] text-slate-400 block font-sans">นาที</span>
+              </div>
+              <span className="text-lg font-bold text-blue-400">:</span>
+              <div className={`px-3 py-1.5 rounded-xl ${isDark ? 'neumorph-dark-inset' : 'neumorph-light-inset'} text-center min-w-[56px]`}>
+                <span className="text-xl font-black text-emerald-400">{String(liveWorkDuration.seconds).padStart(2, '0')}</span>
+                <span className="text-[8px] text-slate-400 block font-sans">วินาที</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Feedback */}
+        {errorMessage && (
+          <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span className="text-[11px] font-semibold leading-relaxed">{errorMessage}</span>
+          </div>
+        )}
+
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 3. CHECK-OUT CONFIRMATION MODAL                               */}
       {/* ------------------------------------------------------------- */}
       <AnimatePresence>
         {showCheckOutConfirmModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="max-w-sm w-full p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl space-y-4 text-center"
+              className={`max-w-sm w-full p-6 rounded-3xl shadow-2xl space-y-4 text-center ${
+                isDark ? 'bg-slate-900 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'
+              }`}
             >
-              <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 mx-auto flex items-center justify-center shadow-inner">
                 <AlertTriangle className="w-7 h-7" />
               </div>
 
               <div>
-                <h3 className="font-black text-base text-slate-900">ยืนยันการลงเวลาออกงาน?</h3>
-                <p className="text-xs text-slate-500 mt-1">
+                <h3 className="font-black text-base">ยืนยันการลงเวลาออกงาน?</h3>
+                <p className="text-xs text-slate-400 mt-1">
                   โปรดตรวจสอบเวลาทำงานของคุณก่อนยืนยัน เพื่อป้องกันการเผลอกด
                 </p>
               </div>
 
-              {/* Working Duration Summary Box */}
-              <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-1.5 text-xs text-amber-900">
-                <div className="font-bold flex items-center justify-center gap-1.5">
-                  <Timer className="w-4 h-4 text-amber-600" />
-                  <span>เวลาปฏิบัติงานของคุณ ณ ตอนนี้:</span>
+              <div className={`p-3.5 rounded-2xl space-y-1 text-xs ${isDark ? 'bg-slate-950/80 border border-amber-500/30 text-amber-200' : 'bg-amber-50 border border-amber-200 text-amber-800'}`}>
+                <div className="font-bold flex items-center justify-center gap-1.5 text-amber-400">
+                  <Timer className="w-4 h-4" />
+                  <span>เวลาปฏิบัติงานของคุณ:</span>
                 </div>
-                <div className="text-xl font-black font-mono text-amber-700">
+                <div className="text-xl font-black font-mono">
                   {liveWorkDuration.hours} ชม. {liveWorkDuration.minutes} นาที {liveWorkDuration.seconds} วินาที
                 </div>
-                {liveWorkDuration.hours < 8 ? (
-                  <div className="text-[11px] text-amber-800 font-medium bg-white/70 p-2 rounded-xl border border-amber-200/60 mt-1">
-                    ⚠️ คุณยังทำงานไม่ครบกะ 8 ชั่วโมง (ยังอยู่ในเวลางาน) หากเผลอกดโดนปุ่ม กรุณากด <strong>"ยกเลิก"</strong>
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-emerald-800 font-medium bg-emerald-50 p-2 rounded-xl border border-emerald-200 mt-1">
-                    🟢 ครบกะทำงานมาตรฐาน 8 ชั่วโมงแล้ว พร้อมบันทึกออกงาน
-                  </div>
-                )}
               </div>
 
-              {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowCheckOutConfirmModal(false)}
-                  className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all active:scale-95"
+                  className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all active:scale-95"
                 >
-                  ✕ ยกเลิก (เผลอกด)
+                  ✕ ยกเลิก
                 </button>
                 <button
                   type="button"
                   onClick={executeCheckOut}
                   disabled={isCheckingOut}
-                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black text-xs shadow-md shadow-orange-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
                 >
-                  {isCheckingOut ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  )}
+                  {isCheckingOut ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                   <span>{isCheckingOut ? 'กำลังบันทึก...' : '✓ ยืนยันออกงาน'}</span>
                 </button>
               </div>
@@ -1229,7 +990,7 @@ export default function ExactEmployeeApp() {
       </AnimatePresence>
 
       {/* ------------------------------------------------------------- */}
-      {/* 4. SMART AUTO-HIDE BOTTOM NAVIGATION BAR                      */}
+      {/* 4. SMART NEUMORPHIC FLOATING BOTTOM NAVIGATION BAR             */}
       {/* ------------------------------------------------------------- */}
       <EmployeeBottomNav currentTab="checkin" />
     </div>

@@ -14,13 +14,19 @@ import {
   XCircle, 
   AlertCircle, 
   RefreshCw,
-  Menu
+  Menu,
+  ArrowLeft,
+  Sun,
+  Moon,
+  Shield
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/theme';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function EmployeeLeavePage() {
   const router = useRouter();
+  const { isDark, toggleTheme } = useAppTheme();
   const [employee, setEmployee] = useState<any>(null);
 
   // Form State
@@ -58,7 +64,6 @@ export default function EmployeeLeavePage() {
       setEmployee(parsed);
       loadLeaves(parsed.id);
 
-      // Realtime listener for leave status updates (e.g. Approved / Rejected by Admin)
       let channel: any = null;
       if (isSupabaseConfigured && supabase) {
         channel = supabase
@@ -69,7 +74,6 @@ export default function EmployeeLeavePage() {
           .subscribe();
       }
 
-      // 5-second polling fallback
       const pollTimer = setInterval(() => {
         loadLeaves(parsed.id);
       }, 5000);
@@ -116,209 +120,227 @@ export default function EmployeeLeavePage() {
       });
 
       const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setErrorMsg(data.message || 'ไม่สามารถยื่นคำขอลาได้');
-        setIsSubmitting(false);
-        return;
+      if (data.success) {
+        setSuccessMsg('ยื่นใบลาสำเร็จแล้ว! รอหัวหน้างานพิจารณาอนุมัติ');
+        setReason('');
+        loadLeaves(employee.id);
+      } else {
+        setErrorMsg(data.message || 'เกิดข้อผิดพลาดในการยื่นใบลา');
       }
-
-      setSuccessMsg('ยื่นคำขอลาสำเร็จ! รอผู้บริหารตรวจสอบอนุมัติ');
-      setReason('');
-      loadLeaves(employee.id);
     } catch (err: any) {
-      setErrorMsg('เกิดข้อผิดพลาดในการส่งข้อมูล: ' + err.message);
+      setErrorMsg('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getLeaveTypeLabel = (type: string) => {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+            <CheckCircle2 className="w-3.5 h-3.5" /> อนุมัติแล้ว
+          </span>
+        );
+      case 'REJECTED':
+        return (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20">
+            <XCircle className="w-3.5 h-3.5" /> ไม่อนุมัติ
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+            <Clock3 className="w-3.5 h-3.5" /> รอพิจารณา
+          </span>
+        );
+    }
+  };
+
+  const getLeaveTypeName = (type: string) => {
     switch (type) {
       case 'SICK': return 'ลาป่วย (Sick Leave)';
       case 'BUSINESS': return 'ลากิจ (Business Leave)';
       case 'ANNUAL': return 'ลาพักร้อน (Annual Leave)';
-      default: return 'ลาอื่นๆ (Other)';
+      default: return 'ลาอื่นๆ';
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-800 flex flex-col justify-between max-w-md mx-auto shadow-2xl pb-24">
-      {/* Top Header */}
-      <header className="bg-white px-5 pt-4 pb-3 flex items-center justify-between border-b border-slate-100 shadow-xs sticky top-0 z-30">
-        <div>
-          <h1 className="font-bold text-base text-slate-900">ยื่นคำขอลา (Leave Request)</h1>
-          <p className="text-xs text-slate-500">
-            {employee?.fullName} ({employee?.employeeCode})
-          </p>
+    <div className={`min-h-screen w-full flex flex-col justify-between max-w-md mx-auto shadow-2xl relative overflow-hidden pb-28 font-sans transition-colors duration-300 ${
+      isDark ? 'bg-[#090d16] text-slate-100' : 'bg-[#eef2f7] text-slate-800'
+    }`}>
+      
+      {/* Header */}
+      <header className={`px-4 pt-4 pb-3 flex items-center justify-between sticky top-0 z-30 transition-colors ${
+        isDark ? 'bg-[#0f1626]/90 border-b border-white/5 backdrop-blur-xl' : 'bg-white/90 border-b border-slate-200 backdrop-blur-xl shadow-xs'
+      }`}>
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/employee"
+            className={`p-2 rounded-xl border transition-all active:scale-90 ${
+              isDark ? 'bg-slate-800 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div>
+            <h1 className="font-bold text-sm">ยื่นคำขอลาหยุด</h1>
+            <p className="text-[11px] text-slate-400 font-mono">
+              {employee?.fullName} ({employee?.employeeCode})
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-xl border transition-all active:scale-90 ${
+              isDark ? 'bg-slate-800 border-white/10 text-yellow-300' : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
         </div>
       </header>
 
-      {/* Main Leave Form */}
-      <main className="p-4 flex-1 space-y-4">
-        {successMsg && (
-          <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-            <span>{successMsg}</span>
+      {/* Main Content */}
+      <main className="p-4 flex-1 space-y-4 relative z-10">
+        
+        {/* Form Card */}
+        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-3`}>
+          <div className="font-bold text-xs flex items-center gap-1.5">
+            <FileText className="w-4 h-4 text-purple-500" />
+            <span>เลือกประเภทการลา</span>
           </div>
-        )}
 
-        {errorMsg && (
-          <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-            <span>{errorMsg}</span>
+          {/* 4 Category Pills */}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'SICK', label: '🩺 ลาป่วย', color: 'rose' },
+              { id: 'BUSINESS', label: '💼 ลากิจ', color: 'blue' },
+              { id: 'ANNUAL', label: '🏖️ ลาพักร้อน', color: 'emerald' },
+              { id: 'OTHER', label: '📝 อื่นๆ', color: 'amber' }
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setLeaveType(cat.id as any)}
+                className={`p-3 rounded-2xl text-xs font-bold transition-all active:scale-95 text-left ${
+                  leaveType === cat.id
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30'
+                    : isDark ? 'neumorph-tile-dark text-slate-300' : 'neumorph-tile-light text-slate-700'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
-        )}
 
-        <form onSubmit={handleSubmitLeave} className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-          {/* Leave Type Select */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              ประเภทการลา:
-            </label>
+          <form onSubmit={handleSubmitLeave} className="space-y-3 pt-2">
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'SICK', label: 'ลาป่วย 🩺' },
-                { id: 'BUSINESS', label: 'ลากิจ 💼' },
-                { id: 'ANNUAL', label: 'ลาพักร้อน 🏖️' },
-                { id: 'OTHER', label: 'อื่นๆ 📝' },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setLeaveType(item.id as any)}
-                  className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all text-left flex items-center justify-between ${
-                    leaveType === item.id
-                      ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
-                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">วันที่เริ่มต้น</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className={`w-full p-2.5 rounded-2xl text-xs font-mono font-bold ${
+                    isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
                   }`}
-                >
-                  <span>{item.label}</span>
-                  {leaveType === item.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>}
-                </button>
-              ))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-slate-400 font-bold block mb-1">วันที่สิ้นสุด</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className={`w-full p-2.5 rounded-2xl text-xs font-mono font-bold ${
+                    isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
+                  }`}
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                ตั้งแต่วันที่:
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-blue-600"
+              <label className="text-[11px] text-slate-400 font-bold block mb-1">เหตุผลความจำเป็น</label>
+              <textarea
+                rows={2}
+                placeholder="ระบุอาการหรือเหตุผลความจำเป็น..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className={`w-full p-2.5 rounded-2xl text-xs resize-none ${
+                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
+                }`}
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                ถึงวันที่:
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-blue-600"
-                required
-              />
-            </div>
-          </div>
 
-          {/* Reason */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              เหตุผลการลา:
-            </label>
-            <textarea
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="ระบุรายละเอียด เช่น มีไข้สูง ไปพบแพทย์ตามนัด"
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-blue-600 resize-none"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-blue-500/25 active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                <span>ส่งคำขอลาไปยังผู้บริหาร</span>
-              </>
+            {errorMsg && (
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                {errorMsg}
+              </div>
             )}
-          </button>
-        </form>
+            {successMsg && (
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
+                {successMsg}
+              </div>
+            )}
 
-        {/* Previous Leaves List */}
-        <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-          <h3 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-            <FileText className="w-4 h-4 text-blue-600" />
-            <span>ประวัติการยื่นลาของคุณ</span>
-          </h3>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs shadow-xl shadow-purple-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              <span>{isSubmitting ? 'กำลังส่งข้อมูล...' : 'ส่งใบลาให้อนุมัติ'}</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Leave History List */}
+        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-3`}>
+          <div className="font-bold text-xs flex items-center justify-between">
+            <span>ประวัติการยื่นใบลา</span>
+            <span className="text-[10px] text-slate-400">ซิงค์สด Realtime</span>
+          </div>
 
           <div className="space-y-2">
-            {leaveList.length > 0 ? (
+            {leaveList.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-400">
+                ยังไม่มีประวัติการยื่นใบลา
+              </div>
+            ) : (
               leaveList.map((item) => (
                 <div
                   key={item.id}
-                  className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 text-xs space-y-1.5"
+                  className={`p-3 rounded-2xl flex items-center justify-between transition-all ${
+                    isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800">
-                      {getLeaveTypeLabel(item.leave_type)}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
-                        item.status === 'APPROVED'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : item.status === 'REJECTED'
-                          ? 'bg-rose-50 text-rose-700 border-rose-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}
-                    >
-                      {item.status === 'APPROVED' ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> อนุมัติแล้ว
-                        </>
-                      ) : item.status === 'REJECTED' ? (
-                        <>
-                          <XCircle className="w-3 h-3 text-rose-600" /> ไม่อนุมัติ
-                        </>
-                      ) : (
-                        <>
-                          <Clock3 className="w-3 h-3 text-amber-600" /> รอตรวจสอบ
-                        </>
-                      )}
-                    </span>
+                  <div>
+                    <div className="font-bold text-xs">{getLeaveTypeName(item.leaveType)}</div>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                      {item.startDate} {item.startDate !== item.endDate ? `ถึง ${item.endDate}` : ''}
+                    </div>
+                    {item.reason && (
+                      <div className="text-[11px] text-slate-400 mt-1 italic">
+                        "{item.reason}"
+                      </div>
+                    )}
                   </div>
-
-                  <div className="text-[11px] text-slate-500 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <span>
-                      {new Date(item.start_date).toLocaleDateString('th-TH')} - {new Date(item.end_date).toLocaleDateString('th-TH')} ({item.days_count} วัน)
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] text-slate-700 italic bg-white p-2 rounded-xl border border-slate-200/70">
-                    "{item.reason}"
+                  <div>
+                    {getStatusBadge(item.status)}
                   </div>
                 </div>
               ))
-            ) : (
-              <div className="text-center py-4 text-xs text-slate-400">ยังไม่มีประวัติการยื่นลา</div>
             )}
           </div>
         </div>
+
       </main>
 
       {/* SMART AUTO-HIDE BOTTOM NAVIGATION BAR */}

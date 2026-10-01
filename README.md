@@ -15,16 +15,21 @@
    - **HWID Overlap Detection**: หากมีการใช้เครื่องซ้ำซ้อน ระบบจะไม่บล็อกหน้างาน แต่จะบันทึก Log และส่งแถบเตือนสีแดง (Red Alert Banner) บนหน้าจอผู้บริหารทันที
    - **Cached Login**: บันทึกตัวตนใน LocalStorage เมื่อเข้าแอปครั้งต่อไป กรอกเพียงรหัส PIN 4 หลักเข้าใช้งานได้ทันที
 3. **การเช็คอินและ Geofencing (Check-in & Shift Flow)**:
-   - ปุ่มเช็คอินแอนิเมชันพริ้วไหวด้วย **Framer Motion**
+   - ปุ่มเช็คอินแอนิเมชันพริ้วไหวด้วย **Framer Motion** และ Multi-Ring Glowing Rings
    - Geolocation API แบบความแม่นยำสูง (High Accuracy) พร้อมคำนวณระยะทางด้วย **Haversine Formula**
    - ตรวจสอบรัศมีร้าน 50 เมตร (หากอยู่นอกพื้นที่ ระบบจะปฏิเสธและขึ้นข้อความเตือนสีแดง)
+   - **Live Working Stopwatch**: กล่องจับเวลาการทำงานแบบวินาทีต่อวินาทีเมื่อเข้างานแล้ว
    - คำนวณเวลาเข้างาน:
      - มาก่อนหรือถึงกำหนด ($\le$ 08:00 น.): สถานะ `PRESENT` รับเบี้ยเลี้ยง **+50 บาท** ทันที พร้อมพลุเฉลิมฉลอง
      - มาสาย ($>$ 08:00 น.): สถานะ `LATE` เบี้ยเลี้ยง 0 บาท และยิงแจ้งเตือนผ่าน **LINE Messaging API** อัตโนมัติ
-4. **การยื่นคำขอลา (Leave Request Flow)**:
-   - พนักงานยื่นขอลา (ลาป่วย, ลากิจ, ลาพักร้อน) ระบุวันที่และเหตุผล
+4. **การยื่นคำขอลาและเบิกเงินล่วงหน้า (Leave & Salary Advance Flow)**:
+   - **Leave**: พนักงานยื่นขอลา (ลาป่วย, ลากิจ, ลาพักร้อน) ระบุวันที่และเหตุผล
+   - **Advance**: พนักงานขอยืมเงินเดือนล่วงหน้า พร้อม Quick Amount Chips (+500฿, +1,000฿, +2,000฿)
    - ผู้บริหารสามารถตรวจสอบและกด "อนุมัติ / ปฏิเสธ" ได้จากแดชบอร์ด
-5. **Analytics & Executive Dashboard**:
+5. **Neumorphic 3D Dual-Tone UI & Dark/Light Theme**:
+   - **Theme System**: สลับโหมด Dark Neumorphism (`#090d16`) และ Light Porcelain (`#eef2f7`) ได้ทันที
+   - **Signature Design**: S-Curve Wave Split Layer, Dome Profile Notch, 6 Tactile 3D Action Tiles, และ Piano Key Date Capsules
+   - **Smart Navigation**: แถบ Neumorphic Floating Bottom Nav พร้อมปุ่มกึ่งกลางนูน 3 มิติ (Raised Center Action Button)
    - **พนักงาน**: ปฏิทินรายเดือนแยกสีวันมาปกติ, มาสาย, วันลา และยอดเบี้ยเลี้ยงสะสม
    - **ผู้บริหาร**: สรุปยอดเบี้ยเลี้ยงรวมทั้งองค์กร, กราฟสถิติ, รายงานเบี้ยเลี้ยงรายบุคคล, ตัวกรอง รายวัน / รายสัปดาห์ / รายเดือน และตาราง Security Logs
 

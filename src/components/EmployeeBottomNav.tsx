@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Clock, Calendar, FileText, Coins } from 'lucide-react';
+import { Clock, Calendar, FileText, Coins, Sparkles, Sun, Moon } from 'lucide-react';
+import { useAppTheme } from '@/lib/theme';
 
 interface EmployeeBottomNavProps {
   currentTab?: 'checkin' | 'calendar' | 'leave' | 'advance';
@@ -14,8 +15,9 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+  const { isDark, toggleTheme } = useAppTheme();
 
-  // Determine active tab based on prop or current URL pathname
+  // Determine active tab
   const active = currentTab || (
     pathname?.includes('/employee/advance') ? 'advance' :
     pathname?.includes('/employee/leave') ? 'leave' :
@@ -28,32 +30,26 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
       const currentScrollY = window.scrollY;
       const scrollDelta = currentScrollY - lastScrollY.current;
 
-      // Always show when near top or bottom
-      if (currentScrollY < 60) {
+      if (currentScrollY < 50) {
         setIsVisible(true);
         lastScrollY.current = currentScrollY;
         return;
       }
 
-      // Check if user reached bottom of page
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 50) {
         setIsVisible(true);
         lastScrollY.current = currentScrollY;
         return;
       }
 
-      // Hide when scrolling DOWN more than 12px
       if (scrollDelta > 12 && isVisible) {
         setIsVisible(false);
-      }
-      // Reveal when scrolling UP more than 8px
-      else if (scrollDelta < -8 && !isVisible) {
+      } else if (scrollDelta < -8 && !isVisible) {
         setIsVisible(true);
       }
 
       lastScrollY.current = currentScrollY;
 
-      // Auto-show after user stops scrolling for 1.5 seconds
       if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
       scrollTimeout.current = setTimeout(() => {
         setIsVisible(true);
@@ -67,75 +63,103 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
     };
   }, [isVisible]);
 
-  const navItems = [
-    {
-      id: 'checkin',
-      href: '/employee',
-      label: 'เช็คเวลา',
-      icon: Clock,
-    },
-    {
-      id: 'calendar',
-      href: '/employee/stats',
-      label: 'ปฏิทิน',
-      icon: Calendar,
-    },
-    {
-      id: 'leave',
-      href: '/employee/leave',
-      label: 'ยื่นใบลา',
-      icon: FileText,
-    },
-    {
-      id: 'advance',
-      href: '/employee/advance',
-      label: 'ขอเบิกเงิน',
-      icon: Coins,
-    },
-  ];
-
   return (
     <div
       className={`fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto px-4 pb-4 pointer-events-none transition-all duration-300 ease-out ${
         isVisible
           ? 'translate-y-0 opacity-100'
-          : 'translate-y-24 opacity-0'
+          : 'translate-y-28 opacity-0'
       }`}
     >
-      <nav className="pointer-events-auto bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl px-3 py-2 flex items-center justify-around shadow-xl shadow-slate-900/10">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = active === item.id;
+      <div className="relative pointer-events-auto">
+        {/* Curved Floating Bar with Center Indentation */}
+        <nav className={`relative rounded-3xl px-3 py-2 flex items-center justify-between transition-all duration-300 ${
+          isDark 
+            ? 'neumorph-dark bg-[#0f1626]/95 border-white/10 text-slate-100 shadow-2xl shadow-black/80' 
+            : 'neumorph-light bg-[#f1f4f9]/95 border-white/90 text-slate-700 shadow-2xl shadow-slate-300/60'
+        }`}>
+          
+          {/* Tab 1: Check-in */}
+          <Link
+            href="/employee"
+            className={`flex-1 flex flex-col items-center py-1.5 px-1 rounded-2xl transition-all duration-200 active:scale-90 ${
+              active === 'checkin'
+                ? isDark
+                  ? 'text-white neumorph-dark-inset font-bold text-blue-400'
+                  : 'text-blue-600 neumorph-light-inset font-bold'
+                : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Clock className={`w-5 h-5 ${active === 'checkin' ? 'text-blue-500' : ''}`} />
+            <span className="text-[10px] mt-0.5 font-medium">ลงเวลา</span>
+          </Link>
 
-          return (
+          {/* Tab 2: Calendar */}
+          <Link
+            href="/employee/stats"
+            className={`flex-1 flex flex-col items-center py-1.5 px-1 rounded-2xl transition-all duration-200 active:scale-90 ${
+              active === 'calendar'
+                ? isDark
+                  ? 'text-white neumorph-dark-inset font-bold text-blue-400'
+                  : 'text-blue-600 neumorph-light-inset font-bold'
+                : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Calendar className={`w-5 h-5 ${active === 'calendar' ? 'text-blue-500' : ''}`} />
+            <span className="text-[10px] mt-0.5 font-medium">ปฏิทิน</span>
+          </Link>
+
+          {/* Center Raised Neumorphic Action Button */}
+          <div className="relative -top-5 mx-1 flex flex-col items-center">
             <Link
-              key={item.id}
-              href={item.href}
-              className={`flex-1 flex flex-col items-center py-1.5 px-2 rounded-2xl transition-all duration-200 active:scale-95 ${
-                isActive
-                  ? 'text-blue-600 font-black'
-                  : 'text-slate-400 hover:text-slate-600 font-medium'
+              href="/employee"
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-90 cursor-pointer ${
+                isDark 
+                  ? 'neumorph-btn-raised-dark text-blue-400 border-2 border-blue-500/40' 
+                  : 'neumorph-btn-raised-light text-blue-600 border-2 border-blue-400/40'
               }`}
+              title="เช็คอินด่วน / หน้าหลัก"
             >
-              <div
-                className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 scale-105'
-                    : 'bg-transparent text-slate-400'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isDark ? 'bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/40' : 'bg-gradient-to-tr from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+              }`}>
+                <Clock className="w-5 h-5 animate-pulse" />
               </div>
-              <span className="text-[10px] mt-1 tracking-tight leading-none">
-                {item.label}
-              </span>
-              {isActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1 animate-pulse" />
-              )}
             </Link>
-          );
-        })}
-      </nav>
+          </div>
+
+          {/* Tab 3: Leave */}
+          <Link
+            href="/employee/leave"
+            className={`flex-1 flex flex-col items-center py-1.5 px-1 rounded-2xl transition-all duration-200 active:scale-90 ${
+              active === 'leave'
+                ? isDark
+                  ? 'text-white neumorph-dark-inset font-bold text-blue-400'
+                  : 'text-blue-600 neumorph-light-inset font-bold'
+                : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <FileText className={`w-5 h-5 ${active === 'leave' ? 'text-blue-500' : ''}`} />
+            <span className="text-[10px] mt-0.5 font-medium">ยื่นใบลา</span>
+          </Link>
+
+          {/* Tab 4: Advance */}
+          <Link
+            href="/employee/advance"
+            className={`flex-1 flex flex-col items-center py-1.5 px-1 rounded-2xl transition-all duration-200 active:scale-90 ${
+              active === 'advance'
+                ? isDark
+                  ? 'text-white neumorph-dark-inset font-bold text-blue-400'
+                  : 'text-blue-600 neumorph-light-inset font-bold'
+                : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Coins className={`w-5 h-5 ${active === 'advance' ? 'text-blue-500' : ''}`} />
+            <span className="text-[10px] mt-0.5 font-medium">เบิกเงิน</span>
+          </Link>
+
+        </nav>
+      </div>
     </div>
   );
 }

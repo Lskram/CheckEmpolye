@@ -15,34 +15,39 @@ import {
   ArrowLeft,
   DollarSign,
   User,
-  FileText
+  FileText,
+  Sun,
+  Moon,
+  Shield
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { SalaryAdvanceRequest } from '@/lib/types';
+import { useAppTheme } from '@/lib/theme';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function EmployeeSalaryAdvancePage() {
   const router = useRouter();
+  const { isDark, toggleTheme } = useAppTheme();
   const [employee, setEmployee] = useState<any>(null);
 
   // Form State
   const [amount, setAmount] = useState<string>('1000');
   const [requestDate, setRequestDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [neededBeforeDate, setNeededBeforeDate] = useState<string>('');
+  const [needDate, setNeedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [reason, setReason] = useState<string>('');
 
   // Submissions State
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [advanceList, setAdvanceList] = useState<SalaryAdvanceRequest[]>([]);
+  const [requests, setRequests] = useState<SalaryAdvanceRequest[]>([]);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const loadAdvanceRequests = async (empId: string) => {
+  const loadRequests = async (empId: string) => {
     try {
       const res = await fetch(`/api/advance-request?employeeId=${empId}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
-        setAdvanceList(data.data);
+        setRequests(data.data);
       }
     } catch (e) {
       console.error(e);
@@ -58,26 +63,25 @@ export default function EmployeeSalaryAdvancePage() {
     try {
       const parsed = JSON.parse(saved);
       setEmployee(parsed);
-      loadAdvanceRequests(parsed.id);
+      loadRequests(parsed.id);
 
-      // Realtime listener for advance requests updates
       let channel: any = null;
       if (isSupabaseConfigured && supabase) {
         channel = supabase
           .channel(`advance-realtime-${parsed.id}`)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'salary_advance_requests' }, () => {
-            loadAdvanceRequests(parsed.id);
+            loadRequests(parsed.id);
           })
           .subscribe();
       }
 
       const pollTimer = setInterval(() => {
-        loadAdvanceRequests(parsed.id);
+        loadRequests(parsed.id);
       }, 5000);
 
       const handleVisibility = () => {
         if (document.visibilityState === 'visible') {
-          loadAdvanceRequests(parsed.id);
+          loadRequests(parsed.id);
         }
       };
       document.addEventListener('visibilitychange', handleVisibility);
@@ -94,19 +98,9 @@ export default function EmployeeSalaryAdvancePage() {
 
   const handleSubmitAdvance = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!employee?.id) {
-      setErrorMsg('ไม่พบข้อมูลพนักงาน กรุณาเข้าสู่ระบบใหม่');
-      return;
-    }
-
-    const numericAmount = Number(amount);
-    if (!numericAmount || numericAmount <= 0) {
-      setErrorMsg('กรุณาระบุยอดเงินที่ต้องการเบิกที่ถูกต้อง');
-      return;
-    }
-
-    if (!reason.trim()) {
-      setErrorMsg('กรุณาระบุหมายเหตุหรือเหตุผลความจำเป็นในการขอเบิกเงิน');
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      setErrorMsg('กรุณาระบุจำนวนเงินที่ถูกต้อง');
       return;
     }
 
@@ -120,267 +114,237 @@ export default function EmployeeSalaryAdvancePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employeeId: employee.id,
-          amount: numericAmount,
+          amount: numAmount,
           requestDate,
-          reason: reason.trim(),
-          neededBeforeDate: neededBeforeDate || null,
+          needDate,
+          reason,
         }),
       });
 
       const data = await res.json();
       if (data.success) {
-        setSuccessMsg(data.message || 'ยื่นคำขอเบิกเงินล่วงหน้าเรียบร้อย รอผู้บริหารอนุมัติ');
+        setSuccessMsg('ยื่นคำขอเบิกเงินล่วงหน้าสำเร็จแล้ว! รอผู้บริหารพิจารณา');
         setReason('');
-        setNeededBeforeDate('');
-        loadAdvanceRequests(employee.id);
+        loadRequests(employee.id);
       } else {
-        setErrorMsg(data.message || 'เกิดข้อผิดพลาดในการยื่นคำขอ');
+        setErrorMsg(data.message || 'เกิดข้อผิดพลาดในการส่งคำขอ');
       }
     } catch (err: any) {
-      setErrorMsg('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว: ' + err.message);
+      setErrorMsg('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const quickAmounts = [500, 1000, 1500, 2000, 3000];
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+            <CheckCircle2 className="w-3.5 h-3.5" /> อนุมัติแล้ว
+          </span>
+        );
+      case 'REJECTED':
+        return (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20">
+            <XCircle className="w-3.5 h-3.5" /> ไม่อนุมัติ
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center gap-1 text-[11px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+            <Clock3 className="w-3.5 h-3.5" /> รอพิจารณา
+          </span>
+        );
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans pb-28 select-none">
-      {/* Top Header */}
-      <header className="bg-slate-900 text-white p-4 sticky top-0 z-40 shadow-md">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/employee"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="font-black text-sm tracking-tight flex items-center gap-1.5">
-                <Coins className="w-4 h-4 text-amber-400" />
-                <span>ขอเบิกเงินล่วงหน้า</span>
-              </h1>
-              <p className="text-[11px] text-slate-400">
-                {employee?.full_name} ({employee?.nickname || employee?.employee_code})
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => employee?.id && loadAdvanceRequests(employee.id)}
-            className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white"
-            title="รีเฟรชข้อมูล"
+    <div className={`min-h-screen w-full flex flex-col justify-between max-w-md mx-auto shadow-2xl relative overflow-hidden pb-28 font-sans transition-colors duration-300 ${
+      isDark ? 'bg-[#090d16] text-slate-100' : 'bg-[#eef2f7] text-slate-800'
+    }`}>
+      
+      {/* Header */}
+      <header className={`px-4 pt-4 pb-3 flex items-center justify-between sticky top-0 z-30 transition-colors ${
+        isDark ? 'bg-[#0f1626]/90 border-b border-white/5 backdrop-blur-xl' : 'bg-white/90 border-b border-slate-200 backdrop-blur-xl shadow-xs'
+      }`}>
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/employee"
+            className={`p-2 rounded-xl border transition-all active:scale-90 ${
+              isDark ? 'bg-slate-800 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}
           >
-            <RefreshCw className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div>
+            <h1 className="font-bold text-sm">ขอเบิกเงินเดือนล่วงหน้า</h1>
+            <p className="text-[11px] text-slate-400 font-mono">
+              {employee?.fullName} ({employee?.employeeCode})
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-xl border transition-all active:scale-90 ${
+              isDark ? 'bg-slate-800 border-white/10 text-yellow-300' : 'bg-slate-100 border-slate-300 text-slate-700'
+            }`}
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto p-4 space-y-5">
-        {/* Form Card */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
-              <Coins className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="font-black text-sm text-slate-900">แบบฟอร์มขอเบิกเงินล่วงหน้า</h2>
-              <p className="text-[11px] text-slate-500">ยื่นคำขอเพื่อส่งตรงไปยังผู้บริหารพิจารณา</p>
-            </div>
+      {/* Main Content */}
+      <main className="p-4 flex-1 space-y-4 relative z-10">
+        
+        {/* Quota Card */}
+        <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-600 to-orange-700 text-white shadow-xl shadow-amber-950/30 relative overflow-hidden">
+          <div className="flex items-center justify-between text-amber-100 text-xs mb-1 font-semibold">
+            <span>วงเงินคงเหลือที่ขอเบิกได้</span>
+            <Coins className="w-5 h-5 text-yellow-300" />
+          </div>
+          <div className="text-3xl font-black my-1">
+            7,500 <span className="text-sm font-normal">บาท</span>
+          </div>
+          <div className="text-[10px] text-amber-100/90 font-medium">
+            เพดานสูงสุด 50% ของฐานเงินเดือน (รอบจ่ายสิ้นเดือน)
+          </div>
+        </div>
+
+        {/* Advance Request Form */}
+        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-3`}>
+          <div className="font-bold text-xs flex items-center gap-1.5">
+            <Coins className="w-4 h-4 text-amber-500" />
+            <span>ระบุจำนวนเงินที่ต้องการขอเบิก</span>
           </div>
 
-          {errorMsg && (
-            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
+          {/* Quick Amount Chips */}
+          <div className="grid grid-cols-3 gap-2">
+            {['500', '1000', '2000'].map((amt) => (
+              <button
+                key={amt}
+                type="button"
+                onClick={() => setAmount(amt)}
+                className={`py-2.5 rounded-2xl text-xs font-bold font-mono transition-all active:scale-95 ${
+                  amount === amt
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30'
+                    : isDark ? 'neumorph-tile-dark text-slate-300' : 'neumorph-tile-light text-slate-700'
+                }`}
+              >
+                +{Number(amt).toLocaleString()}฿
+              </button>
+            ))}
+          </div>
 
-          {successMsg && (
-            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-              <span>{successMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmitAdvance} className="space-y-3.5 text-xs font-bold">
-            {/* Employee Name (Auto-filled) */}
+          <form onSubmit={handleSubmitAdvance} className="space-y-3 pt-2">
             <div>
-              <label className="block text-slate-600 mb-1">ชื่อผู้ขอเบิกเงิน:</label>
-              <div className="p-2.5 bg-slate-100 rounded-xl text-slate-700 font-medium flex items-center gap-2 border border-slate-200">
-                <User className="w-4 h-4 text-slate-400" />
-                <span>{employee?.full_name} ({employee?.employee_code})</span>
-              </div>
-            </div>
-
-            {/* Quick Amount Buttons & Custom Amount */}
-            <div>
-              <label className="block text-slate-700 mb-1">
-                ยอดเงินที่ต้องการเบิก (บาท): <span className="text-rose-500">*</span>
-              </label>
-              <div className="flex items-center gap-1.5 flex-wrap mb-2">
-                {quickAmounts.map((q) => (
-                  <button
-                    type="button"
-                    key={q}
-                    onClick={() => setAmount(q.toString())}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                      amount === q.toString()
-                        ? 'bg-amber-500 text-slate-950 shadow-xs'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                    }`}
-                  >
-                    {q.toLocaleString()}฿
-                  </button>
-                ))}
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-2.5 text-slate-400 font-bold">฿</span>
-                <input
-                  type="number"
-                  min="100"
-                  step="50"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="ระบุจำนวนเงิน เช่น 1500"
-                  className="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-sm focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Request Date & Needed Before Date */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-slate-700 mb-1">วันที่ขอเบิก:</label>
-                <input
-                  type="date"
-                  value={requestDate}
-                  onChange={(e) => setRequestDate(e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-medium focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 mb-1">
-                  จำเป็นต้องใช้ก่อนวันที่:
-                </label>
-                <input
-                  type="date"
-                  value={neededBeforeDate}
-                  onChange={(e) => setNeededBeforeDate(e.target.value)}
-                  placeholder="ไม่ระบุก็ได้"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-medium focus:outline-none focus:border-amber-500"
-                />
-              </div>
-            </div>
-
-            {/* Reason / Notes */}
-            <div>
-              <label className="block text-slate-700 mb-1">
-                หมายเหตุ / เหตุผลความจำเป็น: <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                rows={3}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="ระบุเหตุผล เช่น ค่าเทอมลูก, จ่ายค่ายา, ซ่อมรถมอเตอร์ไซค์ ฯลฯ"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-amber-500"
+              <label className="text-[11px] text-slate-400 font-bold block mb-1">จำนวนเงิน (บาท)</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="กรอกจำนวนเงิน"
+                className={`w-full p-3 rounded-2xl text-base font-mono font-bold ${
+                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
+                }`}
                 required
               />
             </div>
 
+            <div>
+              <label className="text-[11px] text-slate-400 font-bold block mb-1">วันที่ต้องการรับเงิน</label>
+              <input
+                type="date"
+                value={needDate}
+                onChange={(e) => setNeedDate(e.target.value)}
+                className={`w-full p-2.5 rounded-2xl text-xs font-mono font-bold ${
+                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
+                }`}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] text-slate-400 font-bold block mb-1">เหตุผลความจำเป็น</label>
+              <input
+                type="text"
+                placeholder="เช่น ค่าใช้จ่ายฉุกเฉินในครอบครัว..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className={`w-full p-2.5 rounded-2xl text-xs ${
+                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
+                }`}
+                required
+              />
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">
+                {errorMsg}
+              </div>
+            )}
+            {successMsg && (
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
+                {successMsg}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-xs shadow-xl shadow-amber-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Send className="w-4 h-4" />
-              <span>{isSubmitting ? 'กำลังส่งคำขอ...' : 'ส่งคำขอเบิกเงินล่วงหน้า'}</span>
+              {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              <span>{isSubmitting ? 'กำลังส่งข้อมูล...' : 'ยื่นคำขอเบิกเงิน'}</span>
             </button>
           </form>
         </div>
 
-        {/* History List */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="font-black text-xs text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-              <Clock3 className="w-3.5 h-3.5" />
-              <span>ประวัติการขอเบิกเงิน ({advanceList.length})</span>
-            </h3>
+        {/* Requests History */}
+        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-3`}>
+          <div className="font-bold text-xs flex items-center justify-between">
+            <span>ประวัติการขอเบิกเงิน</span>
+            <span className="text-[10px] text-slate-400">ซิงค์สด Realtime</span>
           </div>
 
-          {advanceList.length === 0 ? (
-            <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 text-slate-400 text-xs font-bold space-y-1">
-              <Coins className="w-8 h-8 text-slate-300 mx-auto" />
-              <div>ยังไม่มีประวัติการขอเบิกเงินล่วงหน้า</div>
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {advanceList.map((item) => {
-                const isApproved = item.status === 'APPROVED';
-                const isRejected = item.status === 'REJECTED';
-                const isPending = item.status === 'PENDING';
-
-                return (
-                  <div
-                    key={item.id}
-                    className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-base font-mono text-slate-900">
-                          {Number(item.amount).toLocaleString()} <span className="text-xs font-sans">บาท</span>
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          ({new Date(item.request_date).toLocaleDateString('th-TH')})
-                        </span>
-                      </div>
-
-                      {isApproved && (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          อนุมัติแล้ว
-                        </span>
-                      )}
-                      {isRejected && (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
-                          <XCircle className="w-3 h-3 text-rose-600" />
-                          ไม่อนุมัติ
-                        </span>
-                      )}
-                      {isPending && (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
-                          <Clock3 className="w-3 h-3 text-amber-600" />
-                          รอพิจารณา
-                        </span>
-                      )}
+          <div className="space-y-2">
+            {requests.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-400">
+                ยังไม่มีประวัติการขอเบิกเงิน
+              </div>
+            ) : (
+              requests.map((item) => (
+                <div
+                  key={item.id}
+                  className={`p-3 rounded-2xl flex items-center justify-between transition-all ${
+                    isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold text-sm font-mono text-amber-500">
+                      {Number(item.amount).toLocaleString()} บาท
                     </div>
-
-                    <div className="text-xs text-slate-600 font-medium">
-                      <span className="text-slate-400">เหตุผล:</span> {item.reason}
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                      ยื่นเมื่อ: {item.request_date || (item as any).requestDate}
                     </div>
-
-                    {item.needed_before_date && (
-                      <div className="text-[11px] text-amber-800 bg-amber-50 px-2 py-1 rounded-lg w-fit font-medium">
-                        ⏰ จำเป็นต้องใช้ก่อน: {new Date(item.needed_before_date).toLocaleDateString('th-TH')}
-                      </div>
-                    )}
-
-                    {isRejected && item.rejection_reason && (
-                      <div className="text-[11px] text-rose-700 bg-rose-50 p-2 rounded-xl border border-rose-100 font-medium">
-                        เหตุผลที่ไม่อนุมัติ: {item.rejection_reason}
+                    {item.reason && (
+                      <div className="text-[11px] text-slate-400 mt-1 italic">
+                        "{item.reason}"
                       </div>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div>
+                    {getStatusBadge(item.status)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
+
       </main>
 
       {/* SMART AUTO-HIDE BOTTOM NAVIGATION BAR */}

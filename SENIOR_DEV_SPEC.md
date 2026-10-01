@@ -278,6 +278,12 @@ graph TD
    - อัปเดต Types ใน [`src/lib/types.ts`](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/src/lib/types.ts) เสมอเมื่อเพิ่มฟิลด์ใหม่ใน Database
 5. **Git Commit & Push**:
    - เมื่อแก้ไขโค้ดเสร็จ ตรวจสอบ build ด้วย `npm run build` ต้องผ่าน 0 errors เสมอก่อน Commit และ Push ขึ้น GitHub
+6. **🤖 Discord Reporting Protocol (รายงานความคืบหน้าเข้ากรุ๊ปแชท Discord)**:
+   - ทุกครั้งที่ทำ Milestone หรือ Task สำคัญเสร็จสิ้น ให้เรียกใช้ utility [`sendDiscordDevReport`](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/src/lib/discord-reporter.ts) หรือรันคำสั่ง:
+     ```bash
+     npm run report:discord "<หัวข้อ>" "<สรุปความคืบหน้า>" "<งานที่เสร็จ1,งานที่เสร็จ2>" "<งานถัดไป>"
+     ```
+   - เพื่อให้ทีมผู้บริหารและมนุษย์ได้รับฟีดความคืบหน้าแบบ Real-Time ใน Discord
 
 ---
 
@@ -290,6 +296,9 @@ npm install
 # 2. ทดสอบ Local Development Server
 npm run dev
 
-# 3. ตรวจสอบ Production Build (ต้องผ่าน 100%)
+# 3. ทดสอบระบบรายงาน Discord
+npm run report:discord "ทดสอบระบบ" "Senior AI รายงานตัวพร้อมเริ่มงาน"
+
+# 4. ตรวจสอบ Production Build (ต้องผ่าน 100%)
 npm run build
 ```
