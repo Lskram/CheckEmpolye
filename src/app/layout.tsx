@@ -41,14 +41,11 @@ export default function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) {
-                      console.log('PWA ServiceWorker registered with scope: ', registration.scope);
-                    },
-                    function(err) {
-                      console.log('PWA ServiceWorker registration failed: ', err);
-                    }
-                  );
+                  if (window.location.pathname.startsWith('/employee')) {
+                    navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                      console.log('SW registration error:', err);
+                    });
+                  }
                 });
               }
             `,

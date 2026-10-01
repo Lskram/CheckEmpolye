@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { 
-  Shield, 
   Bell, 
   Calendar, 
   CreditCard, 
@@ -873,11 +872,13 @@ export default function ExactEmployeeApp() {
           {/* Top Row with Profile Dome Center */}
           <div className="flex items-center justify-between relative">
             
-            {/* Left: Store Brand Pill */}
+            {/* Left: Official Sisaeng Store Logo */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/30 border border-blue-400/40 flex items-center justify-center text-blue-300 shadow-sm backdrop-blur-md">
-                <Shield className="w-4 h-4" />
-              </div>
+              <img 
+                src="/images/store-logo.png" 
+                alt="สีแสงยางยนต์ (Sisaeng Yang Yont)" 
+                className="h-7 w-auto max-w-[110px] object-contain drop-shadow-md"
+              />
               <div>
                 <div className="text-[10px] font-bold text-blue-300 tracking-wider">YOKOHAMA NAYA</div>
                 <div className="text-xs font-black text-white leading-none">สีแสงยางยนต์</div>

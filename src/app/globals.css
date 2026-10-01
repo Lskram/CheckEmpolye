@@ -17,9 +17,8 @@ body {
 }
 
 /* Global SVG overflow defensive guard */
-svg:not([preserveAspectRatio="none"]) {
+svg {
   max-width: 100%;
-  max-height: 100%;
 }
 
 /* ------------------------------------------------------------- */

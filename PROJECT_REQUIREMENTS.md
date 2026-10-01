@@ -103,6 +103,7 @@ flowchart TD
 | **REQ-029** | UI & Polish | แก้ไขปัญหารอยแถบแสงสว่างลอดด้านบนการ์ดฟอร์มและตารางปฏิทิน (Light Bleed Elimination) เสริมเลเยอร์ทึบสนิท 100% เรียบเนียน ไร้รอยต่อ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-030** | UI & Consistency | ปรับปรุงหน้าปฏิทินและสถิติ (`/employee/stats`) ให้เหมือนและสอดคล้องกับหน้าอื่นๆ ทั้งระบบ (ปุ่มย้อนกลับ ArrowLeft ใน Header, การ์ดสรุปยอด Hero Summary Banner ประจำเดือนพร้อม Month Switcher ในตัว, และแคปซูลวันที่ Glassmorphism) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/stats`) |
 | **REQ-031** | UI & Attendance Tracking | ปรับลดความทึบของ Dark Overlay ทุกหน้าให้โปร่งแสง ~30% แสดงภาพพื้นหลังชัดเจนสวยงาม และเพิ่มตัวนับยอดวันเข้างานสะสมประจำเดือนในหน้าขอเบิกเงิน (`/employee/advance`) พร้อมระบบรีเซ็ตนับใหม่ทุกวันที่ 1 ของเดือน | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
+| **REQ-032** | UI & Branding | แทนที่ไอคอนโล่เดิมด้านซ้ายบนของหน้าหลัก (`/employee`) ด้วยภาพโลโก้ทางการ "สีแสงยางยนต์ (Sisaeng Yang Yont Sisaket)" ลายแถบสปอร์ตสีแดง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 
 ---
 
@@ -130,6 +131,13 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Official Sisaeng Store Logo Integration (Version 3.21)
+- ✅ **Header Logo Integration (`src/app/employee/page.tsx`)**:
+  - ถอดไอคอนกล่องโล่สีฟ้า (Shield Icon Box) ออกตามที่กำหนด
+  - ใส่ภาพโลโก้ศูนย์บริการทางการ **"Sisaeng Yang Yont Sisaket"** (`/images/store-logo.png`) โทนสีแดง/ดำสปอร์ต พรีเมียม คมชัด สวยงาม สมบูรณ์แบบ
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - 30% Overlay Translucency Tuning & Monthly Advance Workday Tracker (Version 3.20)
 - ✅ **30% Image Translucency Across All Pages (`/employee/*`)**:

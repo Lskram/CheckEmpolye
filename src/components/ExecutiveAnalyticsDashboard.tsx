@@ -233,8 +233,13 @@ export default function ExecutiveAnalyticsDashboard({
           </div>
 
           {/* Sparkline 1 (Mint / Emerald Active Wave) */}
-          <div className="pt-6 relative -mx-6 -mb-6">
-            <svg viewBox="0 0 300 70" className="w-full h-16 stroke-emerald-500 fill-none" preserveAspectRatio="none">
+          <div className="pt-6 relative -mx-6 -mb-6 overflow-hidden h-16">
+            <svg 
+              viewBox="0 0 300 70" 
+              className="w-full h-16 stroke-emerald-500 fill-none" 
+              preserveAspectRatio="none"
+              style={{ height: '64px', maxHeight: '64px', width: '100%', display: 'block', overflow: 'hidden' }}
+            >
               <path 
                 d="M0,50 L25,45 L50,38 L75,40 L100,28 L125,32 L150,20 L175,25 L200,15 L225,22 L250,12 L275,18 L300,10" 
                 strokeWidth="2.5" 
@@ -285,8 +290,13 @@ export default function ExecutiveAnalyticsDashboard({
           </div>
 
           {/* Sparkline 2 (Amber Wave) */}
-          <div className="pt-6 relative -mx-6 -mb-6">
-            <svg viewBox="0 0 300 70" className="w-full h-16 stroke-amber-500 fill-none" preserveAspectRatio="none">
+          <div className="pt-6 relative -mx-6 -mb-6 overflow-hidden h-16">
+            <svg 
+              viewBox="0 0 300 70" 
+              className="w-full h-16 stroke-amber-500 fill-none" 
+              preserveAspectRatio="none"
+              style={{ height: '64px', maxHeight: '64px', width: '100%', display: 'block', overflow: 'hidden' }}
+            >
               <path 
                 d="M0,55 L25,48 L50,52 L75,35 L100,42 L125,30 L150,38 L175,22 L200,32 L225,25 L250,30 L275,18 L300,24" 
                 strokeWidth="2.5" 
@@ -336,8 +346,13 @@ export default function ExecutiveAnalyticsDashboard({
           </div>
 
           {/* Vibrant Blue Filled Area Chart */}
-          <div className="pt-4 relative -mx-6 -mb-6">
-            <svg viewBox="0 0 300 80" className="w-full h-20" preserveAspectRatio="none">
+          <div className="pt-4 relative -mx-6 -mb-6 overflow-hidden h-20">
+            <svg 
+              viewBox="0 0 300 80" 
+              className="w-full h-20" 
+              preserveAspectRatio="none"
+              style={{ height: '80px', maxHeight: '80px', width: '100%', display: 'block', overflow: 'hidden' }}
+            >
               <defs>
                 <linearGradient id="blueAreaGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.45" />
