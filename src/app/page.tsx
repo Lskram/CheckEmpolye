@@ -106,13 +106,13 @@ export default function VercelPortalLandingPage() {
         {/* Right Action */}
         <div className="flex items-center gap-3">
           <Link 
-            href="/admin/login" 
+            href="/admin" 
             className="text-xs font-mono text-neutral-400 hover:text-white transition-colors hidden sm:block"
           >
             Executive Login →
           </Link>
           <Link 
-            href="/admin/login" 
+            href="/admin" 
             className="px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-bold transition-all hover:scale-105 shadow-sm flex items-center gap-1.5"
           >
             <span>Console</span>
