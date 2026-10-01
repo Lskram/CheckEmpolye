@@ -249,3 +249,80 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const employeeId = searchParams.get('employeeId');
+
+    if (!employeeId) {
+      return NextResponse.json(
+        { success: false, message: 'กรุณาระบุรหัสพนักงาน (employeeId)' },
+        { status: 400 }
+      );
+    }
+
+    const getBangkokDateStr = (date: Date | string) =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(date));
+    const todayDateStr = getBangkokDateStr(new Date());
+
+    const logs = await db.getAttendanceLogs(200);
+    const todayLog = logs.find(
+      (l) => l.employee_id === employeeId &&
+             l.check_in_time &&
+             getBangkokDateStr(l.check_in_time) === todayDateStr &&
+             (l.status === 'PRESENT' || l.status === 'LATE')
+    );
+
+    if (!todayLog) {
+      return NextResponse.json({
+        success: true,
+        hasCheckedIn: false,
+        data: null,
+      });
+    }
+
+    const checkInTimeStr = new Date(todayLog.check_in_time).toLocaleTimeString('th-TH', {
+      timeZone: 'Asia/Bangkok',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }) + ' น.';
+
+    const checkOutTimeStr = todayLog.check_out_time
+      ? new Date(todayLog.check_out_time).toLocaleTimeString('th-TH', {
+          timeZone: 'Asia/Bangkok',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }) + ' น.'
+      : null;
+
+    const shortLogId = `#LOG-${todayLog.id.slice(0, 8).toUpperCase()}`;
+
+    return NextResponse.json({
+      success: true,
+      hasCheckedIn: true,
+      data: {
+        id: todayLog.id,
+        logReference: shortLogId,
+        status: todayLog.status,
+        rawCheckInTime: todayLog.check_in_time,
+        rawCheckOutTime: todayLog.check_out_time || null,
+        checkInTime: checkInTimeStr,
+        checkOutTime: checkOutTimeStr,
+        workingDuration: todayLog.work_hours ? `${Number(todayLog.work_hours).toFixed(1)} ชม.` : undefined,
+        allowance: Number(todayLog.allowance) || 0,
+        distance: todayLog.distance_from_store,
+        isLate: todayLog.status === 'LATE',
+      },
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, message: 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error.message },
+      { status: 500 }
+    );
+  }
+}

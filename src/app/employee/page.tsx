@@ -36,7 +36,10 @@ import {
   TrendingUp,
   Folder,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  WifiOff,
+  CloudSync,
+  UploadCloud
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -45,6 +48,12 @@ import { getLiveHardwarePosition, watchLivePosition, LiveLocationResult } from '
 import { MobileNotificationService } from '@/lib/mobile-notifications';
 import { playWebAlertSound } from '@/lib/web-notifications';
 import { useAppTheme } from '@/lib/theme';
+import { 
+  saveOfflineAction, 
+  syncPendingActions, 
+  initOfflineSyncListeners, 
+  getPendingOfflineActions 
+} from '@/lib/offline-sync';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function ExactEmployeeApp() {
@@ -95,6 +104,11 @@ export default function ExactEmployeeApp() {
   const [errorMessage, setErrorMessage] = useState('');
   const [activeHistoryTab, setActiveHistoryTab] = useState<'in' | 'out' | 'leave'>('in');
 
+  // Offline Sync State
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
   // In-App Floating Notification Banner State
   const [mobileToast, setMobileToast] = useState<{
     type: 'checkin' | 'checkout';
@@ -113,9 +127,33 @@ export default function ExactEmployeeApp() {
     }
   }, [mobileToast]);
 
-  // Request Notification Permissions on Mount
+  // Request Notification Permissions on Mount & Init Offline Engine
   useEffect(() => {
     MobileNotificationService.requestPermission();
+    const cleanupOffline = initOfflineSyncListeners();
+
+    // Check initial online status
+    if (typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine);
+      getPendingOfflineActions().then(p => setPendingOfflineCount(p.length));
+
+      const handleOnlineStatus = () => setIsOnline(navigator.onLine);
+      const handleOfflineStatus = () => setIsOnline(false);
+      const handleQueueChanged = (e: any) => {
+        setPendingOfflineCount(e.detail?.pendingCount || 0);
+      };
+
+      window.addEventListener('online', handleOnlineStatus);
+      window.addEventListener('offline', handleOfflineStatus);
+      window.addEventListener('yokohama-offline-queue-changed' as any, handleQueueChanged);
+
+      return () => {
+        cleanupOffline();
+        window.removeEventListener('online', handleOnlineStatus);
+        window.removeEventListener('offline', handleOfflineStatus);
+        window.removeEventListener('yokohama-offline-queue-changed' as any, handleQueueChanged);
+      };
+    }
   }, []);
 
   // Safeguard: Check-out Confirmation Modal
@@ -150,7 +188,7 @@ export default function ExactEmployeeApp() {
     setDistance(dist);
   }, []);
 
-  // 1. Authenticate Employee Profile
+  // 1. Authenticate Employee Profile & Fetch Today's Live Database Attendance State
   useEffect(() => {
     const saved = localStorage.getItem('attendance_employee_profile');
     if (!saved) {
@@ -161,6 +199,19 @@ export default function ExactEmployeeApp() {
       const parsed = JSON.parse(saved);
       setEmployee(parsed);
       setIsAuthChecking(false);
+
+      // Load today's check-in / check-out status from Supabase DB
+      fetch(`/api/check-in?employeeId=${parsed.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.hasCheckedIn && data.data) {
+            setCheckInResult(data.data);
+          }
+        })
+        .catch(err => {
+          console.warn('Could not fetch existing check-in from DB:', err);
+        });
+
     } catch (e) {
       router.push('/employee/login');
     }
@@ -334,7 +385,26 @@ export default function ExactEmployeeApp() {
     }
   };
 
-  // CHECK-IN HANDLER
+  // Manual Sync Offline Queue Trigger
+  const handleTriggerManualSync = async () => {
+    setIsSyncingOffline(true);
+    try {
+      const res = await syncPendingActions();
+      if (res.syncedCount > 0) {
+        playWebAlertSound('checkin');
+        setMobileToast({
+          type: 'checkin',
+          title: '⚡ ซิงค์ข้อมูลออฟไลน์สำเร็จ!',
+          message: `ซิงค์รายการลงเวลาที่ค้างไว้ ${res.syncedCount} รายการ เข้าสู่ฐานข้อมูลเรียบร้อย`,
+          timeStr: time.hhmm,
+        });
+      }
+    } finally {
+      setIsSyncingOffline(false);
+    }
+  };
+
+  // CHECK-IN HANDLER (With Offline IndexedDB Resilience)
   const handleCheckIn = async () => {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setErrorMessage('');
@@ -364,53 +434,107 @@ export default function ExactEmployeeApp() {
       }
 
       const empId = employee.id || employee.employeeId;
-      const res = await fetch('/api/check-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: empId,
-          latitude: freshLat,
-          longitude: freshLng,
-          accuracy: freshAcc,
-          hwid,
-        }),
-      });
+      const payload = {
+        employeeId: empId,
+        latitude: freshLat,
+        longitude: freshLng,
+        accuracy: freshAcc,
+        hwid,
+      };
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setErrorMessage(data.message || 'การลงเวลาถูกปฏิเสธ');
+      // If offline, save directly to IndexedDB
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await saveOfflineAction('CHECK_IN', payload);
+        const offlineData = {
+          id: `OFFLINE-${Date.now()}`,
+          logReference: '#OFFLINE-PENDING',
+          status: 'PRESENT',
+          rawCheckInTime: new Date().toISOString(),
+          rawCheckOutTime: null,
+          checkInTime: time.hhmm + ' น. (ออฟไลน์)',
+          allowance: 50,
+          distance: distance || 0,
+          isLate: false,
+          employeeName: employee.fullName || employee.full_name,
+        };
+        setCheckInResult(offlineData);
+        playWebAlertSound('checkin');
+        setMobileToast({
+          type: 'checkin',
+          title: '📡 บันทึกเวลาเข้างานแบบออฟไลน์แล้ว',
+          message: 'เน็ตของคุณหลุดชั่วขณะ ระบบบันทึกลงเครื่องและจะซิงค์ขึ้นฐานข้อมูลทันทีเมื่อต่อเน็ต',
+          timeStr: time.hhmm,
+        });
         setIsCheckingIn(false);
         return;
       }
 
-      setCheckInResult(data.data);
-      playWebAlertSound('checkin');
+      try {
+        const res = await fetch('/api/check-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      setMobileToast({
-        type: 'checkin',
-        title: data.data.status === 'PRESENT' ? '✅ ลงชื่อเข้างานสำเร็จ (ตรงเวลา)' : '⚠️ บันทึกเวลาเข้างานแล้ว (มาสาย)',
-        message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '(+50฿ เบี้ยขยัน)' : ''}`,
-        isLate: data.data.status !== 'PRESENT',
-        timeStr: data.data.checkInTime || time.hhmm,
-      });
+        const data = await res.json();
 
-      MobileNotificationService.showCheckInSuccess(
-        data.data.checkInTime || time.hhmm,
-        data.data.status !== 'PRESENT',
-        data.data.allowance || 0
-      );
+        if (!res.ok || !data.success) {
+          setErrorMessage(data.message || 'การลงเวลาถูกปฏิเสธ');
+          setIsCheckingIn(false);
+          return;
+        }
 
-      if (data.data.status === 'PRESENT') {
-        confetti({
-          particleCount: 90,
-          spread: 75,
-          origin: { y: 0.5 },
-          colors: ['#38bdf8', '#2563eb', '#10b981', '#fbbf24', '#ffffff'],
+        setCheckInResult(data.data);
+        playWebAlertSound('checkin');
+
+        setMobileToast({
+          type: 'checkin',
+          title: data.data.status === 'PRESENT' ? '✅ ลงชื่อเข้างานสำเร็จ (ตรงเวลา)' : '⚠️ บันทึกเวลาเข้างานแล้ว (มาสาย)',
+          message: `บันทึกเวลา ${data.data.checkInTime || time.hhmm} น. ${data.data.status === 'PRESENT' ? '(+50฿ เบี้ยขยัน)' : ''}`,
+          isLate: data.data.status !== 'PRESENT',
+          timeStr: data.data.checkInTime || time.hhmm,
+        });
+
+        MobileNotificationService.showCheckInSuccess(
+          data.data.checkInTime || time.hhmm,
+          data.data.status !== 'PRESENT',
+          data.data.allowance || 0
+        );
+
+        if (data.data.status === 'PRESENT') {
+          confetti({
+            particleCount: 90,
+            spread: 75,
+            origin: { y: 0.5 },
+            colors: ['#38bdf8', '#2563eb', '#10b981', '#fbbf24', '#ffffff'],
+          });
+        }
+      } catch (networkErr: any) {
+        // Network threw error -> Fallback to IndexedDB queue
+        await saveOfflineAction('CHECK_IN', payload);
+        const offlineData = {
+          id: `OFFLINE-${Date.now()}`,
+          logReference: '#OFFLINE-PENDING',
+          status: 'PRESENT',
+          rawCheckInTime: new Date().toISOString(),
+          rawCheckOutTime: null,
+          checkInTime: time.hhmm + ' น. (ออฟไลน์)',
+          allowance: 50,
+          distance: distance || 0,
+          isLate: false,
+          employeeName: employee.fullName || employee.full_name,
+        };
+        setCheckInResult(offlineData);
+        playWebAlertSound('checkin');
+        setMobileToast({
+          type: 'checkin',
+          title: '📡 บันทึกเวลาเข้างานแบบออฟไลน์แล้ว',
+          message: 'การเชื่อมต่อขัดข้อง ระบบบันทึกลงเครื่องและจะซิงค์ทันทีเมื่อมีเน็ต',
+          timeStr: time.hhmm,
         });
       }
     } catch (err: any) {
-      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+      setErrorMessage('เกิดข้อผิดพลาด: ' + err.message);
     } finally {
       setIsCheckingIn(false);
     }
@@ -421,7 +545,8 @@ export default function ExactEmployeeApp() {
     if (!employee?.id && !employee?.employeeCode && !employee?.employee_code) return;
     setErrorMessage('');
 
-    if (distance !== null && distance > (storeSettings?.radius_meters || 50)) {
+    const radius = Number(storeSettings?.radius_meters) || 50;
+    if (distance !== null && distance > radius) {
       setErrorMessage(`🚫 อยู่นอกพื้นที่ร้าน (${distance.toFixed(1)} ม.) ไม่อนุญาตให้ลงเวลาออกงาน`);
       return;
     }
@@ -429,7 +554,7 @@ export default function ExactEmployeeApp() {
     setShowCheckOutConfirmModal(true);
   };
 
-  // CHECK-OUT EXECUTE
+  // CHECK-OUT EXECUTE (With Offline IndexedDB Resilience)
   const executeCheckOut = async () => {
     setShowCheckOutConfirmModal(false);
     setIsCheckingOut(true);
@@ -458,54 +583,93 @@ export default function ExactEmployeeApp() {
       }
 
       const empId = employee.id || employee.employeeId;
-      const res = await fetch('/api/check-out', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: empId,
-          latitude: freshLat,
-          longitude: freshLng,
-          accuracy: freshAcc,
-          hwid,
-        }),
-      });
+      const payload = {
+        employeeId: empId,
+        latitude: freshLat,
+        longitude: freshLng,
+        accuracy: freshAcc,
+        hwid,
+      };
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setErrorMessage(data.message || 'การลงเวลาออกงานถูกปฏิเสธ');
+      // If offline
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        await saveOfflineAction('CHECK_OUT', payload);
+        setCheckInResult((prev: any) => ({
+          ...prev,
+          checkOutTime: time.hhmm + ' น. (ออฟไลน์)',
+          workingDuration: liveWorkDuration.text,
+          rawCheckOutTime: new Date().toISOString(),
+        }));
+        playWebAlertSound('checkout');
+        setMobileToast({
+          type: 'checkout',
+          title: '📡 บันทึกเวลาออกงานแบบออฟไลน์แล้ว!',
+          message: 'บันทึกเวลาออกงานลงในเครื่องเรียบร้อย และจะส่งขึ้นฐานข้อมูลอัตโนมัติเมื่อต่อเน็ต',
+          timeStr: time.hhmm,
+        });
         setIsCheckingOut(false);
         return;
       }
 
-      setCheckInResult((prev: any) => ({
-        ...prev,
-        checkOutTime: data.data.checkOutTime,
-        workingDuration: data.data.workingDuration,
-        rawCheckOutTime: data.data.rawCheckOutTime,
-      }));
+      try {
+        const res = await fetch('/api/check-out', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      playWebAlertSound('checkout');
-      setMobileToast({
-        type: 'checkout',
-        title: '🏁 ลงชื่อออกงานสำเร็จแล้ว!',
-        message: `บันทึกเวลาออกงาน ${data.data.checkOutTime || time.hhmm} น.`,
-        timeStr: data.data.checkOutTime || time.hhmm,
-      });
+        const data = await res.json();
 
-      MobileNotificationService.showCheckOutSuccess(
-        data.data.checkOutTime || time.hhmm,
-        data.data.workHours
-      );
+        if (!res.ok || !data.success) {
+          setErrorMessage(data.message || 'การลงเวลาออกงานถูกปฏิเสธ');
+          setIsCheckingOut(false);
+          return;
+        }
 
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.5 },
-        colors: ['#a855f7', '#3b82f6', '#10b981', '#fbbf24'],
-      });
+        setCheckInResult((prev: any) => ({
+          ...prev,
+          checkOutTime: data.data.checkOutTime,
+          workingDuration: data.data.workingDuration,
+          rawCheckOutTime: data.data.rawCheckOutTime,
+        }));
+
+        playWebAlertSound('checkout');
+        setMobileToast({
+          type: 'checkout',
+          title: '🏁 ลงชื่อออกงานสำเร็จแล้ว!',
+          message: `บันทึกเวลาออกงาน ${data.data.checkOutTime || time.hhmm} น.`,
+          timeStr: data.data.checkOutTime || time.hhmm,
+        });
+
+        MobileNotificationService.showCheckOutSuccess(
+          data.data.checkOutTime || time.hhmm,
+          data.data.workHours
+        );
+
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.5 },
+          colors: ['#a855f7', '#3b82f6', '#10b981', '#fbbf24'],
+        });
+      } catch (networkErr: any) {
+        await saveOfflineAction('CHECK_OUT', payload);
+        setCheckInResult((prev: any) => ({
+          ...prev,
+          checkOutTime: time.hhmm + ' น. (ออฟไลน์)',
+          workingDuration: liveWorkDuration.text,
+          rawCheckOutTime: new Date().toISOString(),
+        }));
+        playWebAlertSound('checkout');
+        setMobileToast({
+          type: 'checkout',
+          title: '📡 บันทึกเวลาออกงานแบบออฟไลน์แล้ว!',
+          message: 'การเชื่อมต่อขัดข้อง บันทึกลงเครื่องและจะซิงค์อัตโนมัติเมื่อต่อเน็ต',
+          timeStr: time.hhmm,
+        });
+      }
     } catch (err: any) {
-      setErrorMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + err.message);
+      setErrorMessage('เกิดข้อผิดพลาด: ' + err.message);
     } finally {
       setIsCheckingOut(false);
     }
@@ -516,7 +680,7 @@ export default function ExactEmployeeApp() {
     router.push('/employee/login');
   };
 
-  const allowedRadius = storeSettings?.radius_meters || 50;
+  const allowedRadius = Number(storeSettings?.radius_meters) || 50;
   const isInsideRadius = distance !== null && distance <= allowedRadius;
 
   if (isAuthChecking) {
@@ -547,7 +711,34 @@ export default function ExactEmployeeApp() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* 0. IN-APP FLOATING NOTIFICATION BANNER                        */}
+      {/* 0. OFFLINE QUEUE STATUS FLOATING BADGE                        */}
+      {/* ------------------------------------------------------------- */}
+      {(!isOnline || pendingOfflineCount > 0) && (
+        <div className="fixed top-2 left-4 right-4 z-50 max-w-md mx-auto">
+          <div className="p-2.5 rounded-2xl bg-amber-500/90 text-slate-950 shadow-xl backdrop-blur-xl border border-amber-300/40 flex items-center justify-between text-xs font-bold">
+            <div className="flex items-center gap-2">
+              <WifiOff className="w-4 h-4 animate-bounce" />
+              <span>
+                {!isOnline ? '📴 โหมดออฟไลน์ (เน็ตหลุด)' : '📡 กำลังรอส่งข้อมูลเข้าเซิร์ฟเวอร์'}
+                {pendingOfflineCount > 0 && ` (${pendingOfflineCount} รายการ)`}
+              </span>
+            </div>
+            {isOnline && (
+              <button
+                onClick={handleTriggerManualSync}
+                disabled={isSyncingOffline}
+                className="px-2.5 py-1 rounded-xl bg-slate-950 text-amber-300 font-bold text-[10px] flex items-center gap-1 active:scale-95 transition-transform"
+              >
+                <RefreshCw className={`w-3 h-3 ${isSyncingOffline ? 'animate-spin' : ''}`} />
+                <span>{isSyncingOffline ? 'กำลังซิงค์...' : 'ซิงค์ทันที'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* IN-APP FLOATING NOTIFICATION BANNER                           */}
       {/* ------------------------------------------------------------- */}
       <AnimatePresence>
         {mobileToast && (
@@ -657,7 +848,7 @@ export default function ExactEmployeeApp() {
           </div>
 
           {/* ========================================================= */}
-          {/* "MyShift" Telemetry Card (Inspired by Reference Design)   */}
+          {/* "MyShift" Telemetry Card (Dynamic Geofence from DB)       */}
           {/* ========================================================= */}
           <div className="mt-3.5 p-4 rounded-3xl bg-slate-900/90 border border-white/10 shadow-2xl backdrop-blur-xl relative overflow-hidden">
             <div className="flex items-center justify-between mb-2">
@@ -681,7 +872,7 @@ export default function ExactEmployeeApp() {
                 <span className="flex items-center gap-1">
                   <span>สถานะ:</span>
                   <strong className={isInsideRadius ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
-                    {isInsideRadius ? `📍 ในพื้นที่ร้าน (${distance?.toFixed(0)}ม.)` : `🚫 อยู่นอกพื้นที่ (${distance?.toFixed(0)}ม.)`}
+                    {isInsideRadius ? `📍 ในพื้นที่ร้าน (${distance?.toFixed(0)} ม. / รัศมี ${allowedRadius}ม.)` : `🚫 อยู่นอกพื้นที่ (${distance?.toFixed(0)} ม. / กำหนด ${allowedRadius}ม.)`}
                   </strong>
                 </span>
                 <span className="font-mono text-blue-400 font-bold">
@@ -712,10 +903,10 @@ export default function ExactEmployeeApp() {
       {/* ------------------------------------------------------------- */}
       <div className="max-w-md w-full mx-auto px-4 py-2 space-y-4 flex-1 relative z-10">
         
-        {/* 6 Neumorphic 3D Tiles Grid (Matching Reference Design) */}
+        {/* 6 Neumorphic 3D Tiles Grid */}
         <div className="grid grid-cols-3 gap-2.5">
           
-          {/* Tile 1: Check-in / Main */}
+          {/* Tile 1: Check-in / Main Action */}
           <button
             onClick={!checkInResult ? handleCheckIn : !checkInResult.checkOutTime ? promptCheckOut : undefined}
             disabled={isCheckingIn || isCheckingOut || (!!checkInResult && !!checkInResult.checkOutTime)}
@@ -744,7 +935,7 @@ export default function ExactEmployeeApp() {
               {!checkInResult ? 'เข้างาน' : !checkInResult.checkOutTime ? 'ออกงาน' : 'เสร็จสิ้น'}
             </div>
             <div className="text-[9px] text-slate-400 mt-0.5 font-mono">
-              {checkInResult?.checkInTime || '08:00'}
+              {checkInResult?.checkInTime ? checkInResult.checkInTime.slice(0, 5) : '08:00'}
             </div>
           </button>
 
@@ -802,7 +993,7 @@ export default function ExactEmployeeApp() {
             </div>
           </Link>
 
-          {/* Tile 5: Store Geofence */}
+          {/* Tile 5: Store Geofence & Settings */}
           <button
             onClick={handleManualRefresh}
             className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
@@ -833,19 +1024,19 @@ export default function ExactEmployeeApp() {
               เบี้ยขยัน
             </div>
             <div className="text-[9px] text-rose-400 font-bold mt-0.5">
-              50฿ / วัน
+              {storeSettings?.allowance_amount || 50}฿ / วัน
             </div>
           </div>
 
         </div>
 
         {/* ----------------------------------------------------------- */}
-        {/* CAPSULE DATE PIANO KEYS (From Reference Image Right Phone)   */}
+        {/* CAPSULE DATE PIANO KEYS                                     */}
         {/* ----------------------------------------------------------- */}
         <div className={`p-3.5 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-2`}>
           <div className="flex items-center justify-between text-xs font-bold">
             <span className={isDark ? 'text-slate-200' : 'text-slate-700'}>ประวัติเวลาสัปดาห์นี้</span>
-            <span className="text-[10px] text-blue-500">ตรงเวลา = +50฿</span>
+            <span className="text-[10px] text-blue-500">ตรงเวลา = +{storeSettings?.allowance_amount || 50}฿</span>
           </div>
 
           <div className="grid grid-cols-5 gap-1.5 text-center">

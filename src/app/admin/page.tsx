@@ -560,6 +560,33 @@ export default function WebExecutiveDashboard() {
   };
 
   const handleLeaveAction = async (leaveId: string, status: 'APPROVED' | 'REJECTED') => {
+    // 1. Optimistic Notifications & Toast Clear
+    setNotificationsList((prevList) =>
+      prevList.map((n) =>
+        n.relatedId === leaveId ? { ...n, read: true, status } : n
+      )
+    );
+    setActiveToast((currentToast) =>
+      currentToast?.relatedId === leaveId ? null : currentToast
+    );
+
+    // 2. Optimistic Analytics Data update
+    setAnalyticsData((prev: any) => {
+      if (!prev) return prev;
+      const updatedLeaves = (prev.leaveRequests || []).map((req: any) =>
+        req.id === leaveId ? { ...req, status } : req
+      );
+      const newPendingCount = updatedLeaves.filter((r: any) => r.status === 'PENDING').length;
+      return {
+        ...prev,
+        leaveRequests: updatedLeaves,
+        overview: {
+          ...prev.overview,
+          pendingLeavesCount: newPendingCount,
+        },
+      };
+    });
+
     try {
       const res = await fetch('/api/leave', {
         method: 'PUT',

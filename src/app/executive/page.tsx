@@ -129,6 +129,43 @@ export default function MobileExecutiveApp() {
   const [activeToast, setActiveToast] = useState<WebNotification | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  const prevDataRef = useRef<{
+    logMap: Map<string, any>;
+    advanceMap: Map<string, any>;
+    leaveMap: Map<string, any>;
+    violationMap: Map<string, any>;
+    isFirstLoad: boolean;
+  }>({
+    logMap: new Map(),
+    advanceMap: new Map(),
+    leaveMap: new Map(),
+    violationMap: new Map(),
+    isFirstLoad: true,
+  });
+
+  const triggerNotification = (notif: Omit<WebNotification, 'id' | 'time' | 'timestamp' | 'read'>) => {
+    const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const fullNotif: WebNotification = {
+      ...notif,
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      time,
+      timestamp: Date.now(),
+      read: false,
+    };
+
+    setNotificationsList((prev) => [fullNotif, ...prev.slice(0, 49)]);
+    setActiveToast(fullNotif);
+
+    if (soundEnabled) {
+      playWebAlertSound(notif.type);
+    }
+    showBrowserDesktopNotification(notif.title, notif.message);
+
+    setTimeout(() => {
+      setActiveToast((current) => (current?.id === fullNotif.id ? null : current));
+    }, 7000);
+  };
+
   // Update Clock
   useEffect(() => {
     const updateTime = () => {
@@ -161,19 +198,135 @@ export default function MobileExecutiveApp() {
     }
   }, []);
 
-  // Data Fetching
+  // Data Fetching & Smart Diff Detection (Realtime Audio & Toast)
   const loadDashboardData = async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
       const res = await fetch(`/api/admin/analytics?period=${period}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.data) {
-        setAnalyticsData(data.data);
-        if (data.data.settings) {
+        const d = data.data;
+        setAnalyticsData(d);
+        if (d.settings) {
           if (!hasLoadedSettingsRef.current || activeTabRef.current !== 'settings') {
-            setStoreSettingsForm(data.data.settings);
+            setStoreSettingsForm(d.settings);
             hasLoadedSettingsRef.current = true;
           }
+        }
+
+        // Smart Diff Engine for Real-Time Sound & Popups
+        if (prevDataRef.current.isFirstLoad) {
+          d.attendanceLogs?.forEach((l: any) => prevDataRef.current.logMap.set(l.id, l));
+          d.salaryAdvanceRequests?.forEach((a: any) => prevDataRef.current.advanceMap.set(a.id, a));
+          d.leaveRequests?.forEach((lv: any) => prevDataRef.current.leaveMap.set(lv.id, lv));
+          d.violationLogs?.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
+          prevDataRef.current.isFirstLoad = false;
+        } else {
+          const logs: any[] = d.attendanceLogs || [];
+          const advances: any[] = d.salaryAdvanceRequests || [];
+          const leaves: any[] = d.leaveRequests || [];
+          const violations: any[] = d.violationLogs || [];
+          const employees: any[] = d.employees || [];
+          const empMap = new Map(employees.map((e) => [e.id, e]));
+
+          // 1. Detect New Salary Advances
+          advances.forEach((adv: any) => {
+            const prevAdv = prevDataRef.current.advanceMap.get(adv.id);
+            const emp = empMap.get(adv.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+
+            if (!prevAdv) {
+              triggerNotification({
+                type: 'advance',
+                relatedId: adv.id,
+                status: adv.status,
+                title: `💵 มีคำขอเบิกเงินใหม่ (${Number(adv.amount).toLocaleString()} บาท)`,
+                message: `คุณ ${empName} ${empCode} ขอยอด ${Number(adv.amount).toLocaleString()}฿ (เหตุผล: ${adv.reason || '-'})`,
+                targetTab: 'advances',
+              });
+            } else if (prevAdv.status !== adv.status) {
+              setNotificationsList((prevList) =>
+                prevList.map((n) =>
+                  n.relatedId === adv.id ? { ...n, read: true, status: adv.status } : n
+                )
+              );
+            }
+          });
+
+          // 2. Detect New Check-in / Check-out Logs
+          logs.forEach((log: any) => {
+            const prevLog = prevDataRef.current.logMap.get(log.id);
+            const emp = empMap.get(log.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+
+            if (!prevLog) {
+              const timeStr = log.check_in_time ? new Date(log.check_in_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+              const statusText = log.status === 'PRESENT' ? 'ตรงเวลา (+50฿)' : 'มาสาย';
+              triggerNotification({
+                type: 'checkin',
+                relatedId: log.id,
+                title: `🟢 คุณ ${empName} ${empCode} ลงเวลาเข้างานแล้ว`,
+                message: `เวลา ${timeStr} น. • ระยะห่างร้าน ${Number(log.distance_from_store || 0).toFixed(1)} ม. (${statusText})`,
+                targetTab: 'overview',
+              });
+            } else if (!prevLog.check_out_time && log.check_out_time) {
+              const timeStr = new Date(log.check_out_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+              triggerNotification({
+                type: 'checkout',
+                relatedId: log.id,
+                title: `🏁 คุณ ${empName} ${empCode} ลงชื่อออกงานแล้ว`,
+                message: `เวลาออกงาน: ${timeStr} น. • ทำงาน: ${log.work_hours || '-'} ชม.`,
+                targetTab: 'overview',
+              });
+            }
+          });
+
+          // 3. Detect New Leave Requests
+          leaves.forEach((lv: any) => {
+            const prevLv = prevDataRef.current.leaveMap.get(lv.id);
+            const emp = empMap.get(lv.employee_id) || {};
+            const empName = emp.nickname || emp.full_name || 'พนักงาน';
+            const empCode = emp.employee_code ? `(${emp.employee_code})` : '';
+
+            if (!prevLv) {
+              triggerNotification({
+                type: 'leave',
+                relatedId: lv.id,
+                status: lv.status,
+                title: `📄 มีการยื่นใบลาใหม่!`,
+                message: `คุณ ${empName} ${empCode} ยื่นลาประเภท ${lv.leave_type || 'ทั่วไป'} (เหตุผล: ${lv.reason || '-'})`,
+                targetTab: 'leaves',
+              });
+            } else if (prevLv.status !== lv.status) {
+              setNotificationsList((prevList) =>
+                prevList.map((n) =>
+                  n.relatedId === lv.id ? { ...n, read: true, status: lv.status } : n
+                )
+              );
+            }
+          });
+
+          // 4. Detect New Violations
+          violations.forEach((v: any) => {
+            const prevV = prevDataRef.current.violationMap.get(v.id);
+            if (!prevV) {
+              triggerNotification({
+                type: 'violation',
+                relatedId: v.id,
+                title: `🚨 ตรวจพบความผิดปกติ (${v.violation_type || 'Security'})`,
+                message: v.description || 'ตรวจพบการกระทำผิดเงื่อนไขความปลอดภัย',
+                targetTab: 'violations',
+              });
+            }
+          });
+
+          // Update cache maps
+          logs.forEach((l: any) => prevDataRef.current.logMap.set(l.id, l));
+          advances.forEach((a: any) => prevDataRef.current.advanceMap.set(a.id, a));
+          leaves.forEach((lv: any) => prevDataRef.current.leaveMap.set(lv.id, lv));
+          violations.forEach((v: any) => prevDataRef.current.violationMap.set(v.id, v));
         }
       }
     } catch (e) {
@@ -250,8 +403,65 @@ export default function MobileExecutiveApp() {
     setNotificationsList((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  // Leave Action
+  // Optimistic Salary Advance Action (1-Click Approval with Badge Auto-Clear)
+  const handleOptimisticAdvanceAction = (requestId: string, newStatus: 'APPROVED' | 'REJECTED') => {
+    setNotificationsList((prevList) =>
+      prevList.map((n) =>
+        n.relatedId === requestId ? { ...n, read: true, status: newStatus } : n
+      )
+    );
+    setActiveToast((currentToast) =>
+      currentToast?.relatedId === requestId ? null : currentToast
+    );
+    setAnalyticsData((prev: any) => {
+      if (!prev) return prev;
+      const updatedAdvances = (prev.salaryAdvanceRequests || []).map((req: any) =>
+        req.id === requestId
+          ? { ...req, status: newStatus, reviewed_at: new Date().toISOString() }
+          : req
+      );
+      const newPendingCount = updatedAdvances.filter((r: any) => r.status === 'PENDING').length;
+      return {
+        ...prev,
+        salaryAdvanceRequests: updatedAdvances,
+        overview: {
+          ...prev.overview,
+          pendingAdvancesCount: newPendingCount,
+        },
+      };
+    });
+    loadDashboardData(true);
+  };
+
+  // 1-Click Leave Action with Instant Badge Clearing
   const handleLeaveAction = async (leaveId: string, status: 'APPROVED' | 'REJECTED') => {
+    // Optimistic UI update
+    setNotificationsList((prevList) =>
+      prevList.map((n) =>
+        n.relatedId === leaveId ? { ...n, read: true, status } : n
+      )
+    );
+    setActiveToast((currentToast) =>
+      currentToast?.relatedId === leaveId ? null : currentToast
+    );
+    setAnalyticsData((prev: any) => {
+      if (!prev) return prev;
+      const updatedLeaves = (prev.leaveRequests || []).map((req: any) =>
+        req.id === leaveId
+          ? { ...req, status }
+          : req
+      );
+      const newPendingCount = updatedLeaves.filter((r: any) => r.status === 'PENDING').length;
+      return {
+        ...prev,
+        leaveRequests: updatedLeaves,
+        overview: {
+          ...prev.overview,
+          pendingLeavesCount: newPendingCount,
+        },
+      };
+    });
+
     try {
       const res = await fetch('/api/leave', {
         method: 'PUT',
@@ -715,6 +925,7 @@ export default function MobileExecutiveApp() {
               requests={analyticsData?.salaryAdvanceRequests || []}
               onRefresh={() => loadDashboardData(true)}
               reviewerId="00000000-0000-0000-0000-000000000000"
+              onActionCompleted={handleOptimisticAdvanceAction}
             />
           </div>
         )}

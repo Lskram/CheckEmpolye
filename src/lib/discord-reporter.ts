@@ -158,6 +158,23 @@ export async function sendDiscordDevReport(params: DiscordDevReportParams): Prom
 }
 
 /**
+ * Tests if a given webhook is functional
+ */
+export async function testDiscordWebhook(webhookUrl?: string): Promise<{ success: boolean; message: string }> {
+  const url = webhookUrl || getWebhookUrlForRole('LEAD_ARCHITECT');
+  if (!url) {
+    return { success: false, message: 'No webhook URL provided' };
+  }
+  return sendDiscordDevReport({
+    title: 'ทดสอบการเชื่อมต่อระบบแจ้งเตือน Discord',
+    status: 'INFO',
+    summary: 'ทดสอบการยิง Webhook สำเร็จเรียบร้อย ระบบรายงานพร้อมทำงาน 100%',
+    customWebhookUrl: url,
+    authorName: '⚙️ Antigravity Webhook Tester',
+  });
+}
+
+/**
  * Broadcasts a message to all 3 team channels (DevMobile, DevWeb, LeadArchitect)
  */
 export async function sendTeamBroadcast(params: Omit<DiscordDevReportParams, 'targetRole'>): Promise<{ success: boolean; results: any[] }> {
@@ -170,3 +187,5 @@ export async function sendTeamBroadcast(params: Omit<DiscordDevReportParams, 'ta
     results,
   };
 }
+
+

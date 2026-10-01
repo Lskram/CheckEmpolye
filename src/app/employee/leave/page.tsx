@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAppTheme } from '@/lib/theme';
+import { saveOfflineAction } from '@/lib/offline-sync';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function EmployeeLeavePage() {
@@ -102,21 +103,40 @@ export default function EmployeeLeavePage() {
       return;
     }
 
-    setIsSubmitting(true);
-    setErrorMsg('');
-    setSuccessMsg('');
+    const payload = {
+      employeeId: employee.id,
+      leaveType,
+      startDate,
+      endDate,
+      reason,
+    };
 
-    try {
-      const res = await fetch('/api/leave', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    // Offline check
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      await saveOfflineAction('LEAVE_REQUEST', payload);
+      setSuccessMsg('📡 บันทึกคำขอลาแบบออฟไลน์เรียบร้อย ระบบจะส่งเข้าฐานข้อมูลอัตโนมัติเมื่อต่อเน็ต');
+      setReason('');
+      setLeaveList((prev) => [
+        {
+          id: `OFFLINE_${Date.now()}`,
           employeeId: employee.id,
           leaveType,
           startDate,
           endDate,
           reason,
-        }),
+          status: 'PENDING',
+        },
+        ...prev,
+      ]);
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -128,7 +148,22 @@ export default function EmployeeLeavePage() {
         setErrorMsg(data.message || 'เกิดข้อผิดพลาดในการยื่นใบลา');
       }
     } catch (err: any) {
-      setErrorMsg('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      // Network failure fallback
+      await saveOfflineAction('LEAVE_REQUEST', payload);
+      setSuccessMsg('📡 บันทึกคำขอลาแบบออฟไลน์เรียบร้อย ระบบจะส่งเข้าฐานข้อมูลอัตโนมัติเมื่อต่อเน็ต');
+      setReason('');
+      setLeaveList((prev) => [
+        {
+          id: `OFFLINE_${Date.now()}`,
+          employeeId: employee.id,
+          leaveType,
+          startDate,
+          endDate,
+          reason,
+          status: 'PENDING',
+        },
+        ...prev,
+      ]);
     } finally {
       setIsSubmitting(false);
     }

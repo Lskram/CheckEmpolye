@@ -23,6 +23,7 @@ import {
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { SalaryAdvanceRequest } from '@/lib/types';
 import { useAppTheme } from '@/lib/theme';
+import { saveOfflineAction } from '@/lib/offline-sync';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 
 export default function EmployeeSalaryAdvancePage() {
@@ -108,17 +109,39 @@ export default function EmployeeSalaryAdvancePage() {
     setErrorMsg('');
     setSuccessMsg('');
 
+    const payload = {
+      employeeId: employee.id,
+      amount: numAmount,
+      requestDate,
+      needDate,
+      reason,
+    };
+
+    // Offline check
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      await saveOfflineAction('ADVANCE_REQUEST', payload);
+      setSuccessMsg('📡 บันทึกคำขอเบิกเงินแบบออฟไลน์เรียบร้อย ระบบจะส่งเข้าฐานข้อมูลอัตโนมัติเมื่อต่อเน็ต');
+      setReason('');
+      setRequests((prev) => [
+        {
+          id: `OFFLINE_${Date.now()}`,
+          employee_id: employee.id,
+          amount: numAmount,
+          request_date: requestDate,
+          reason,
+          status: 'PENDING',
+        },
+        ...prev,
+      ]);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/advance-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: employee.id,
-          amount: numAmount,
-          requestDate,
-          needDate,
-          reason,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -130,7 +153,21 @@ export default function EmployeeSalaryAdvancePage() {
         setErrorMsg(data.message || 'เกิดข้อผิดพลาดในการส่งคำขอ');
       }
     } catch (err: any) {
-      setErrorMsg('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+      // Network failure fallback
+      await saveOfflineAction('ADVANCE_REQUEST', payload);
+      setSuccessMsg('📡 บันทึกคำขอเบิกเงินแบบออฟไลน์เรียบร้อย ระบบจะส่งเข้าฐานข้อมูลอัตโนมัติเมื่อต่อเน็ต');
+      setReason('');
+      setRequests((prev) => [
+        {
+          id: `OFFLINE_${Date.now()}`,
+          employee_id: employee.id,
+          amount: numAmount,
+          request_date: requestDate,
+          reason,
+          status: 'PENDING',
+        },
+        ...prev,
+      ]);
     } finally {
       setIsSubmitting(false);
     }

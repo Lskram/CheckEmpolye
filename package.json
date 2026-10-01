@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "next lint",
-    "report:discord": "node scripts/send-discord-report.js"
+    "report:discord": "node scripts/send-discord-report.js",
+    "task:mobile": "node scripts/get-my-task.js --role=DEV_MOBILE",
+    "task:web": "node scripts/get-my-task.js --role=DEV_WEB"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

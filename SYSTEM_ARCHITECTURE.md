@@ -122,6 +122,22 @@ flowchart TD
 
 ---
 
+### 3.4 ระบบจัดการโหมดออฟไลน์และความทนทานของข้อมูล (Offline Resilience & Sync Engine)
+[`src/lib/offline-sync.ts`](file:///C:/Users/tlelo/.gemini/antigravity/scratch/attendance-pwa/src/lib/offline-sync.ts) ทำหน้าที่เป็น Local Queue Storage เมื่อพนักงานอยู่ในจุดอับสัญญาณอินเทอร์เน็ต:
+1. **IndexedDB Local Storage (`attendance_pwa_offline_db`)**:
+   - บันทึก Action: `CHECK_IN`, `CHECK_OUT`, `ADVANCE_REQUEST`, `LEAVE_REQUEST`
+   - พร้อม Timestamp ที่แท้จริง ณ วินาทีที่พนักงานกดปุ่มบนเครื่อง
+   - มี fallback อัตโนมัติเป็น `localStorage` หากอุปกรณ์ไม่รองรับ IndexedDB
+2. **Event-Driven & Polling Auto-Sync**:
+   - ดักจับสัญญาณเน็ตผ่าน `window.addEventListener('online')` เพื่อทำการ Auto-Flush คิวทันทีที่ต่อเน็ตได้
+   - มี Heartbeat Polling ตรวจสอบทุก 15 วินาที
+3. **Server-Side Offline Sync Flags**:
+   - Backend API `/api/check-in` และ `/api/check-out` รองรับ Flag `isOfflineSync: true` และ `originalTimestamp` เพื่อบันทึกเวลาจริงตามอุปกรณ์อย่างแม่นยำ ไม่เสียสิทธิ์เบี้ยขยันเนื่องจากเน็ตหลุด
+4. **Optimistic UI Feedback**:
+   - หน้าจอแสดง Badge และข้อความแจ้งเตือน "📡 บันทึกคำขอแบบออฟไลน์เรียบร้อย" ให้พนักงานทราบทันที
+
+---
+
 ## 💻 4. ฝั่งเว็บผู้บริหาร & แอดมิน (Web Dashboard & Notification Center)
 
 ### 4.1 หน้าจอหลัก

@@ -93,6 +93,7 @@ flowchart TD
 | **REQ-019** | Geofence & Audit | ล็อกปุ่มเมื่ออยู่นอกพื้นที่ร้าน บันทึก Log พิกัดที่พยายามลงเวลา แจ้งเตือน Log ID ข้ามอุปกรณ์ และแจ้งเตือนรหัสผ่าน/บัญชีไม่ถูกต้อง | ✅ เสร็จสิ้น | API Check-in / Login / Web Toast / LINE |
 | **REQ-020** | UI & Experience | ปรับแต่งโฉมหน้าจอ Mobile Employee ทั้งระบบเป็น Dark Slate Glassmorphism สุดพรีเมียมและมินิมอล | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-021** | UI & Experience | ปรับปรุงสไตล์ Neumorphic 3D Dual-Tone Wave (Dark & Light Theme Toggle) เลียนแบบต้นแบบดีไซน์ พร้อม Tactile 3D Tiles, S-Curve Transition และ Piano Key Capsules | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
+| **REQ-022** | Mobile & Database | Milestone 1: เชื่อมต่อระบบลงเวลาเข้า-ออกงาน, ขอเบิกเงินล่วงหน้า, ยื่นใบลา เข้าสู่ฐานข้อมูล Supabase จริง พร้อมระบบ Offline Resilience (IndexedDB Storage & Auto-Sync on Reconnect) | ✅ เสร็จสิ้น | Next.js API / Supabase DB / IndexedDB |
 
 ---
 
@@ -140,7 +141,34 @@ flowchart TD
 - ✅ **ปรับปรุง Employee Login & Keypad (`/employee/login`)**: ดีไซน์การ์ดมินิมอล พร้อมระบบ Live Employee Lookup แสดงชื่อ-นามสกุลก่อนกดรหัส และปุ่มตัวเลขสัมผัสนุ่มนวล
 - ✅ **Zero Regression Guarantee**: สถาปัตยกรรม Database, API Route Handlers, Realtime WebSocket, Haversine Geofencing, และ Web Audio Synthesizer ทำงานได้ 100% ผ่านการคอมไพล์ `npm run build` สมบูรณ์ 15/15 Routes (0 Errors)
 
-### 📌 [2026-10-01] - Minimalist Dark Slate Glassmorphism Mobile UI Overhaul (Version 2.7)
+### 📌 [2026-10-01] - Milestone 1: Web Admin Realtime & 1-Click Approval System (Version 2.9)
+- ✅ **Supabase Realtime Channel Integration**: เชื่อมต่อหน้าจอ Web Admin (`/admin`) และ Mobile Executive (`/executive`) เข้ากับ Supabase Realtime Subscription เพื่อรับข้อมูลสดจากตาราง `attendance_logs`, `salary_advance_requests`, `leave_requests`, `violation_logs`, `employees`, และ `store_settings` แบบ Real-time (<100ms)
+- ✅ **Web Audio Synthesizer Notification Engine (`web-notifications.ts`)**: ระบบเสียงแจ้งเตือนแบบ Web Audio API อัตโนมัติ (Zero Latency, ไม่พึ่งพาไฟล์ MP3 ภายนอก) พร้อม Smart Diff Detection เล่นเสียงกระดิ่ง/เตือนตามประเภทเหตุการณ์ (เช็คอิน, เช็คเอาท์, เบิกเงินด่วน, ยื่นใบลา, เหตุผิดปกติ)
+- ✅ **ระบบ 1-Click Optimistic Approval & Instant Badge Clearing**: เมื่อผู้บริหารกดปุ่ม Approve/Reject คำขอเบิกเงินหรือขอลางาน ระบบจะอัปเดตฐานข้อมูลและทำการ Auto-Clear Badge แจ้งเตือน และ Toast ออกจากหน้าจอแบบ Real-time ทันที
+- ✅ **Leaflet Geofence Map Picker**: ผู้บริหารสามารถปรับหมุดพิกัดร้านและขยาย/ย่อรัศมี Geofence (เมตร) ได้อย่างอิสระ พร้อมระบบ Reverse Geocode ถอดชื่อสถานที่จริงอัตโนมัติ
+- ✅ **Vercel Production Readiness**: ผ่านการทดสอบ `npm run build` สำเร็จ 100% 16/16 Routes (0 Type/Lint Errors) พร้อมส่งรายงานความคืบหน้าเข้า Discord ผ่าน `report:discord`
+
+### 📌 [2026-10-01] - Milestone 1: Mobile Production DB & Offline Resilience Engine (Version 3.0)
+- ✅ **เชื่อมต่อระบบลงเวลาเข้า-ออกงานกับฐานข้อมูลจริง (`/employee`)**:
+  - ดึงประวัติการลงเวลาของวันนี้จาก API `/api/check-in?employeeId=...` และ Supabase Database อัตโนมัติเมื่อเปิดแอป
+  - ฟื้นฟูสถานะการลงเวลาและเริ่ม **Live Working Stopwatch Widget** อัตโนมัติตามเวลาเข้างานจริง
+  - ส่ง Hardware ID (`hwid`) ผ่าน `getDeviceHWID()` ทุกครั้งเพื่อป้องกันการลงเวลาแทนกัน
+  - ดึงค่าพิกัดร้านและรัศมีลงเวลา `radius_meters` สดๆ จาก `store_settings` แบบ Dynamic Realtime (ไม่ Hardcode 50m)
+  - รองรับ Web Audio Synthesizer Chime + Floating Banner สีเขียว + Smart Auto-Hide Bottom Nav ตามกฎเหล็ก Tech Lead
+- ✅ **เชื่อมต่อคำขอเบิกเงินล่วงหน้า (`/employee/advance`)**:
+  - ยื่นคำขอตรงเข้าตาราง `salary_advance_requests` ใน Supabase ผ่าน `/api/advance-request`
+  - ซิงค์ประวัติ Realtime ผ่าน WebSocket Channel และดึงโควตายอดเงินคงเหลือถูกต้อง
+- ✅ **เชื่อมต่อคำขอยื่นใบลา (`/employee/leave`)**:
+  - ยื่นคำขอตรงเข้าตาราง `leave_requests` ใน Supabase ผ่าน `/api/leave`
+  - รองรับประเภทการลา 4 แบบ (ลาป่วย, ลากิจ, ลาพักร้อน, อื่นๆ) พร้อมสถานะการพิจารณา Realtime
+- ✅ **พัฒนาเอนจินรองรับโหมดออฟไลน์ (Offline Resilience Engine - `src/lib/offline-sync.ts`)**:
+  - บันทึก Action (`CHECK_IN`, `CHECK_OUT`, `ADVANCE_REQUEST`, `LEAVE_REQUEST`) ลง IndexedDB (`attendance_pwa_offline_db`) พร้อม LocalStorage Fallback
+  - ระบบ Auto-Sync อัตโนมัติทันทีที่ตรวจพบสัญญาณอินเทอร์เน็ต (`window.addEventListener('online')`) พร้อม Heartbeat Polling ตรวจสอบคิวค้าง
+  - Optimistic UI อัปเดตสถานะบนหน้าจอทันที พร้อม Badge และปุ่มกดซิงค์ข้อมูลด้วยตนเอง
+- ✅ **Discord Report Dispatcher (`scripts/send-discord-report.js` & `src/lib/discord-reporter.ts`)**:
+  - รองรับการส่งรายงานความคืบหน้าระดับ Production เข้า Discord Channel `DEV_MOBILE` พร้อมแจ้งเตือนทีมทันทีเมื่อจบงาน
+
+### 📌 [2026-10-01] - Modern Clean Bento Grid UI Overhaul (Version 2.8)
 - ✅ **ยกเครื่องแถบเมนูด้านล่าง (Smart Floating Frosted Glass Bottom Nav)**: ดีไซน์ใหม่แบบลอยตัวโค้งมน (`backdrop-blur-2xl bg-slate-900/90`), Active Pill Indicator พร้อมไฟนีออน และระบบ Smart Auto-Hide ซ่อนแถบอัตโนมัติเมื่อเลื่อนหน้าจอลงเพื่อเพิ่มพื้นที่การมองเห็นสูงสุด
 - ✅ **อัปเกรดหน้าเข้าสู่ระบบ (Premium Dark Glass Login & Tactile Keypad)**: การ์ดกระจกดำหรูหรา (`bg-slate-900/70 border-white/10`), Ambient Glow แสงสีฟ้า-ม่วง, Debounced Live Profile Peek, และ Numeric Keypad แบบ Tactile กดง่าย แม่นยำ
 - ✅ **อัปเกรดหน้าหลักลงเวลาเข้า-ออกงาน (`/employee`)**:

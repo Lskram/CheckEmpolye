@@ -8,14 +8,28 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 
-// Read .env.local to find DISCORD_WEBHOOK_URL if not in process.env
+// Read .env.local to find DISCORD_WEBHOOK_DEV_WEB or DISCORD_WEBHOOK_URL if not in process.env
 function getWebhookUrl() {
+  if (process.env.DISCORD_WEBHOOK_DEV_WEB) {
+    return process.env.DISCORD_WEBHOOK_DEV_WEB;
+  }
+  if (process.env.DISCORD_WEBHOOK_DEV_MOBILE) {
+    return process.env.DISCORD_WEBHOOK_DEV_MOBILE;
+  }
   if (process.env.DISCORD_WEBHOOK_URL) {
     return process.env.DISCORD_WEBHOOK_URL;
   }
   const envPath = path.resolve(__dirname, '../.env.local');
   if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf8');
+    const matchWeb = envContent.match(/DISCORD_WEBHOOK_DEV_WEB\s*=\s*(.+)/);
+    if (matchWeb && matchWeb[1]) {
+      return matchWeb[1].trim().replace(/^["']|["']$/g, '');
+    }
+    const matchMobile = envContent.match(/DISCORD_WEBHOOK_DEV_MOBILE\s*=\s*(.+)/);
+    if (matchMobile && matchMobile[1]) {
+      return matchMobile[1].trim().replace(/^["']|["']$/g, '');
+    }
     const match = envContent.match(/DISCORD_WEBHOOK_URL\s*=\s*(.+)/);
     if (match && match[1]) {
       return match[1].trim().replace(/^["']|["']$/g, '');
