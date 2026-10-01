@@ -218,16 +218,24 @@ export default function MonthlyAttendanceReportModal({
     setIsExportingPng(true);
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(printAreaRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-      const link = document.createElement('a');
-      link.download = `Attendance-Report-${employee.employee_code || 'ID'}-${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      const sheets = printAreaRef.current.querySelectorAll('.a4-print-sheet');
+      if (!sheets || sheets.length === 0) return;
+
+      for (let i = 0; i < sheets.length; i++) {
+        const sheetEl = sheets[i] as HTMLElement;
+        const canvas = await html2canvas(sheetEl, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          windowWidth: 1024,
+        });
+        const suffix = sheets.length > 1 ? (i === 0 ? '-ORIGINAL' : '-COPY') : '';
+        const link = document.createElement('a');
+        link.download = `Attendance-Report-${employee.employee_code || 'ID'}-${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}${suffix}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
     } catch (e: any) {
       alert('เกิดข้อผิดพลาดในการบันทึกภาพ PNG: ' + e.message);
     } finally {
@@ -242,19 +250,37 @@ export default function MonthlyAttendanceReportModal({
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
 
-      const canvas = await html2canvas(printAreaRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
+      const sheets = printAreaRef.current.querySelectorAll('.a4-print-sheet');
+      if (!sheets || sheets.length === 0) {
+        throw new Error('ไม่พบข้อมูลเอกสารสำหรับการพิมพ์');
+      }
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
       });
+      const pdfWidth = 210;
+      const pdfHeight = 297;
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      for (let i = 0; i < sheets.length; i++) {
+        const sheetEl = sheets[i] as HTMLElement;
+        const canvas = await html2canvas(sheetEl, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          windowWidth: 1024,
+        });
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        if (i > 0) {
+          pdf.addPage('a4', 'portrait');
+        }
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+      }
+
       pdf.save(`Attendance-Report-${employee.employee_code || 'ID'}-${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}.pdf`);
     } catch (e: any) {
       alert('เกิดข้อผิดพลาดในการบันทึก PDF: ' + e.message);
@@ -264,338 +290,332 @@ export default function MonthlyAttendanceReportModal({
   };
 
   /**
-   * Sub-renderer for a single Report Sheet
+   * Sub-renderer for a single Report Sheet (Engineered for Exact ISO 216 A4 Fit)
    */
   const renderReportSheet = (versionType: 'ORIGINAL' | 'COPY', isFirstPageInDual: boolean = false) => {
     const isOriginal = versionType === 'ORIGINAL';
     const copyLabel = isOriginal ? 'ต้นฉบับ / ORIGINAL' : 'สำเนา / COPY';
-    const subDesc = isOriginal ? 'สำหรับฝ่ายบริหาร & แผนกบุคคล' : 'สำหรับพนักงานประจำตัว';
+    const subDesc = isOriginal ? 'สำหรับฝ่ายบริหาร & บุคคล' : 'สำหรับพนักงาน';
 
     return (
       <div 
         key={versionType}
-        className={`w-full max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl p-6 sm:p-10 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 relative overflow-hidden font-sans a4-print-sheet ${
-          isFirstPageInDual ? 'print-page-break mb-8' : ''
+        className={`w-full max-w-[210mm] mx-auto bg-white text-slate-900 px-6 py-5 shadow-2xl border border-slate-200 flex flex-col justify-between relative font-sans a4-print-sheet ${
+          isFirstPageInDual ? 'print-page-break mb-6' : ''
         }`}
+        style={{
+          boxSizing: 'border-box',
+          width: '210mm',
+          height: '297mm',
+          maxHeight: '297mm',
+          overflow: 'hidden'
+        }}
       >
         {/* Watermark Seal */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.025] select-none">
-          <Building2 className="w-96 h-96 text-slate-900" />
+          <Building2 className="w-80 h-80 text-slate-900" />
         </div>
 
         {/* ----------------------------------------------------------- */}
-        {/* TOP RIGHT RED BADGE: ต้นฉบับ / สำเนา                         */}
+        {/* TOP RIGHT BADGE: ต้นฉบับ / สำเนา                         */}
         {/* ----------------------------------------------------------- */}
-        <div className="absolute top-5 right-5 sm:top-7 sm:right-8 flex flex-col items-end pointer-events-none select-none">
-          <div className="border-2 border-rose-600 rounded-lg px-3 py-1 bg-rose-50/80 shadow-xs text-center">
-            <span className="text-xs sm:text-sm font-black font-mono uppercase tracking-wider text-rose-600 block">
+        <div className="absolute top-4 right-6 flex flex-col items-end pointer-events-none select-none z-10">
+          <div className="border border-rose-600 rounded px-2.5 py-0.5 bg-rose-50/95 text-center shadow-2xs">
+            <span className="text-[10.5px] font-black font-mono uppercase tracking-wider text-rose-600 block leading-tight">
               ● {copyLabel}
             </span>
-            <span className="text-[9px] font-sans font-bold text-rose-500 block">
+            <span className="text-[8px] font-sans font-bold text-rose-500 block leading-tight">
               {subDesc}
             </span>
           </div>
-
-          <div className="mt-1 text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">
+          <div className="mt-0.5 text-[7.5px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-300">
             ✓ OFFICIAL TIME REPORT
           </div>
         </div>
 
-        {/* 1. Header Information with Official Store Logo */}
-        <div className="border-b-2 border-slate-900 pb-4 space-y-2">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 max-w-xl">
-            <img 
-              src="/images/official-store-logo.png" 
-              alt="สีแสงยางยนต์ YOKOHAMA NAYA COSMIS" 
-              className="h-12 sm:h-14 w-auto object-contain shrink-0" 
-            />
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-[9px] uppercase">
-                  ATTENDANCE TIMESHEET
-                </span>
-                <span className="text-xs font-bold text-slate-700 font-mono">
-                  สาขาศรีสะเกษ • ศูนย์บริการมาตรฐาน
-                </span>
-              </div>
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
-                {storeName}
-              </h1>
-              <p className="text-[11px] text-slate-600 leading-snug">
-                {storeAddress} • โทร: {storePhone}
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-200 mt-3">
-            <div>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-wide">
-                รายงานสรุปเวลาการปฏิบัติงานและเบี้ยขยันประจำเดือน
-              </h2>
-              <span className="text-[11px] font-mono text-slate-500 font-bold">
-                MONTHLY ATTENDANCE &amp; INCENTIVE ALLOWANCE REPORT
-              </span>
-            </div>
-            <div className="text-left sm:text-right font-mono text-xs space-y-0.5">
-              <div>
-                <span className="text-slate-500 font-medium">เลขที่เอกสาร: </span>
-                <span className="font-bold text-slate-900">{docNumber}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 font-medium">รอบประจำเดือน: </span>
-                <span className="font-bold text-slate-900">{thaiMonthYearStr}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Employee Info & Core Status Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 font-sans text-xs">
-          
-          {/* Employee Info */}
-          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-slate-200 border border-slate-300 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
-              {employee.avatar_url ? (
-                <img src={employee.avatar_url} alt={employee.full_name || employee.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="font-black text-slate-700 font-sans text-sm">
-                  {(employee.nickname || employee.full_name || employee.name || '?').charAt(0)}
-                </span>
-              )}
-            </div>
-            <div className="min-w-0 space-y-0.5">
-              <div className="text-slate-500 font-medium text-[10px]">ข้อมูลพนักงาน:</div>
-              <div className="font-bold text-xs sm:text-sm text-slate-900 truncate">
-                {employee.full_name || employee.name}
-                {employee.nickname && <span className="text-slate-600 font-normal"> ({employee.nickname})</span>}
-              </div>
-              <div className="text-slate-600 text-[10px] truncate">
-                <span className="font-semibold">รหัส:</span> <strong className="font-mono text-slate-900 font-black">[{employee.employee_code || employee.code || '-'}]</strong> • {employee.role || 'ช่างเทคนิค'}
-              </div>
-            </div>
-          </div>
-
-          {/* Status 1: มาตรงเวลา (ปกติ) */}
-          <div className="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-200 space-y-0.5">
-            <div className="text-emerald-800 font-bold flex items-center justify-between text-[11px]">
-              <span className="flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                สถานะปกติ (ตรงเวลา)
-              </span>
-              <span className="text-[9px] font-mono bg-emerald-200 text-emerald-900 px-1 py-0.2 rounded font-bold">+50฿</span>
-            </div>
-            <div className="text-xl font-black font-mono text-emerald-900">
-              {onTimeCount} <span className="text-xs font-sans font-bold">วัน</span>
-            </div>
-            <div className="text-[10px] text-emerald-700 truncate">
-              เบี้ยขยัน: <strong>฿{totalAllowance.toLocaleString()} บาท</strong>
-            </div>
-          </div>
-
-          {/* Status 2: มาสาย */}
-          <div className="bg-amber-50/60 rounded-xl p-3.5 border border-amber-200 space-y-0.5">
-            <div className="text-amber-800 font-bold flex items-center justify-between text-[11px]">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-600" />
-                สถานะมาสาย
-              </span>
-              <span className="text-[9px] font-mono bg-amber-200 text-amber-900 px-1 py-0.2 rounded font-bold">0฿</span>
-            </div>
-            <div className="text-xl font-black font-mono text-amber-900">
-              {lateCount} <span className="text-xs font-sans font-bold">วัน</span>
-            </div>
-            <div className="text-[10px] text-amber-700 truncate">
-              {lateCount > 0 ? 'หลังเวลา 07:40 น.' : '✓ ไม่มีประวัติสาย'}
-            </div>
-          </div>
-
-          {/* Status 3: วันหยุด / ลาได้รับอนุมัติ */}
-          <div className="bg-blue-50/60 rounded-xl p-3.5 border border-blue-200 space-y-0.5">
-            <div className="text-blue-800 font-bold flex items-center justify-between text-[11px]">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                วันหยุด (ลาอนุมัติ)
-              </span>
-              <span className="text-[9px] font-mono bg-blue-200 text-blue-900 px-1 py-0.2 rounded font-bold">ใบลาถูกต้อง</span>
-            </div>
-            <div className="text-xl font-black font-mono text-blue-900">
-              {leaveCount} <span className="text-xs font-sans font-bold">วัน</span>
-            </div>
-            <div className="text-[10px] text-blue-700 truncate">
-              {leaveCount > 0 ? 'ผ่านการอนุมัติแล้ว' : 'ไม่มีวันลาที่อนุมัติ'}
-            </div>
-          </div>
-
-        </div>
-
-        {/* 3. Daily Attendance Breakdown Table */}
+        {/* TOP CONTENT WRAPPER */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-800 border-b border-slate-200 pb-1">
-            <span>📅 ตารางบันทึกการลงเวลาทำงานรายวัน ({thaiMonthYearStr})</span>
-            <span className="font-mono font-normal text-slate-500">รวม {daysInMonth} วัน</span>
+          
+          {/* 1. Header Information with Official Store Logo */}
+          <div className="border-b-2 border-slate-900 pb-2">
+            <div className="flex items-center gap-3 pr-32">
+              <img 
+                src="/images/official-store-logo.png" 
+                alt="สีแสงยางยนต์ YOKOHAMA NAYA COSMIS" 
+                className="h-9 w-auto object-contain shrink-0" 
+              />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="px-1.5 py-0.2 rounded bg-slate-900 text-white font-mono font-bold text-[8px] uppercase">
+                    ATTENDANCE TIMESHEET
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-700 font-mono">
+                    สาขาศรีสะเกษ • ศูนย์บริการมาตรฐาน
+                  </span>
+                </div>
+                <h1 className="text-[13px] font-black text-slate-900 tracking-tight leading-tight truncate">
+                  {storeName}
+                </h1>
+                <p className="text-[8.5px] text-slate-600 leading-tight truncate mt-0.5">
+                  {storeAddress} • โทร: {storePhone}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-1.5 flex items-center justify-between gap-2 border-t border-slate-200 mt-1.5">
+              <div>
+                <h2 className="text-xs font-black text-slate-900 uppercase tracking-wide leading-tight">
+                  รายงานสรุปเวลาการปฏิบัติงานและเบี้ยขยันประจำเดือน
+                </h2>
+                <span className="text-[8px] font-mono text-slate-500 font-bold">
+                  MONTHLY ATTENDANCE &amp; INCENTIVE ALLOWANCE REPORT
+                </span>
+              </div>
+              <div className="text-right font-mono text-[9px] leading-tight shrink-0">
+                <div>
+                  <span className="text-slate-500">เลขที่เอกสาร: </span>
+                  <span className="font-bold text-slate-900">{docNumber}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">รอบประจำเดือน: </span>
+                  <span className="font-bold text-slate-900">{thaiMonthYearStr}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="rounded-xl border border-slate-900 overflow-hidden text-xs">
-            <table className="w-full text-left font-mono">
-              <thead>
-                <tr className="bg-slate-900 text-white font-bold font-sans text-[11px]">
-                  <th className="py-2 px-3 text-center w-12">วันที่</th>
-                  <th className="py-2 px-3">เวลาเข้างาน</th>
-                  <th className="py-2 px-3">เวลาออกงาน</th>
-                  <th className="py-2 px-3">ระยะ GPS</th>
-                  <th className="py-2 px-3 text-center">สถานะ</th>
-                  <th className="py-2 px-3 text-right">เบี้ยขยัน</th>
-                  <th className="py-2 px-3 font-sans">หมายเหตุ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-[11px]">
-                {monthlyReportData.map((row) => (
-                  <tr key={row.day} className={`hover:bg-slate-50 ${row.status === 'LATE' ? 'bg-amber-50/30' : row.status === 'LEAVE' ? 'bg-blue-50/30' : ''}`}>
-                    <td className="py-1.5 px-3 text-center font-bold text-slate-700">
-                      {row.day} ({row.dayOfWeekThai})
+          {/* 2. Employee Info & Core Status Summary Cards (4-Column Balanced Bar) */}
+          <div className="grid grid-cols-4 gap-2 font-sans text-xs">
+            
+            {/* Employee Info */}
+            <div className="bg-slate-50 rounded-lg p-1.5 border border-slate-200 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-slate-200 border border-slate-300 overflow-hidden flex items-center justify-center shrink-0">
+                {employee.avatar_url ? (
+                  <img src={employee.avatar_url} alt={employee.full_name || employee.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-black text-slate-700 font-sans text-[11px]">
+                    {(employee.nickname || employee.full_name || employee.name || '?').charAt(0)}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 leading-tight">
+                <div className="font-bold text-[10px] text-slate-900 truncate">
+                  {employee.full_name || employee.name}
+                  {employee.nickname && <span className="text-slate-500 font-normal"> ({employee.nickname})</span>}
+                </div>
+                <div className="text-slate-600 text-[8px] truncate mt-0.5">
+                  รหัส: <strong className="font-mono text-slate-900 font-black">[{employee.employee_code || employee.code || '-'}]</strong> • {employee.role || 'พนักงาน'}
+                </div>
+              </div>
+            </div>
+
+            {/* Status 1: มาตรงเวลา (ปกติ) */}
+            <div className="bg-emerald-50/80 rounded-lg p-1.5 border border-emerald-200 flex items-center justify-between">
+              <div>
+                <div className="text-emerald-800 font-bold text-[8.5px] flex items-center gap-1">
+                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                  <span>ตรงเวลา (+50฿)</span>
+                </div>
+                <div className="text-xs font-black font-mono text-emerald-900 leading-none mt-0.5">
+                  {onTimeCount} <span className="text-[8.5px] font-sans font-bold">วัน</span>
+                </div>
+              </div>
+              <div className="text-right font-mono">
+                <span className="text-[7.5px] text-emerald-700 block">เบี้ยขยัน</span>
+                <span className="text-[10px] font-black text-emerald-800">฿{totalAllowance.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Status 2: มาสาย */}
+            <div className="bg-amber-50/80 rounded-lg p-1.5 border border-amber-200 flex items-center justify-between">
+              <div>
+                <div className="text-amber-800 font-bold text-[8.5px] flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                  <span>มาสาย</span>
+                </div>
+                <div className="text-xs font-black font-mono text-amber-900 leading-none mt-0.5">
+                  {lateCount} <span className="text-[8.5px] font-sans font-bold">วัน</span>
+                </div>
+              </div>
+              <div className="text-right text-[8px] font-sans text-amber-700">
+                {lateCount > 0 ? 'หลัง 07:40 น.' : '✓ ไม่มีสาย'}
+              </div>
+            </div>
+
+            {/* Status 3: วันหยุด / ลาได้รับอนุมัติ */}
+            <div className="bg-blue-50/80 rounded-lg p-1.5 border border-blue-200 flex items-center justify-between">
+              <div>
+                <div className="text-blue-800 font-bold text-[8.5px] flex items-center gap-1">
+                  <Calendar className="w-2.5 h-2.5 text-blue-600 shrink-0" />
+                  <span>วันหยุด (อนุมัติ)</span>
+                </div>
+                <div className="text-xs font-black font-mono text-blue-900 leading-none mt-0.5">
+                  {leaveCount} <span className="text-[8.5px] font-sans font-bold">วัน</span>
+                </div>
+              </div>
+              <div className="text-right text-[8px] font-sans text-blue-700">
+                {leaveCount > 0 ? 'อนุมัติแล้ว' : 'ไม่มีวันลา'}
+              </div>
+            </div>
+
+          </div>
+
+          {/* 3. Daily Attendance Breakdown Table */}
+          <div className="space-y-0.5">
+            <div className="flex items-center justify-between text-[8.5px] font-bold text-slate-800 border-b border-slate-200 pb-0.5">
+              <span>📅 ตารางบันทึกการลงเวลาทำงานรายวัน ({thaiMonthYearStr})</span>
+              <span className="font-mono font-normal text-slate-500 text-[8px]">รวม {daysInMonth} วัน</span>
+            </div>
+
+            <div className="rounded-md border border-slate-800 overflow-hidden text-[8.5px]">
+              <table className="w-full text-left font-mono border-collapse table-fixed">
+                <thead>
+                  <tr className="bg-slate-900 text-white font-bold font-sans text-[8.5px]">
+                    <th className="py-1 px-1.5 text-center w-[13%] border-r border-slate-700 whitespace-nowrap">วันที่</th>
+                    <th className="py-1 px-1.5 text-center w-[12%] border-r border-slate-700 whitespace-nowrap">เวลาเข้า</th>
+                    <th className="py-1 px-1.5 text-center w-[12%] border-r border-slate-700 whitespace-nowrap">เวลาออก</th>
+                    <th className="py-1 px-1.5 text-center w-[11%] border-r border-slate-700 whitespace-nowrap">ระยะ GPS</th>
+                    <th className="py-1 px-1.5 text-center w-[16%] border-r border-slate-700 whitespace-nowrap">สถานะ</th>
+                    <th className="py-1 px-1.5 text-right w-[12%] border-r border-slate-700 whitespace-nowrap">เบี้ยขยัน</th>
+                    <th className="py-1 px-1.5 font-sans w-[24%] whitespace-nowrap">หมายเหตุ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-[8px] leading-tight">
+                  {monthlyReportData.map((row) => (
+                    <tr key={row.day} className={`${row.status === 'LATE' ? 'bg-amber-50/50' : row.status === 'LEAVE' ? 'bg-blue-50/50' : row.status === 'PRESENT' ? 'bg-white' : 'bg-slate-50/40'}`}>
+                      <td className="py-[1.5px] px-1.5 text-center font-bold text-slate-800 border-r border-slate-200 whitespace-nowrap">
+                        {row.day} {row.dayOfWeekThai}
+                      </td>
+                      <td className="py-[1.5px] px-1.5 text-center font-bold text-slate-900 border-r border-slate-200 whitespace-nowrap">
+                        {row.checkInStr}
+                      </td>
+                      <td className="py-[1.5px] px-1.5 text-center text-slate-600 border-r border-slate-200 whitespace-nowrap">
+                        {row.checkOutStr}
+                      </td>
+                      <td className="py-[1.5px] px-1.5 text-center text-slate-500 text-[7.5px] border-r border-slate-200 whitespace-nowrap">
+                        {row.distanceStr}
+                      </td>
+                      <td className="py-[1.5px] px-1.5 text-center border-r border-slate-200 whitespace-nowrap">
+                        {row.status === 'PRESENT' && (
+                          <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[7.5px] font-sans inline-block">
+                            ● ตรงเวลา
+                          </span>
+                        )}
+                        {row.status === 'LATE' && (
+                          <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold text-[7.5px] font-sans inline-block">
+                            ▲ สาย
+                          </span>
+                        )}
+                        {row.status === 'LEAVE' && (
+                          <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold text-[7.5px] font-sans inline-block">
+                            🏖️ วันหยุด
+                          </span>
+                        )}
+                        {row.status === 'ABSENT' && (
+                          <span className="px-1.5 py-0.2 rounded bg-rose-50 text-rose-600 font-medium text-[7.5px] font-sans border border-rose-200 inline-block">
+                            ขาดงาน
+                          </span>
+                        )}
+                        {row.status === 'PENDING' && (
+                          <span className="text-slate-400 text-[7.5px] font-sans">-</span>
+                        )}
+                      </td>
+                      <td className="py-[1.5px] px-1.5 text-right font-bold text-slate-900 font-mono border-r border-slate-200 whitespace-nowrap">
+                        {row.allowance > 0 ? `+${row.allowance}฿` : '-'}
+                      </td>
+                      <td className="py-[1.5px] px-1.5 text-slate-500 font-sans text-[7.5px] truncate">
+                        {row.note || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                  
+                  {/* Total Row */}
+                  <tr className="bg-slate-100 font-bold border-t-2 border-slate-900 text-[8.5px]">
+                    <td colSpan={4} className="py-1 px-1.5 font-sans border-r border-slate-200 whitespace-nowrap">
+                      <span className="text-slate-900">รวมยอดเบี้ยขยันสุทธิ: </span>
+                      <span className="text-slate-600 font-normal text-[7.5px]">( {allowanceThaiText} )</span>
                     </td>
-                    <td className="py-1.5 px-3 font-bold text-slate-900">
-                      {row.checkInStr}
+                    <td className="py-1 px-1.5 text-center font-sans text-emerald-800 border-r border-slate-200 text-[8px] whitespace-nowrap">
+                      {onTimeCount} วันตรงเวลา
                     </td>
-                    <td className="py-1.5 px-3 text-slate-600">
-                      {row.checkOutStr}
+                    <td className="py-1 px-1.5 text-right font-mono font-black text-[9.5px] text-emerald-800 border-r border-slate-200 whitespace-nowrap">
+                      ฿{totalAllowance.toLocaleString()}
                     </td>
-                    <td className="py-1.5 px-3 text-slate-500 text-[10px]">
-                      {row.distanceStr}
-                    </td>
-                    <td className="py-1.5 px-3 text-center">
-                      {row.status === 'PRESENT' && (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] font-sans">
-                          ● ตรงเวลา
-                        </span>
-                      )}
-                      {row.status === 'LATE' && (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] font-sans">
-                          ▲ สาย
-                        </span>
-                      )}
-                      {row.status === 'LEAVE' && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px] font-sans">
-                          🏖️ วันหยุด (อนุมัติ)
-                        </span>
-                      )}
-                      {row.status === 'ABSENT' && (
-                        <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium text-[10px] font-sans border border-rose-200">
-                          ขาดงาน / ไม่ลงเวลา
-                        </span>
-                      )}
-                      {row.status === 'PENDING' && (
-                        <span className="text-slate-400 text-[10px] font-sans">
-                          -
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-1.5 px-3 text-right font-bold text-slate-900 font-mono">
-                      {row.allowance > 0 ? `+${row.allowance}฿` : '-'}
-                    </td>
-                    <td className="py-1.5 px-3 text-slate-500 font-sans text-[10px]">
-                      {row.note || '-'}
+                    <td className="py-1 px-1.5 font-sans text-[7.5px] text-slate-600 whitespace-nowrap">
+                      โอนพร้อมเงินเดือน
                     </td>
                   </tr>
-                ))}
-                
-                {/* Total Row */}
-                <tr className="bg-slate-100 font-bold border-t-2 border-slate-900 text-xs">
-                  <td colSpan={4} className="py-2.5 px-3 font-sans">
-                    <div>รวมยอดเบี้ยขยันสุทธิประจำเดือน:</div>
-                    <div className="text-[11px] text-slate-600 font-normal">
-                      ( {allowanceThaiText} )
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-sans text-emerald-800">
-                    {onTimeCount} วันตรงเวลา
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-mono font-black text-sm text-emerald-800">
-                    ฿{totalAllowance.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 px-3 font-sans text-[10px] text-slate-600">
-                    โอนพร้อมเงินเดือน
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          {/* 4. Employee Acknowledgment Note */}
+          <div className="p-1.5 rounded bg-slate-50 border border-slate-200 text-[8px] text-slate-700 font-sans leading-tight">
+            <span className="font-bold text-slate-900">📝 บันทึกรับทราบ: </span>
+            <span className="text-slate-600">
+              {employeeAckNote || 'ข้าพเจ้าขอรับรองว่าได้ตรวจสอบประวัติเวลาทำงานและเบี้ยขยันประจำเดือนแล้ว ขอยืนยันว่าถูกต้องตามความเป็นจริง'}
+            </span>
+          </div>
+
         </div>
 
-        {/* 4. Employee Acknowledgment Section (กรอกพนักงานรับทราบ) */}
-        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1.5 leading-relaxed font-sans">
-          <div className="font-bold text-slate-900 flex items-center gap-1.5">
-            <span>📝</span>
-            <span>ข้อความบันทึกการรับทราบของพนักงาน (Employee Acknowledgment):</span>
-          </div>
-          <p className="text-[11px] text-slate-600">
-            {employeeAckNote || 'ข้าพเจ้าขอรับรองว่าได้ตรวจสอบประวัติการลงเวลาการปฏิบัติงานและยอดเบี้ยขยันประจำเดือนข้างต้นแล้ว และขอยืนยันว่าถูกต้องตรงตามความเป็นจริงทุกประการ'}
-          </p>
-        </div>
-
-        {/* ----------------------------------------------------------- */}
-        {/* 5. SIGNATURE SECTION (CEO ซ้าย • พนักงาน ขวา ตามที่ระบุ)     */}
-        {/* ----------------------------------------------------------- */}
-        <div className="pt-6 border-t-2 border-slate-900 grid grid-cols-2 gap-8 text-xs font-sans">
+        {/* BOTTOM SECTION (Signatures + Footer) */}
+        <div className="space-y-1.5 pt-1.5">
           
-          {/* Left Column: ฝ่าย CEO / ผู้บริหาร (ผู้ตรวจสอบและอนุมัติ) */}
-          <div className="flex flex-col items-center justify-between h-44 p-4 rounded-xl border border-dashed border-slate-300 text-center bg-slate-50/50">
-            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-              ฝ่ายผู้บริหาร / CEO (ผู้ตรวจสอบ &amp; อนุมัติ)
-            </span>
+          {/* 5. SIGNATURE SECTION (CEO ซ้าย • พนักงาน ขวา) */}
+          <div className="border-t-2 border-slate-900 grid grid-cols-2 gap-4 text-[8.5px] font-sans pt-1.5">
+            
+            {/* Left Column: ฝ่าย CEO */}
+            <div className="flex flex-col items-center justify-between h-16 p-1.5 rounded-lg border border-dashed border-slate-300 text-center bg-slate-50/40">
+              <span className="text-[8px] font-bold text-slate-700 uppercase tracking-wider">
+                ฝ่ายผู้บริหาร / CEO (ผู้ตรวจสอบ &amp; อนุมัติ)
+              </span>
 
-            {/* Signature blank space line */}
-            <div className="w-full space-y-2">
-              <div className="border-b border-slate-800 w-4/5 mx-auto pt-8"></div>
-              
-              <div className="space-y-0.5">
-                <div className="font-bold text-slate-900">
-                  ( ท่านประธานกรรมการบริหาร / CEO )
-                </div>
-                <div className="text-[11px] font-mono text-slate-600 font-bold">
-                  รหัสผู้บริหาร (ID): [ SI01 ]
-                </div>
-                <div className="text-[10px] text-slate-500">
-                  วันที่: .......... / .......... / ................
+              <div className="w-full space-y-0.5">
+                <div className="border-b border-slate-800 w-3/4 mx-auto pt-2"></div>
+                <div>
+                  <div className="font-bold text-slate-900 text-[8.5px]">
+                    ( ท่านประธานกรรมการบริหาร / CEO )
+                  </div>
+                  <div className="text-[7.5px] font-mono text-slate-500">
+                    รหัส: [ SI01 ] • วันที่: ......./......./...........
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Column: ฝ่ายพนักงาน (ผู้รับทราบข้อมูลและยืนยันเวลา) */}
-          <div className="flex flex-col items-center justify-between h-44 p-4 rounded-xl border border-dashed border-slate-300 text-center">
-            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-              ฝ่ายพนักงาน (ผู้รับทราบ &amp; ยืนยันเวลา)
-            </span>
+            {/* Right Column: ฝ่ายพนักงาน */}
+            <div className="flex flex-col items-center justify-between h-16 p-1.5 rounded-lg border border-dashed border-slate-300 text-center">
+              <span className="text-[8px] font-bold text-slate-700 uppercase tracking-wider">
+                ฝ่ายพนักงาน (ผู้รับทราบ &amp; ยืนยันเวลา)
+              </span>
 
-            {/* Signature blank space line */}
-            <div className="w-full space-y-2">
-              <div className="border-b border-slate-800 w-4/5 mx-auto pt-8"></div>
-              
-              <div className="space-y-0.5">
-                <div className="font-bold text-slate-900">
-                  ( {employee.full_name || employee.name || '...................................................'} )
-                </div>
-                <div className="text-[11px] font-mono text-slate-600 font-bold">
-                  รหัสพนักงาน (ID): [ {employee.employee_code || employee.code || '-'} ]
-                </div>
-                <div className="text-[10px] text-slate-500">
-                  วันที่: .......... / .......... / ................
+              <div className="w-full space-y-0.5">
+                <div className="border-b border-slate-800 w-3/4 mx-auto pt-2"></div>
+                <div>
+                  <div className="font-bold text-slate-900 text-[8.5px]">
+                    ( {employee.full_name || employee.name || '...................................................'} )
+                  </div>
+                  <div className="text-[7.5px] font-mono text-slate-500">
+                    รหัส: [ {employee.employee_code || employee.code || '-'} ] • วันที่: ......./......./...........
+                  </div>
                 </div>
               </div>
             </div>
+
           </div>
 
-        </div>
+          {/* Footer */}
+          <div className="pt-1 border-t border-slate-200 flex items-center justify-between text-[7.5px] font-mono text-slate-400">
+            <div>
+              ▲ พิมพ์เมื่อ: {printDateStr} เวลา {printTimeStr} น. • ระบบศูนย์บริการสีแสงยางยนต์
+            </div>
+            <div>
+              {copyLabel} • {docNumber}
+            </div>
+          </div>
 
-        {/* Footer */}
-        <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[10px] font-mono text-slate-400">
-          <div>
-            ▲ พิมพ์เมื่อ: {printDateStr} เวลา {printTimeStr} น. • ระบบศูนย์บริการสีแสงยางยนต์
-          </div>
-          <div>
-            {copyLabel} • {docNumber}
-          </div>
         </div>
 
       </div>
@@ -609,7 +629,7 @@ export default function MonthlyAttendanceReportModal({
       <style jsx global>{`
         @page {
           size: A4 portrait;
-          margin: 6mm 8mm;
+          margin: 0;
         }
         @media print {
           html, body {
@@ -631,8 +651,7 @@ export default function MonthlyAttendanceReportModal({
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: 100% !important;
-            max-width: 210mm !important;
+            width: 210mm !important;
             margin: 0 auto !important;
             padding: 0 !important;
             background: #ffffff !important;
@@ -645,24 +664,19 @@ export default function MonthlyAttendanceReportModal({
             break-after: page !important;
           }
           .a4-print-sheet {
-            width: 100% !important;
-            max-width: 194mm !important;
-            min-height: 275mm !important;
-            max-height: 285mm !important;
-            margin: 0 auto !important;
-            padding: 6mm 8mm !important;
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            margin: 0 !important;
+            padding: 5mm 6mm !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            overflow: hidden !important;
             box-sizing: border-box !important;
-          }
-          .a4-print-sheet table tr td,
-          .a4-print-sheet table tr th {
-            padding-top: 1.5px !important;
-            padding-bottom: 1.5px !important;
-            line-height: 1.15 !important;
           }
           .no-print {
             display: none !important;
