@@ -358,8 +358,8 @@ export default function EmployeeSalaryAdvancePage() {
           />
 
           <div className="relative z-10 space-y-3">
-            <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">
-              <Coins className="w-4 h-4 text-amber-400" />
+            <div className="font-black text-xs flex items-center gap-1.5 text-slate-900 drop-shadow-sm">
+              <Coins className="w-4 h-4 text-amber-600" />
               <span>ระบุจำนวนเงินที่ต้องการขอเบิก</span>
             </div>
 
@@ -370,10 +370,10 @@ export default function EmployeeSalaryAdvancePage() {
                 key={amt}
                 type="button"
                 onClick={() => setAmount(amt)}
-                className={`py-2.5 rounded-2xl text-xs font-bold font-mono transition-all active:scale-95 ${
+                className={`py-2.5 rounded-2xl text-xs font-black font-mono transition-all active:scale-95 ${
                   amount === amt
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/30'
-                    : isDark ? 'neumorph-tile-dark text-slate-300' : 'neumorph-tile-light text-slate-700'
+                    ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-500/40 border border-amber-700'
+                    : 'bg-white/90 text-slate-900 border border-slate-300 shadow-sm hover:bg-white'
                 }`}
               >
                 +{Number(amt).toLocaleString()}฿
@@ -383,42 +383,36 @@ export default function EmployeeSalaryAdvancePage() {
 
           <form onSubmit={handleSubmitAdvance} className="space-y-3 pt-2">
             <div>
-              <label className="text-[11px] text-slate-400 font-bold block mb-1">จำนวนเงิน (บาท)</label>
+              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">จำนวนเงิน (บาท)</label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="กรอกจำนวนเงิน"
-                className={`w-full p-3 rounded-2xl text-base font-mono font-bold ${
-                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
-                }`}
+                className="w-full p-3 rounded-2xl text-base font-mono font-bold bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-hidden shadow-xs placeholder:text-slate-500"
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 font-bold block mb-1">วันที่ต้องการรับเงิน</label>
+              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">วันที่ต้องการรับเงิน</label>
               <input
                 type="date"
                 value={needDate}
                 onChange={(e) => setNeedDate(e.target.value)}
-                className={`w-full p-2.5 rounded-2xl text-xs font-mono font-bold ${
-                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
-                }`}
+                className="w-full p-2.5 rounded-2xl text-xs font-mono font-bold bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-hidden shadow-xs"
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 font-bold block mb-1">เหตุผลความจำเป็น</label>
+              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">เหตุผลความจำเป็น</label>
               <input
                 type="text"
                 placeholder="เช่น ค่าใช้จ่ายฉุกเฉินในครอบครัว..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className={`w-full p-2.5 rounded-2xl text-xs ${
-                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
-                }`}
+                className="w-full p-2.5 rounded-2xl text-xs font-bold bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-amber-500 focus:outline-hidden shadow-xs placeholder:text-slate-500"
                 required
               />
             </div>

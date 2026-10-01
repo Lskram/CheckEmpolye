@@ -87,7 +87,13 @@ export default function NotificationCenter({
         {/* 2. NOTIFICATION DROPDOWN DRAWER                              */}
         {/* ------------------------------------------------------------- */}
         {isOpen && (
-          <div className="absolute right-0 mt-3 w-96 max-w-[calc(100vw-2rem)] rounded-3xl bg-slate-900/95 border border-slate-700 shadow-2xl backdrop-blur-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+          <>
+            {/* Click outside backdrop */}
+            <div 
+              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] sm:bg-transparent" 
+              onClick={() => setIsOpen(false)} 
+            />
+            <div className="fixed sm:absolute right-3 sm:right-0 top-16 sm:top-full mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-[380px] rounded-2xl sm:rounded-3xl bg-slate-900/95 border border-slate-700 shadow-2xl backdrop-blur-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
             {/* Header */}
             <div className="p-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -237,6 +243,7 @@ export default function NotificationCenter({
               </div>
             )}
           </div>
+        </>
         )}
       </div>
 
@@ -244,7 +251,7 @@ export default function NotificationCenter({
       {/* 3. PROMINENT FLOATING TOAST POPUP (With Quick Actions)        */}
       {/* ------------------------------------------------------------- */}
       {activeToast && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full p-4 rounded-3xl bg-slate-900/95 text-white border border-slate-700 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm p-4 rounded-2xl sm:rounded-3xl bg-slate-900/95 text-white border border-slate-700 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-300">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <div

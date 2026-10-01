@@ -106,6 +106,7 @@ flowchart TD
 | **REQ-032** | UI & Branding | แทนที่ไอคอนโล่เดิมด้านซ้ายบนของหน้าหลัก (`/employee`) ด้วยภาพโลโก้ทางการ "สีแสงยางยนต์ (Sisaeng Yang Yont Sisaket)" ลายแถบสปอร์ตสีแดง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-033** | UI & Navigation | ย้าย Avatar โปรไฟล์พนักงานจากส่วนหัวด้านบน ลงมาประจำที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar แทนที่เข็มนาฬิกาเดิม พร้อมแสดงรหัสพนักงาน | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx` & `/employee`) |
 | **REQ-034** | UI & Background Clarity | ปรับเลเยอร์คุมดำ (Dark Overlay) เป็น 0% (ไม่มีแผ่นฟิล์มมืดทับ) บน 3 การ์ดหลัก: ตารางปฏิทิน (`/employee/stats`), การ์ดเลือกประเภทการลา (`/employee/leave`), และการ์ดระบุจำนวนเงินเบิก (`/employee/advance`) แสดงภาพพื้นหลังคมชัดเต็ม 100% | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
+| **REQ-035** | UI & Text Contrast | บังคับตัวหนังสือเป็นสีดำเข้มคมชัด (High-Contrast Black Text `text-slate-900 font-black`) และกล่องกรอกข้อความสีขาวทึบ (`bg-white/95 text-slate-900 border-slate-300`) ใน 3 การ์ดที่ปิดม่านคุมดำ 0% (ตารางปฏิทิน, ฟอร์มยื่นใบลา, ฟอร์มขอเบิกเงิน) เพื่อความคมชัด อ่านง่ายสูงสุด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 
 ---
 
@@ -133,6 +134,34 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - High-Contrast Black Text & Opaque Inputs for 0% Overlay Cards (Version 3.25)
+- ✅ **Black Text & High-Contrast Styling (`src/app/employee/stats/page.tsx`)**:
+  - บังคับตัวหนังสือในตารางปฏิทิน: วันในสัปดาห์ (อา-ส), ตัวเลขวันที่, และคำอธิบายสถานะด้านล่าง เป็นตัวอักษรสีดำเข้มคมชัดพิเศษ (`text-slate-900 font-black`) ตัดกับภาพพื้นหลังสว่าง 100%
+- ✅ **Black Text & Opaque Form Fields (`src/app/employee/leave/page.tsx`)**:
+  - หัวข้อ "เลือกประเภทการลา" และปุ่มตัวเลือก 4 ประเภทลา ปรับใช้ตัวอักษรสีดำเข้ม (`text-slate-900 font-black`) บนพื้นปุ่มขาวโปร่งแสง (`bg-white/90 border-slate-300`)
+  - ข้อความกำกับ (Labels) ปรับเป็นสีดำเข้ม (`text-slate-900 font-black`)
+  - ช่องกรอกข้อมูล (Date Inputs & Textarea) ปรับเป็นพื้นหลังสีขาวทึบ 95% พร้อมตัวอักษรสีดำเข้ม (`bg-white/95 text-slate-900 border-slate-300`)
+- ✅ **Black Text & Opaque Form Fields (`src/app/employee/advance/page.tsx`)**:
+  - หัวข้อ "ระบุจำนวนเงินที่ต้องการขอเบิก" และปุ่ม Quick Amount ชิปจำนวนเงิน ปรับใช้ตัวอักษรสีดำเข้ม (`text-slate-900 font-black`)
+  - ข้อความกำกับและช่องกรอกตัวเลข/วันที่/เหตุผล ปรับเป็นตัวอักษรสีดำเข้มบนพื้นหลังสีขาวทึบ (`bg-white/95 text-slate-900 font-bold border-slate-300`)
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่าน 100% (17/17 Routes, 0 Errors)
+
+### 📌 [2026-10-01] - Approved Leave Gating in Timesheet, Action Confirmation Dialog & Notification Positioning (Version 3.24)
+- ✅ **Approved Leave Gating in Timesheet (`src/components/MonthlyAttendanceReportModal.tsx`)**:
+  - กำหนดให้ตารางรายงานเวลาและใบปริ้น A4 แสดงสถานะ **"วันหยุด (ลาได้รับอนุมัติ)"** ได้เฉพาะวันที่พนักงานมีใบลาสถานะ **`APPROVED`** เท่านั้น
+  - วันที่ไม่มีบันทึกเวลาและไม่มีใบลาอนุมัติ จะแสดงเป็น **`ขาดงาน / ไม่ลงเวลา`** (ไม่มีเบี้ยขยัน) ไม่มีการเหมาเป็นวันหยุดอัตโนมัติ
+  - สรุปยอดรวมจำนวนวันหยุด/วันลาที่ได้รับอนุมัติในกล่อง Summary Cards ด้านบน
+- ✅ **Leave Approval Confirmation Guard (`src/app/admin/page.tsx`)**:
+  - เสริมระบบกล่องข้อความยืนยัน (`confirm()`) ก่อนกดอนุมัติหรือปฏิเสธคำขอลางานทุกครั้ง:
+    - ระบุชื่อพนักงาน, ประเภทการลา, ช่วงวันที่ลา และจำนวนวัน เพื่อป้องกันการกดพลาด
+- ✅ **Notification Center & Toast Edge Overflow Fix (`src/components/NotificationCenter.tsx`)**:
+  - ปรับปรุงการวางตำแหน่ง Notification Dropdown Drawer และ Floating Toast Popup ให้รองรับ Responsive อย่างสมบูรณ์ (`w-[calc(100vw-1.5rem)]`, `max-w-[380px]`)
+  - ไม่ตกขอบจอทั้งบนคอมพิวเตอร์ แท็บเล็ต และมือถือ พร้อมฉากหลังปิดเมนูเมื่อคลิกด้านนอก
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (17/17 Routes, 0 Errors)
+  - Production Server Active พร้อมตอบสนองทันทีบนพอร์ต 3000
 
 ### 📌 [2026-10-01] - 0% Dark Overlay & 100% Crystal Image Clarity Tuning (Version 3.23)
 - ✅ **0% Dark Overlay Elimination on 3 Key Cards (`/employee/*`)**:

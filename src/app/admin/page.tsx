@@ -1929,6 +1929,7 @@ export default function WebExecutiveDashboard() {
       <MonthlyAttendanceReportModal
         employee={selectedReportEmployee}
         attendanceLogs={analyticsData?.attendanceLogs || []}
+        leaveRequests={analyticsData?.leaveRequests || []}
         isOpen={isReportModalOpen}
         onClose={() => {
           setIsReportModalOpen(false);

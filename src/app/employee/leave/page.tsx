@@ -255,8 +255,8 @@ export default function EmployeeLeavePage() {
           />
 
           <div className="relative z-10 space-y-3">
-            <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">
-              <FileText className="w-4 h-4 text-purple-400" />
+            <div className="font-black text-xs flex items-center gap-1.5 text-slate-900 drop-shadow-sm">
+              <FileText className="w-4 h-4 text-purple-700" />
               <span>เลือกประเภทการลา</span>
             </div>
 
@@ -272,10 +272,10 @@ export default function EmployeeLeavePage() {
                 key={cat.id}
                 type="button"
                 onClick={() => setLeaveType(cat.id as any)}
-                className={`p-3 rounded-2xl text-xs font-bold transition-all active:scale-95 text-left ${
+                className={`p-3 rounded-2xl text-xs font-black transition-all active:scale-95 text-left ${
                   leaveType === cat.id
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/30'
-                    : isDark ? 'neumorph-tile-dark text-slate-300' : 'neumorph-tile-light text-slate-700'
+                    ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-md shadow-purple-500/40 border border-purple-800'
+                    : 'bg-white/90 text-slate-900 border border-slate-300 shadow-sm hover:bg-white'
                 }`}
               >
                 {cat.label}
@@ -286,41 +286,35 @@ export default function EmployeeLeavePage() {
           <form onSubmit={handleSubmitLeave} className="space-y-3 pt-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">วันที่เริ่มต้น</label>
+                <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">วันที่เริ่มต้น</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className={`w-full p-2.5 rounded-2xl text-xs font-mono font-bold ${
-                    isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
-                  }`}
+                  className="w-full p-2.5 rounded-2xl text-xs font-mono font-bold bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-hidden shadow-xs"
                   required
                 />
               </div>
               <div>
-                <label className="text-[11px] text-slate-400 font-bold block mb-1">วันที่สิ้นสุด</label>
+                <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">วันที่สิ้นสุด</label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className={`w-full p-2.5 rounded-2xl text-xs font-mono font-bold ${
-                    isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
-                  }`}
+                  className="w-full p-2.5 rounded-2xl text-xs font-mono font-bold bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-hidden shadow-xs"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[11px] text-slate-400 font-bold block mb-1">เหตุผลความจำเป็น</label>
+              <label className="text-[11px] text-slate-900 font-black block mb-1 drop-shadow-xs">เหตุผลความจำเป็น</label>
               <textarea
                 rows={2}
                 placeholder="ระบุอาการหรือเหตุผลความจำเป็น..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className={`w-full p-2.5 rounded-2xl text-xs resize-none ${
-                  isDark ? 'neumorph-dark-inset text-white' : 'neumorph-light-inset text-slate-800'
-                }`}
+                className="w-full p-2.5 rounded-2xl text-xs font-bold resize-none bg-white/95 text-slate-900 border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:outline-hidden shadow-xs placeholder:text-slate-500"
                 required
               />
             </div>

@@ -140,7 +140,7 @@ export default function CashAdvanceReceiptModal({
     return (
       <div 
         key={versionType}
-        className={`w-full max-w-3xl mx-auto bg-white text-slate-900 rounded-2xl p-8 sm:p-12 shadow-2xl border border-slate-200 space-y-8 relative overflow-hidden font-sans ${
+        className={`w-full max-w-3xl mx-auto bg-white text-slate-900 rounded-2xl p-6 sm:p-10 shadow-2xl border border-slate-200 space-y-6 relative overflow-hidden font-sans a4-voucher-sheet ${
           isFirstPageInDual ? 'print-page-break mb-8' : ''
         }`}
       >
@@ -398,9 +398,22 @@ export default function CashAdvanceReceiptModal({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 overflow-y-auto bg-black/80 backdrop-blur-md transition-all">
       
-      {/* Print Specific CSS */}
+      {/* Print Specific CSS (Strict ISO 216 A4 Dimensions) */}
       <style jsx global>{`
+        @page {
+          size: A4 portrait;
+          margin: 8mm 10mm;
+        }
         @media print {
+          html, body {
+            width: 210mm !important;
+            height: 297mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           body * {
             visibility: hidden !important;
           }
@@ -412,8 +425,9 @@ export default function CashAdvanceReceiptModal({
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            margin: 0 !important;
-            padding: 15mm !important;
+            max-width: 210mm !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
             box-shadow: none !important;
@@ -422,6 +436,20 @@ export default function CashAdvanceReceiptModal({
           .print-page-break {
             page-break-after: always !important;
             break-after: page !important;
+          }
+          .a4-voucher-sheet {
+            width: 100% !important;
+            max-width: 190mm !important;
+            min-height: 265mm !important;
+            max-height: 280mm !important;
+            margin: 0 auto !important;
+            padding: 8mm 10mm !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            box-sizing: border-box !important;
           }
           .no-print {
             display: none !important;

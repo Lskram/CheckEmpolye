@@ -92,23 +92,15 @@ export default function EmployeeStatsPage() {
       const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const event = statsData?.calendarEvents?.[dateKey];
 
-      let dayStyle = isDark 
-        ? 'bg-slate-900/60 border border-white/5 text-slate-300 hover:bg-slate-800/80' 
-        : 'bg-white/80 border border-slate-200 text-slate-700 hover:bg-slate-50';
+      let dayStyle = 'bg-white/90 border border-slate-300/90 text-slate-900 font-black shadow-xs hover:bg-white';
 
       if (event) {
         if (event.status === 'PRESENT') {
-          dayStyle = isDark 
-            ? 'bg-emerald-500/20 border-2 border-emerald-400 text-emerald-300 font-bold shadow-md shadow-emerald-500/20' 
-            : 'bg-emerald-100 border-2 border-emerald-500 text-emerald-800 font-bold shadow-sm';
+          dayStyle = 'bg-emerald-100/95 border-2 border-emerald-600 text-emerald-950 font-black shadow-md';
         } else if (event.status === 'LATE') {
-          dayStyle = isDark 
-            ? 'bg-amber-500/20 border-2 border-amber-400 text-amber-300 font-bold shadow-md shadow-amber-500/20' 
-            : 'bg-amber-100 border-2 border-amber-500 text-amber-800 font-bold shadow-sm';
+          dayStyle = 'bg-amber-100/95 border-2 border-amber-600 text-amber-950 font-black shadow-md';
         } else if (event.type === 'LEAVE') {
-          dayStyle = isDark 
-            ? 'bg-blue-500/20 border-2 border-blue-400 text-blue-300 font-bold shadow-md shadow-blue-500/20' 
-            : 'bg-blue-100 border-2 border-blue-500 text-blue-800 font-bold shadow-sm';
+          dayStyle = 'bg-blue-100/95 border-2 border-blue-600 text-blue-950 font-black shadow-md';
         }
       }
 
@@ -117,17 +109,17 @@ export default function EmployeeStatsPage() {
           key={day}
           className={`h-11 rounded-2xl flex flex-col items-center justify-between p-1 text-xs relative transition-all ${dayStyle}`}
         >
-          <span className="text-[11px] font-bold leading-none">{day}</span>
+          <span className="text-[11px] font-black text-slate-900 leading-none drop-shadow-xs">{day}</span>
           {event ? (
             <span className={`text-[9px] font-mono font-black tracking-tight px-1 py-0.2 rounded leading-none ${
-              event.status === 'PRESENT' ? 'bg-emerald-500/30 text-emerald-200' :
-              event.status === 'LATE' ? 'bg-amber-500/30 text-amber-200' :
-              'bg-blue-500/30 text-blue-200'
+              event.status === 'PRESENT' ? 'bg-emerald-600 text-white font-black' :
+              event.status === 'LATE' ? 'bg-amber-600 text-white font-black' :
+              'bg-blue-600 text-white font-black'
             }`}>
               {event.status === 'PRESENT' ? '+50฿' : event.status === 'LATE' ? 'สาย' : 'ลา'}
             </span>
           ) : (
-            <span className="w-1 h-1 rounded-full bg-slate-400/40"></span>
+            <span className="w-1 h-1 rounded-full bg-slate-500/60"></span>
           )}
         </div>
       );
@@ -263,8 +255,8 @@ export default function EmployeeStatsPage() {
           </div>
         </div>
 
-        {/* Calendar Grid (0% Dark Overlay / 100% Full Clarity) */}
-        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-white/15 bg-transparent space-y-3">
+        {/* Calendar Grid (0% Dark Overlay / 100% Full Clarity with Bold Black Text) */}
+        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-slate-300/80 bg-white/75 backdrop-blur-sm space-y-3">
           {/* Custom Calendar Background Image with 100% Full Clarity */}
           <div 
             className="absolute inset-0 bg-cover bg-center opacity-100 pointer-events-none transition-transform duration-700"
@@ -272,29 +264,29 @@ export default function EmployeeStatsPage() {
           />
 
           <div className="relative z-10 space-y-3">
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-300 mb-1">
-              <span className="text-rose-400">อา</span>
-              <span>จ</span>
-              <span>อ</span>
-              <span>พ</span>
-              <span>พฤ</span>
-              <span>ศ</span>
-              <span className="text-blue-400">ส</span>
+            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-900 mb-1">
+              <span className="text-rose-600 font-black">อา</span>
+              <span className="text-slate-900 font-black">จ</span>
+              <span className="text-slate-900 font-black">อ</span>
+              <span className="text-slate-900 font-black">พ</span>
+              <span className="text-slate-900 font-black">พฤ</span>
+              <span className="text-slate-900 font-black">ศ</span>
+              <span className="text-blue-700 font-black">ส</span>
             </div>
 
             <div className="grid grid-cols-7 gap-1.5">
               {renderCalendar()}
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-300 pt-3 border-t border-white/10 font-medium">
+            <div className="flex items-center justify-between text-[11px] text-slate-900 pt-3 border-t border-slate-400/40 font-bold">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm"></span> ตรงเวลา (+50฿)
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shadow-sm"></span> ตรงเวลา (+50฿)
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-sm"></span> สาย (0฿)
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-600 shadow-sm"></span> สาย (0฿)
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-400 shadow-sm"></span> ลาหยุด
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-sm"></span> ลาหยุด
               </span>
             </div>
           </div>
