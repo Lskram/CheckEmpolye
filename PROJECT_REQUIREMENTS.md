@@ -109,6 +109,7 @@ flowchart TD
 | **REQ-035** | UI & Text Contrast | บังคับตัวหนังสือเป็นสีดำเข้มคมชัด (High-Contrast Black Text `text-slate-900 font-black`) และกล่องกรอกข้อความสีขาวทึบ (`bg-white/95 text-slate-900 border-slate-300`) ใน 3 การ์ดที่ปิดม่านคุมดำ 0% (ตารางปฏิทิน, ฟอร์มยื่นใบลา, ฟอร์มขอเบิกเงิน) เพื่อความคมชัด อ่านง่ายสูงสุด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-036** | UI & Branding | เปลี่ยนภาพพื้นหลังการ์ดบันทึกกะปฏิบัติงาน MyShift (`/employee`) ด้วยภาพที่กำหนด พร้อมเลเยอร์คุมดำโปร่งแสงทับ 50% (`bg-slate-950/50`) คอนทราสต์สมบูรณ์แบบ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-037** | UI & Navigation | แทนที่ไอคอนทั้ง 4 เมนูใน Bottom Navigation Bar (`EmployeeBottomNav.tsx`) ด้วยภาพไอคอน HD จาก Google Drive (ลงเวลา, ปฏิทิน, ยื่นใบลา, เบิกเงิน) พร้อมเพิ่มเอฟเฟกต์มิติเงา Drop-Shadow และสเกลเนียนตาทุกปุ่ม | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
+| **REQ-038** | Database & Storage | ระบบอัปโหลดและจัดเก็บรูปภาพโปรไฟล์พนักงาน (Supabase Storage Bucket `avatars` + คอลัมน์ `avatar_url` + ตารางประวัติ `employee_photos`) พร้อม API `/api/employee/avatar` และหน้าต่าง Modal ถ่ายภาพ/เลือกรูปจากเครื่อง แสดงบนปุ่มนูนโปรไฟล์ทันที | ✅ เสร็จสิ้น | Supabase DB / Next.js / Mobile Staff App |
 
 ---
 
@@ -136,6 +137,21 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Employee Profile Photo Upload & Supabase Storage System (Version 3.28)
+- ✅ **Supabase Database Schema & Storage Migration (`supabase/employee_photos.sql`)**:
+  - เพิ่มคอลัมน์ `avatar_url` ในตาราง `employees`
+  - สร้างตาราง `employee_photos` สำหรับบันทึกประวัติการอัปโหลดรูปภาพทั้งหมด
+  - สร้าง Supabase Storage Bucket `avatars` พร้อมตั้งค่านโยบาย Public Read และ Upload Permissions
+- ✅ **Avatar Upload API Endpoint (`src/app/api/employee/avatar/route.ts`)**:
+  - รองรับการรับไฟล์รูปภาพทั้งแบบ `multipart/form-data` และ Base64 Payload
+  - อัปโหลดไฟล์ตรงเข้า Supabase Storage `avatars` และอัปเดต URL ลงตาราง `employees`
+- ✅ **Employee Profile Photo Upload Modal (`src/app/employee/page.tsx`)**:
+  - เพิ่มปุ่มรูปโปรไฟล์พร้อมไอคอนกล้องที่ Header ด้านบน
+  - หน้าต่าง Modal พรีวิวรูปภาพทรงกลม รองรับการถ่ายภาพจากกล้องสดหรือเลือกจากแกลเลอรีในมือถือ
+  - บันทึกและซิงค์แสดงผลลงบนปุ่มกลมนูนตรงกลางของ Bottom Navigation Bar ทันที
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่าน 100% (17/17 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - Custom Bottom Navigation Icons with HD Drop-Shadows (Version 3.27)
 - ✅ **Custom HD Icons for Bottom Navigation Bar (`src/components/EmployeeBottomNav.tsx`)**:

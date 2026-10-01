@@ -145,12 +145,20 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
               }`}
               title="โปรไฟล์พนักงาน / หน้าหลัก"
             >
-              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-xs uppercase shadow-md ${
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-xs uppercase shadow-md overflow-hidden ${
                 isDark 
                   ? 'bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-blue-500/40 ring-2 ring-white/20' 
                   : 'bg-gradient-to-tr from-blue-500 via-indigo-500 to-sky-400 text-white shadow-blue-500/30 ring-2 ring-white/80'
               }`}>
-                {employee?.nickname ? employee.nickname.slice(0, 2) : (employee?.full_name || employee?.fullName ? (employee.full_name || employee.fullName).slice(0, 2) : (employee?.employee_code || employee?.employeeCode ? (employee.employee_code || employee.employeeCode) : 'EM'))}
+                {employee?.avatar_url ? (
+                  <img 
+                    src={employee.avatar_url} 
+                    alt={employee?.full_name || employee?.fullName || 'Profile'} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  employee?.nickname ? employee.nickname.slice(0, 2) : (employee?.full_name || employee?.fullName ? (employee.full_name || employee.fullName).slice(0, 2) : (employee?.employee_code || employee?.employeeCode ? (employee.employee_code || employee.employeeCode) : 'EM'))
+                )}
               </div>
             </Link>
             <span className={`text-[9px] font-bold font-mono px-1.5 py-0.2 rounded-full -mt-1.5 relative z-10 shadow-sm ${

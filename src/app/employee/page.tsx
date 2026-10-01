@@ -39,7 +39,10 @@ import {
   WifiOff,
   CloudSync,
   UploadCloud,
-  RotateCcw
+  RotateCcw,
+  Camera,
+  Upload,
+  User
 } from 'lucide-react';
 import { calculateHaversineDistance } from '@/lib/geofence';
 import { getDeviceHWID } from '@/lib/hwid';
@@ -65,6 +68,14 @@ export default function ExactEmployeeApp() {
   const [employee, setEmployee] = useState<any>(null);
   const [hwid, setHwid] = useState('');
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  // Profile Photo Upload State
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoUploadMsg, setPhotoUploadMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Live Real-Time Clock
   const [time, setTime] = useState({
@@ -383,6 +394,66 @@ export default function ExactEmployeeApp() {
       setGpsError('เกิดข้อผิดพลาดในการดึงพิกัด');
     } finally {
       setGpsLoading(false);
+    }
+  };
+
+  // Profile Photo Selection & Upload Handlers
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoUploadMsg({ type: 'error', text: 'ขนาดไฟล์ภาพต้องไม่เกิน 5 MB' });
+      return;
+    }
+    setSelectedPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPhotoPreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    setPhotoUploadMsg(null);
+  };
+
+  const handleUploadPhoto = async () => {
+    const empId = employee?.id || employee?.employeeId;
+    if (!empId || !photoPreview) return;
+    setIsUploadingPhoto(true);
+    setPhotoUploadMsg(null);
+    try {
+      const res = await fetch('/api/employee/avatar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeId: empId,
+          base64Image: photoPreview,
+          fileName: selectedPhotoFile?.name || `avatar_${empId}.jpg`,
+          mimeType: selectedPhotoFile?.type || 'image/jpeg',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.data?.avatarUrl) {
+        const updatedEmp = {
+          ...employee,
+          avatar_url: data.data.avatarUrl,
+        };
+        setEmployee(updatedEmp);
+        localStorage.setItem('attendance_employee_profile', JSON.stringify(updatedEmp));
+        setPhotoUploadMsg({ type: 'success', text: '✓ บันทึกรูปโปรไฟล์เรียบร้อยแล้ว!' });
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        setTimeout(() => {
+          setIsPhotoModalOpen(false);
+          setPhotoPreview(null);
+          setSelectedPhotoFile(null);
+          setPhotoUploadMsg(null);
+        }, 1200);
+      } else {
+        setPhotoUploadMsg({ type: 'error', text: data.message || 'เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ' });
+      }
+    } catch (err: any) {
+      setPhotoUploadMsg({ type: 'error', text: 'เชื่อมต่อเซิร์ฟเวอร์ขัดข้อง: ' + err.message });
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -885,8 +956,22 @@ export default function ExactEmployeeApp() {
               </div>
             </div>
 
-            {/* Right: Theme Toggle & Logout */}
+            {/* Right: Profile Photo Avatar, Theme Toggle & Logout */}
             <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setIsPhotoModalOpen(true)}
+                className="p-1 rounded-xl bg-black/40 hover:bg-black/60 text-blue-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm flex items-center gap-1.5 px-2"
+                title="เปลี่ยนรูปโปรไฟล์พนักงาน"
+              >
+                <div className="w-6 h-6 rounded-full overflow-hidden bg-blue-500/30 flex items-center justify-center text-[10px] font-bold border border-white/20">
+                  {employee?.avatar_url ? (
+                    <img src={employee.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-3.5 h-3.5 text-blue-300" />
+                  )}
+                </div>
+                <Camera className="w-3 h-3 text-cyan-300" />
+              </button>
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-yellow-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm"
@@ -1360,6 +1445,123 @@ export default function ExactEmployeeApp() {
                 >
                   {isCheckingOut ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                   <span>{isCheckingOut ? 'กำลังบันทึก...' : '✓ ยืนยันออกงาน'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 3.5 PROFILE PHOTO UPLOAD MODAL (Supabase Storage Sync)         */}
+      {/* ------------------------------------------------------------- */}
+      <AnimatePresence>
+        {isPhotoModalOpen && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`max-w-sm w-full p-6 rounded-3xl shadow-2xl space-y-4 text-center ${
+                isDark ? 'bg-slate-900 border border-white/10 text-white' : 'bg-white border border-slate-200 text-slate-800'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-sm">เปลี่ยนรูปโปรไฟล์พนักงาน</h3>
+                    <p className="text-[10px] text-slate-400">{employee?.fullName || employee?.full_name} ({employee?.employeeCode || employee?.employee_code})</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsPhotoModalOpen(false);
+                    setPhotoPreview(null);
+                    setSelectedPhotoFile(null);
+                    setPhotoUploadMsg(null);
+                  }}
+                  className="p-1 rounded-xl text-slate-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Avatar Preview Circle */}
+              <div className="flex flex-col items-center py-2">
+                <div className="relative group">
+                  <div className={`w-28 h-28 rounded-full overflow-hidden border-4 ${
+                    photoPreview ? 'border-emerald-500 shadow-xl shadow-emerald-500/20' : 'border-blue-500/40 shadow-xl shadow-blue-500/20'
+                  } bg-slate-800 flex items-center justify-center text-3xl font-black transition-all`}>
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : employee?.avatar_url ? (
+                      <img src={employee.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-blue-400 uppercase">
+                        {employee?.nickname ? employee.nickname.slice(0, 2) : (employee?.full_name || employee?.fullName ? (employee.full_name || employee.fullName).slice(0, 2) : 'EM')}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 p-2.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-lg border-2 border-slate-900 transition-transform active:scale-90 cursor-pointer"
+                    title="เลือกรูปภาพใหม่"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+
+                <p className="text-[11px] text-slate-400 mt-3">
+                  {selectedPhotoFile ? `เลือกแล้ว: ${selectedPhotoFile.name}` : 'แตะที่ไอคอนกล้องเพื่อเลือกรูปภาพจากเครื่อง'}
+                </p>
+              </div>
+
+              {photoUploadMsg && (
+                <div className={`p-3 rounded-2xl text-xs flex items-center gap-1.5 justify-center font-medium ${
+                  photoUploadMsg.type === 'success' 
+                    ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' 
+                    : 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+                }`}>
+                  {photoUploadMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span>{photoUploadMsg.text}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPhotoModalOpen(false);
+                    setPhotoPreview(null);
+                    setSelectedPhotoFile(null);
+                    setPhotoUploadMsg(null);
+                  }}
+                  className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all active:scale-95"
+                >
+                  ✕ ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUploadPhoto}
+                  disabled={!photoPreview || isUploadingPhoto}
+                  className="py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {isUploadingPhoto ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  <span>{isUploadingPhoto ? 'กำลังบันทึก...' : 'บันทึกรูปโปรไฟล์'}</span>
                 </button>
               </div>
             </motion.div>

@@ -12,8 +12,20 @@ export interface Employee {
   daily_wage?: number;
   hwid?: string | null;
   is_active: boolean;
+  avatar_url?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface EmployeePhoto {
+  id: string;
+  employee_id: string;
+  photo_url: string;
+  file_name?: string;
+  file_size?: number;
+  mime_type?: string;
+  is_current: boolean;
+  created_at?: string;
 }
 
 export type AttendanceStatus = 'PRESENT' | 'LATE' | 'MISSING_CHECKOUT' | 'EARLY_LEAVE' | 'OUT_OF_GEOFENCE_BLOCKED';

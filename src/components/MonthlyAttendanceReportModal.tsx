@@ -21,7 +21,7 @@ import {
   FileText,
   Loader2
 } from 'lucide-react';
-import { thaiBahtText } from '@/components/CashAdvanceReceiptModal';
+import { thaiBahtText } from '@/lib/thai-baht';
 
 interface MonthlyAttendanceReportModalProps {
   employee: any | null;
