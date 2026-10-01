@@ -67,7 +67,6 @@ import NotificationCenter from '@/components/NotificationCenter';
 import ExecutiveAnalyticsDashboard from '@/components/ExecutiveAnalyticsDashboard';
 import MonthlyAttendanceReportModal from '@/components/MonthlyAttendanceReportModal';
 import { WebNotification, playWebAlertSound, showBrowserDesktopNotification } from '@/lib/web-notifications';
-import { maskBrowserUrlToEncrypted, generateEncryptedToken } from '@/lib/encrypted-route';
 
 const ThreeBarChart3D = dynamic(() => import('@/components/ThreeBarChart3D'), {
   ssr: false,
@@ -273,7 +272,21 @@ export default function WebExecutiveDashboard() {
   // 1. Session Auth Guard Check & Live Telemetry Ticker
   useEffect(() => {
     setMounted(true);
-    maskBrowserUrlToEncrypted();
+
+    // Auto-repair ChunkLoadError if client chunk version is mismatched
+    const handleChunkError = (e: ErrorEvent) => {
+      const msg = e?.message || '';
+      if (msg.includes('ChunkLoadError') || msg.includes('Loading chunk')) {
+        console.warn('Chunk load error detected, auto-repairing cache...');
+        const reloadKey = 'admin_chunk_repair_reload';
+        if (!sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, 'true');
+          window.location.reload();
+        }
+      }
+    };
+    window.addEventListener('error', handleChunkError);
+    sessionStorage.removeItem('admin_chunk_repair_reload');
 
     const updateTime = () => {
       const now = new Date();
@@ -292,10 +305,6 @@ export default function WebExecutiveDashboard() {
         const parsed = JSON.parse(savedProfile);
         if (parsed && (parsed.role === 'ADMIN' || parsed.employee_code === 'SI01')) {
           setIsExecutiveUnlocked(true);
-          return () => {
-            clearInterval(clockTimer);
-            clearInterval(tickerTimer);
-          };
         }
       } catch (e) {}
     }
@@ -308,6 +317,7 @@ export default function WebExecutiveDashboard() {
     }
 
     return () => {
+      window.removeEventListener('error', handleChunkError);
       clearInterval(clockTimer);
       clearInterval(tickerTimer);
     };
@@ -552,7 +562,6 @@ export default function WebExecutiveDashboard() {
             role: 'ADMIN'
           }));
         }
-        maskBrowserUrlToEncrypted();
         setIsExecutiveUnlocked(true);
         setIsLoggingIn(false);
         setLoginStep(0);
@@ -577,7 +586,6 @@ export default function WebExecutiveDashboard() {
             localStorage.setItem('executive_auth_token', 'true');
             localStorage.setItem('attendance_employee_profile', JSON.stringify(data.data));
           }
-          maskBrowserUrlToEncrypted();
           setIsExecutiveUnlocked(true);
           setIsLoggingIn(false);
           setLoginStep(0);

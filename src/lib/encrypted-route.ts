@@ -20,15 +20,5 @@ export function getEncryptedExecutiveRoute(): string {
 }
 
 export function maskBrowserUrlToEncrypted(tokenOverride?: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const token = tokenOverride || generateEncryptedToken();
-    const sessionHash = Math.random().toString(36).substring(2, 10);
-    const maskedUrl = `/console/${token}?vault_id=sec_sha256_${sessionHash}`;
-    
-    // Smoothly replace the address bar without triggering page reload
-    window.history.replaceState(null, '', maskedUrl);
-  } catch (e) {
-    console.error('URL masking error:', e);
-  }
+  // Kept safe: do not mutate history.replaceState to an unmapped path to preserve Next.js chunk routing and reload stability
 }
