@@ -98,6 +98,7 @@ flowchart TD
 | **REQ-024** | Attendance & Shift Re-entry | ระบบอนุญาตให้กลับเข้าทำงานซ้ำในวันเดียวกันหากเผลอกดออกงาน (Accidental Check-out Re-entry) พร้อมตรวจสอบ Geofence อย่างเคร่งครัด ล้างเวลาออกงาน คืนสถานะและเบี้ยขยันเดิม และนับเวลาทำงานต่อทันที | ✅ เสร็จสิ้น | API `/api/check-in` / Mobile Staff UI (`/employee`) |
 | **REQ-025** | UI & Branding | ปรับแต่งพื้นหลังส่วนหัวแอป (Top Dome Profile & MyShift Header) ด้วยภาพกราฟิก Yokohama Wheel & Tire พรีเมียม พร้อม Frosted Backdrop Overlay คอนทราสต์สูงและสบายตา | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-026** | UI & Branding | ปรับแต่งพื้นหลังกรอบวงนอกของปุ่มเข้างาน (Check-In Quick Action Outer Tile) ด้วยภาพกราฟิกล้อแม็ก Yokohama ลายพิเศษ พร้อม Frosted Glass Overlay และคงกล่องไอคอน Gradient ภายในให้คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
+| **REQ-027** | UI & Branding | ปรับแต่งภาพพื้นหลังครบทั้ง 6 กล่องเมนูหลัก (เข้างาน, เบิกเงิน, ยื่นใบลา, ปฏิทิน, พิกัดร้าน, เบี้ยขยัน) ตามภาพที่กำหนด พร้อม Frosted Glass Layer และไอคอน Gradient 3D คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 
 ---
 
@@ -289,6 +290,19 @@ flowchart TD
 - ✅ **ระบบ 1-Click Optimistic Approval & Instant Badge Clearing**: เมื่อผู้บริหารกดปุ่ม Approve/Reject คำขอเบิกเงินหรือขอลางาน ระบบจะอัปเดตฐานข้อมูลและทำการ Auto-Clear Badge แจ้งเตือน และ Toast ออกจากหน้าจอแบบ Real-time ทันที
 - ✅ **Leaflet Geofence Map Picker**: ผู้บริหารสามารถปรับหมุดพิกัดร้านและขยาย/ย่อรัศมี Geofence (เมตร) ได้อย่างอิสระ พร้อมระบบ Reverse Geocode ถอดชื่อสถานที่จริงอัตโนมัติ
 - ✅ **Vercel Production Readiness**: ผ่านการทดสอบ `npm run build` สำเร็จ 100% 16/16 Routes (0 Type/Lint Errors) พร้อมส่งรายงานความคืบหน้าเข้า Discord ผ่าน `report:discord`
+
+### 📌 [2026-10-01] - Complete 6-Tile Grid Custom Background Images & Frosted Glass Aesthetics (Version 3.7)
+- ✅ **เพิ่มภาพพื้นหลังครบทั้ง 6 กล่องเมนูหลัก (Tactile Quick Action Tiles Grid)**:
+  - **Tile 1 (เข้างาน)**: ภาพกราฟิกล้อแม็ก Yokohama Custom (`public/images/checkin-tile-bg.jpg`)
+  - **Tile 2 (เบิกเงิน)**: ภาพธนบัตรและการเงิน (`public/images/advance-tile-bg.jpg`)
+  - **Tile 3 (ยื่นใบลา)**: ภาพเอกสารการลาและวันหยุดพักผ่อน (`public/images/leave-tile-bg.jpg`)
+  - **Tile 4 (ปฏิทิน)**: ภาพปฏิทินและบันทึกเวลาทำงาน (`public/images/calendar-tile-bg.png`)
+  - **Tile 5 (พิกัดร้าน)**: ภาพแผนที่ Google Maps & GPS Pin (`public/images/map-tile-bg.png`)
+  - **Tile 6 (เบี้ยขยัน)**: ภาพเหรียญทองและสิทธิประโยชน์เบี้ยขยัน (`public/images/allowance-tile-bg.jpg`)
+- ✅ **High-Contrast Frosted Overlay & 3D Glowing Icons**:
+  - เสริมเลเยอร์ Frosted Glass Backdrop ป้องกันการกลืนของตัวหนังสือและป้ายกำกับ
+  - ไอคอนภายในรักษาเอฟเฟกต์ Gradient 3D เรืองแสง สดใส สวยงาม และกดง่าย
+- ✅ **Zero Regression Guarantee**: ผ่านการทดสอบ Production Build `npm run build` สมบูรณ์แบบ 18/18 Routes (0 Errors)
 
 ### 📌 [2026-10-01] - Custom Yokohama Check-In Tile Outer Card Branding (Version 3.6)
 - ✅ **เพิ่มภาพพื้นหลังกรอบวงนอกของปุ่มเข้างาน (Check-In Quick Action Tile 1 Card)**:

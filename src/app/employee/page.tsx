@@ -1022,7 +1022,7 @@ export default function ExactEmployeeApp() {
               }}
             />
 
-            {/* High-Contrast Frosted Overlay for Entire Tile */}
+            {/* High-Contrast Frosted Overlay */}
             <div className={`absolute inset-0 transition-colors duration-300 ${
               isDark 
                 ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
@@ -1062,17 +1062,32 @@ export default function ExactEmployeeApp() {
           {/* Tile 2: Salary Advance */}
           <Link
             href="/employee/advance"
-            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all relative overflow-hidden group shadow-lg border border-white/10 ${
               isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
             }`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 mb-1">
+            {/* Custom Outer Tile Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ 
+                backgroundImage: `url('/images/advance-tile-bg.jpg'), url('https://moneyhub.in.th/wp-content/uploads/2016/06/shutterstock_209123032.jpg')`,
+              }}
+            />
+
+            {/* High-Contrast Frosted Overlay */}
+            <div className={`absolute inset-0 transition-colors duration-300 ${
+              isDark 
+                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
+                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+            }`} />
+
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-500 text-white flex items-center justify-center shadow-md shadow-amber-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <Coins className="w-5 h-5" />
             </div>
-            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            <div className="text-xs font-bold text-white relative z-10 drop-shadow-md">
               เบิกเงิน
             </div>
-            <div className="text-[9px] text-amber-500 font-bold mt-0.5">
+            <div className="text-[9px] text-amber-300 font-bold mt-0.5 relative z-10 drop-shadow-sm">
               โควตา 50%
             </div>
           </Link>
@@ -1080,17 +1095,32 @@ export default function ExactEmployeeApp() {
           {/* Tile 3: Leave Request */}
           <Link
             href="/employee/leave"
-            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all relative overflow-hidden group shadow-lg border border-white/10 ${
               isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
             }`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-purple-500/30 mb-1">
+            {/* Custom Outer Tile Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ 
+                backgroundImage: `url('/images/leave-tile-bg.jpg'), url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR472lfh0KhKH4YnSVU-Nrq69UQ0TDqlZtCwuJ9vxJUijYpUzAZvfuSv50&s=10')`,
+              }}
+            />
+
+            {/* High-Contrast Frosted Overlay */}
+            <div className={`absolute inset-0 transition-colors duration-300 ${
+              isDark 
+                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
+                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+            }`} />
+
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-purple-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <FileText className="w-5 h-5" />
             </div>
-            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            <div className="text-xs font-bold text-white relative z-10 drop-shadow-md">
               ยื่นใบลา
             </div>
-            <div className="text-[9px] text-purple-400 font-bold mt-0.5">
+            <div className="text-[9px] text-purple-300 font-bold mt-0.5 relative z-10 drop-shadow-sm">
               ป่วย/กิจ/พักผ่อน
             </div>
           </Link>
@@ -1098,17 +1128,32 @@ export default function ExactEmployeeApp() {
           {/* Tile 4: Calendar / Stats */}
           <Link
             href="/employee/stats"
-            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all relative overflow-hidden group shadow-lg border border-white/10 ${
               isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
             }`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/30 mb-1">
+            {/* Custom Outer Tile Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ 
+                backgroundImage: `url('/images/calendar-tile-bg.png'), url('https://www.rungsiriprint.com/wp-content/uploads/2021/02/Product-%E0%B8%9B%E0%B8%8F%E0%B8%B4%E0%B8%97%E0%B8%B4%E0%B8%99.png')`,
+              }}
+            />
+
+            {/* High-Contrast Frosted Overlay */}
+            <div className={`absolute inset-0 transition-colors duration-300 ${
+              isDark 
+                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
+                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+            }`} />
+
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <Calendar className="w-5 h-5" />
             </div>
-            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            <div className="text-xs font-bold text-white relative z-10 drop-shadow-md">
               ปฏิทิน
             </div>
-            <div className="text-[9px] text-emerald-400 font-bold mt-0.5">
+            <div className="text-[9px] text-emerald-300 font-bold mt-0.5 relative z-10 drop-shadow-sm">
               +50฿ สะสม
             </div>
           </Link>
@@ -1116,34 +1161,64 @@ export default function ExactEmployeeApp() {
           {/* Tile 5: Store Geofence & Settings */}
           <button
             onClick={handleManualRefresh}
-            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all ${
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center transition-all relative overflow-hidden group shadow-lg border border-white/10 ${
               isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
             }`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/30 mb-1">
+            {/* Custom Outer Tile Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ 
+                backgroundImage: `url('/images/map-tile-bg.png'), url('https://www.prachachat.net/wp-content/uploads/2023/08/Google-Maps.png')`,
+              }}
+            />
+
+            {/* High-Contrast Frosted Overlay */}
+            <div className={`absolute inset-0 transition-colors duration-300 ${
+              isDark 
+                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
+                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+            }`} />
+
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <MapPin className="w-5 h-5" />
             </div>
-            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            <div className="text-xs font-bold text-white relative z-10 drop-shadow-md">
               พิกัดร้าน
             </div>
-            <div className="text-[9px] text-blue-400 font-bold mt-0.5">
+            <div className="text-[9px] text-sky-300 font-bold mt-0.5 relative z-10 drop-shadow-sm">
               {distance !== null ? `${distance.toFixed(0)}ม.` : 'ค้นหา'}
             </div>
           </button>
 
           {/* Tile 6: Allowance Info */}
           <div
-            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center ${
+            className={`p-3 rounded-2xl flex flex-col items-center justify-between text-center relative overflow-hidden group shadow-lg border border-white/10 ${
               isDark ? 'neumorph-tile-dark' : 'neumorph-tile-light'
             }`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md shadow-rose-500/30 mb-1">
+            {/* Custom Outer Tile Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ 
+                backgroundImage: `url('/images/allowance-tile-bg.jpg'), url('https://cms.kapook.com/uploads/tag/29/ID_28522_5888106545a78.jpg')`,
+              }}
+            />
+
+            {/* High-Contrast Frosted Overlay */}
+            <div className={`absolute inset-0 transition-colors duration-300 ${
+              isDark 
+                ? 'bg-gradient-to-b from-slate-950/75 via-slate-900/80 to-[#090d16]/90 backdrop-blur-[1px]' 
+                : 'bg-gradient-to-b from-slate-950/70 via-slate-900/75 to-[#18223c]/85 backdrop-blur-[1px]'
+            }`} />
+
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md shadow-rose-500/40 ring-1 ring-white/20 mb-1 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
               <Sparkles className="w-5 h-5" />
             </div>
-            <div className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
+            <div className="text-xs font-bold text-white relative z-10 drop-shadow-md">
               เบี้ยขยัน
             </div>
-            <div className="text-[9px] text-rose-400 font-bold mt-0.5">
+            <div className="text-[9px] text-rose-300 font-bold mt-0.5 relative z-10 drop-shadow-sm">
               {storeSettings?.allowance_amount || 50}฿ / วัน
             </div>
           </div>
