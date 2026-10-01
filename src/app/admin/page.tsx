@@ -1109,30 +1109,20 @@ export default function WebExecutiveDashboard() {
       {/* ----------------------------------------------------------- */}
       <header className="border-b border-neutral-800/80 backdrop-blur-md h-16 sticky top-0 z-40 px-6 flex items-center justify-between bg-black/80">
         
-        {/* Left: Vercel Logo + Project Breadcrumb */}
+        {/* Left: Store Logo + Store Brand Name */}
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center p-1 group-hover:scale-105 transition-all shrink-0 overflow-hidden">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center p-1 group-hover:scale-105 transition-all shrink-0 overflow-hidden shadow-xs">
               <img 
                 src="/images/official-store-logo.png" 
                 alt="สีแสงยางยนต์ YOKOHAMA" 
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs font-mono">
-              <span className="text-neutral-400 hover:text-white">สีแสงยางยนต์</span>
-              <span className="text-neutral-600">/</span>
-              <span className="font-bold text-white">attendance-console</span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white text-sm sm:text-base tracking-tight">สีแสงยางยนต์ YOKOHAMA</span>
             </div>
           </Link>
-
-          {/* Live Status Pill */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-950 border border-neutral-800 text-xs font-mono text-neutral-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-emerald-400 font-bold">● Production</span>
-            <span className="text-neutral-600">•</span>
-            <span className="text-neutral-400">24ms</span>
-          </div>
         </div>
 
         {/* Right Tools: Ask AI, Notifications, Avatar */}
