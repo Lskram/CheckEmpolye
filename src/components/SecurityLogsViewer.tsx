@@ -310,7 +310,7 @@ export default function SecurityLogsViewer({ logs, onRefresh, isMobileCompact = 
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ค้นหาชื่อพนักงาน, รหัส, HWID..."
+            placeholder="ค้นหาชื่อพนักงาน หรือรหัส..."
             className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>

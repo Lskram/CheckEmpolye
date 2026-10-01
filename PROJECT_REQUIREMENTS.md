@@ -96,6 +96,7 @@ flowchart TD
 | **REQ-022** | Mobile & Database | Milestone 1: เชื่อมต่อระบบลงเวลาเข้า-ออกงาน, ขอเบิกเงินล่วงหน้า, ยื่นใบลา เข้าสู่ฐานข้อมูล Supabase จริง พร้อมระบบ Offline Resilience (IndexedDB Storage & Auto-Sync on Reconnect) | ✅ เสร็จสิ้น | Next.js API / Supabase DB / IndexedDB |
 | **REQ-023** | Mobile & Reliability | ระบบ NetworkGuard ตรวจจับการเชื่อมต่ออินเทอร์เน็ตตลอดเวลา (Continuous Ping & Native Notification), แจ้งเตือนเมื่ออยู่นอกรัศมีร้านทันที, และ Floating Banner "ลงชื่อเข้างานเรียบร้อย" | ✅ เสร็จสิ้น | `NetworkGuard.tsx` / Next.js / Capacitor |
 | **REQ-024** | Attendance & Shift Re-entry | ระบบอนุญาตให้กลับเข้าทำงานซ้ำในวันเดียวกันหากเผลอกดออกงาน (Accidental Check-out Re-entry) พร้อมตรวจสอบ Geofence อย่างเคร่งครัด ล้างเวลาออกงาน คืนสถานะและเบี้ยขยันเดิม และนับเวลาทำงานต่อทันที | ✅ เสร็จสิ้น | API `/api/check-in` / Mobile Staff UI (`/employee`) |
+| **REQ-025** | UI & Branding | ปรับแต่งพื้นหลังส่วนหัวแอป (Top Dome Profile & MyShift Header) ด้วยภาพกราฟิก Yokohama Wheel & Tire พรีเมียม พร้อม Frosted Backdrop Overlay คอนทราสต์สูงและสบายตา | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 
 ---
 
@@ -288,6 +289,13 @@ flowchart TD
 - ✅ **Leaflet Geofence Map Picker**: ผู้บริหารสามารถปรับหมุดพิกัดร้านและขยาย/ย่อรัศมี Geofence (เมตร) ได้อย่างอิสระ พร้อมระบบ Reverse Geocode ถอดชื่อสถานที่จริงอัตโนมัติ
 - ✅ **Vercel Production Readiness**: ผ่านการทดสอบ `npm run build` สำเร็จ 100% 16/16 Routes (0 Type/Lint Errors) พร้อมส่งรายงานความคืบหน้าเข้า Discord ผ่าน `report:discord`
 
+### 📌 [2026-10-01] - Custom Yokohama Header Branding & Frosted Glass Backdrop (Version 3.5)
+- ✅ **เพิ่มภาพพื้นหลังส่วนหัว (Top Dome Profile & MyShift Header)**:
+  - นำเข้ารูปภาพที่ผู้ใช้กำหนด (`public/images/header-bg.jpg` พร้อม URL Fallback) มาประยุกต์เป็นพื้นหลังของ Header ด้านบน
+  - เพิ่มเลเยอร์ Gradient Frosted Glass (`backdrop-blur-[2px]` และ `bg-slate-950/80`) ให้ตัวหนังสือ ชื่อพนักงาน รหัส และการ์ด MyShift แสดงผลได้อย่างคมชัด อ่านง่าย และสบายตา
+  - รองรับทั้ง Dark Theme และ Light Theme อย่างกลมกลืน
+- ✅ **Zero Regression Guarantee**: ผ่านการทดสอบ Production Build `npm run build` สมบูรณ์แบบ 18/18 Routes (0 Errors)
+
 ### 📌 [2026-10-01] - Shift Re-entry & Accidental Check-out Recovery with Strict Geofence Guard (Version 3.4)
 - ✅ **ระบบอนุญาตให้กลับเข้าทำงานซ้ำในวันเดียวกัน (Re-entry / Resume Shift)**:
   - แก้ไขปัญหาพนักงานเผลอกดปุ่มออกงานระหว่างวัน ให้สามารถกดปุ่ม "กลับเข้างาน (Re-entry)" ได้ทันที
@@ -377,6 +385,18 @@ flowchart TD
 - ✅ **ระบบ Smart Search & Google Maps Link Parser**: ถอดรหัสพิกัดจากลิงก์ Google Maps (`maps.app.goo.gl` หรือ `google.com/maps/@lat,lng`) อัตโนมัติในช่องค้นหา
 - ✅ **ติดตั้ง StoreMapPicker บนทั้ง Web Admin (`/admin`) และ Mobile Executive (`/executive`)**: ให้ผู้บริหารจัดการพิกัดร้านได้ทั้งบนคอมพิวเตอร์และมือถือ
 - ✅ **กระจายพิกัดใหม่สู่มือถือพนักงานแบบ Real-Time**: มือถือพนักงานรับพิกัดใหม่ทันที (<100ms) คำนวณระยะห่างใหม่และปลดล็อกปุ่มให้อัตโนมัติ
+
+### 📌 [2026-10-01] - User Experience Cleanliness & Dev-Jargon De-cluttering (Version 3.13)
+- ✅ **กำจัดและกรอง Dev Jargon ทั้งหมดออกจากหน้าเว็บผู้ใช้**: ปรับเปลี่ยนข้อความภาษาอังกฤษทางเทคนิคที่ซับซ้อน เช่น `PID: 8842`, `wss://supabase.postgresql...`, `LATENCY ~14ms`, `ZERO-TRUST AUTH`, `Haversine Geofence`, `HWID Binding: Realme-RMX...` ให้เป็นภาษาไทยที่เข้าใจง่าย สะอาดตา และเหมาะสมกับผู้บริหารและพนักงานประจำสาขา
+- ✅ **แปลงข้อมูลเทคนิคสู่ Business Presentation**:
+  - `STATUS: ALL SYSTEMS PRODUCTION READY` $\rightarrow$ `สถานะ: ระบบพร้อมให้บริการตามปกติ`
+  - `TELEMETRY` $\rightarrow$ `เวลาเข้างาน / ระยะห่าง`
+  - `ROLE & DEVICE` $\rightarrow$ `ตำแหน่ง / การผูกเครื่อง`
+  - `HWID: LOCKED ✓` $\rightarrow$ `✓ ผูกเครื่องแล้ว`
+  - `Reset HWID` $\rightarrow$ `รีเซ็ตเครื่อง` (ปลดล็อกเพื่อเปลี่ยนอุปกรณ์)
+  - `Device HWID: ...` $\rightarrow$ `🔒 ระบบความปลอดภัย 1 คน 1 เครื่อง (อุปกรณ์ผ่านการตรวจสอบแล้ว)`
+- ✅ **ปรับปรุง Dynamic Scramble Text และ Terminal Step ให้เป็นมิตร**: แปลงขั้นตอน Handshake/Token เป็นข้อความยืนยันความปลอดภัยภาษาไทยแบบเรียลไทม์
+- ✅ **ป้องกัน SVG Layout Overflow อย่างครอบคลุม**: กำหนดขนาดชัดเจนสำหรับโลโก้และไอคอนทั้งหมด ไม่ให้ดันหน้าจอแตก
 
 ### 📌 [2026-09-27] - Strict Geofence Lock, Location Audit & Log ID Alerts (Version 2.4)
 - ✅ **ล็อกปุ่มเช็คอินอัตโนมัติเมื่ออยู่นอกพื้นที่ร้าน**: ป้องกันการกดลงเวลาสำเร็จหากระยะห่างเกินรัศมีที่กำหนด

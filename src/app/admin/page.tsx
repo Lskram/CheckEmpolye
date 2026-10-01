@@ -146,11 +146,11 @@ function CyberScrambleText({
 }
 
 const telemetryMessages = [
-  '● SYSTEM: YOKOHAMA NAYA COSMIS HIGH-SECURITY CLOUD GATEWAY [ACTIVE]',
-  '⚡ REALTIME NODE: WSS://SUPABASE.POSTGRESQL // LATENCY ~14ms',
-  '🔒 ZERO-TRUST AUTH: 256-BIT TOKENIZED HWID & BIOMETRICS ENGAGED',
-  '📍 GEO-FENCING: 50.0M GPS PRECISION RADIUS ENFORCED & VERIFIED',
-  '👑 EXECUTIVE CONSOLE: VER. 3.11 PRO ENTERPRISE OBSIDIAN SYSTEM',
+  '● ระบบรักษาความปลอดภัย: ศูนย์บริการสีแสงยางยนต์ สาขาศรีสะเกษ [เปิดทำการปกติ]',
+  '⚡ สถานะการเชื่อมต่อ: ฐานข้อมูลออนไลน์ อัปเดตข้อมูลอัตโนมัติแบบเรียลไทม์',
+  '🔒 ระบบยืนยันตัวตน: นโยบายความปลอดภัย 1 คน 1 เครื่อง (ป้องกันการลงเวลาแทนกัน)',
+  '📍 พิกัดร้าน: ตรวจสอบตำแหน่ง GPS อัตโนมัติ (รัศมีร้าน 50 เมตร)',
+  '👑 แผงควบคุมผู้บริหาร: ระบบจัดการบุคลากรและอนุมัติคำขอออนไลน์',
 ];
 
 export default function WebExecutiveDashboard() {
@@ -497,12 +497,6 @@ export default function WebExecutiveDashboard() {
     };
   }, [isExecutiveUnlocked, period]);
 
-  // Quick Preset Credentials Populator
-  const handleQuickFill = (code: string, pin: string) => {
-    setExecutiveCodeInput(code);
-    setExecutivePinInput(pin);
-    setExecutivePinError('');
-  };
 
   // Auth Handlers with Dynamic Typography & Multi-Step Telemetry
   const handleExecutiveLogin = async (e: React.FormEvent) => {
@@ -520,26 +514,26 @@ export default function WebExecutiveDashboard() {
       // Step 1: Secure Handshake
       setLoginStep(1);
       setLoginProgress(25);
-      setLoginStepMessage(`[ 01/04 ] ⚡ Handshaking Secure WebSocket Protocol (Supabase Realtime Engine)...`);
+      setLoginStepMessage(`[ 01/04 ] ⚡ กำลังเชื่อมต่อระบบฐานข้อมูลความปลอดภัยแบบเรียลไทม์...`);
       await sleep(350);
 
       // Step 2: Decrypting Credentials
       setLoginStep(2);
       setLoginProgress(55);
-      setLoginStepMessage(`[ 02/04 ] 🔐 Decrypting Credentials & Token Vault (Executive ID: ${code})...`);
+      setLoginStepMessage(`[ 02/04 ] 🔐 ตรวจสอบข้อมูลสิทธิ์ผู้บริหาร (รหัส: ${code})...`);
       await sleep(350);
 
       // Step 3: Verifying Signature & Hardware Token
       setLoginStep(3);
       setLoginProgress(85);
-      setLoginStepMessage(`[ 03/04 ] 🛡️ Validating HWID Device Signature & Anti-Spoof Biometrics...`);
+      setLoginStepMessage(`[ 03/04 ] 🛡️ ยืนยันสิทธิ์การเข้าถึงและความปลอดภัยของอุปกรณ์...`);
       await sleep(350);
 
       // Master PIN Bypass for Executive Quick Access
       if (pin === '1234' || pin === '5101' || pin === '0000') {
         setLoginStep(4);
         setLoginProgress(100);
-        setLoginStepMessage(`[ 04/04 ] 🟢 Access Granted! Decoupling Yokohama Security Air-lock...`);
+        setLoginStepMessage(`[ 04/04 ] 🟢 ยืนยันสิทธิ์สำเร็จ! กำลังเปิดแดชบอร์ดผู้บริหาร...`);
         await sleep(400);
 
         if (rememberSession) {
@@ -568,7 +562,7 @@ export default function WebExecutiveDashboard() {
         if (data.data.role === 'ADMIN' || data.data.employee_code === 'SI01') {
           setLoginStep(4);
           setLoginProgress(100);
-          setLoginStepMessage(`[ 04/04 ] 🟢 Access Granted! Welcome ${data.data.full_name || 'Admin'}...`);
+          setLoginStepMessage(`[ 04/04 ] 🟢 ยืนยันสิทธิ์สำเร็จ! ยินดีต้อนรับ ${data.data.full_name || 'ผู้บริหาร'}...`);
           await sleep(400);
 
           if (rememberSession) {
@@ -897,8 +891,8 @@ export default function WebExecutiveDashboard() {
         {/* Header Bar with Live Clock */}
         <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4 border-b border-neutral-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center font-black text-xl shadow-md">
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 75 65">
+            <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center font-black text-xl shadow-md shrink-0 overflow-hidden">
+              <svg width="20" height="17" viewBox="0 0 75 65" className="w-5 h-5 fill-current shrink-0" style={{ width: '20px', height: '17px', maxWidth: '20px', maxHeight: '17px' }}>
                 <path d="M37.5 0L75 65H0z" />
               </svg>
             </div>
@@ -962,97 +956,6 @@ export default function WebExecutiveDashboard() {
               <p className="text-xs font-mono text-neutral-400">
                 ระบบยืนยันตัวตนสำหรับผู้บริหารและหัวหน้างาน สีแสงยางยนต์
               </p>
-            </div>
-
-            {/* Smart Dynamic Profile Detection Badge */}
-            <div className={`p-3 rounded-xl border font-mono text-xs transition-all flex items-center justify-between ${
-              isMasterAdmin
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                : isTechStaff
-                ? 'bg-blue-500/10 border-blue-500/30 text-blue-300'
-                : isFinanceStaff
-                ? 'bg-purple-500/10 border-purple-500/30 text-purple-300'
-                : 'bg-neutral-900 border-neutral-800 text-neutral-400'
-            }`}>
-              <div className="flex items-center gap-2">
-                <span className="text-base">
-                  {isMasterAdmin ? '👑' : isTechStaff ? '🛠️' : isFinanceStaff ? '💵' : '🔍'}
-                </span>
-                <div>
-                  <div className="font-bold text-white text-[11px] sm:text-xs">
-                    {isMasterAdmin
-                      ? 'ท่านประธานกรรมการบริหาร (ผู้บริหารสูงสุด)'
-                      : isTechStaff
-                      ? 'คุณสมชาย ยางยนต์ (ช่างเทคนิคอาวุโส)'
-                      : isFinanceStaff
-                      ? 'คุณสมหญิง การเงิน (ฝ่ายบัญชีและการเงิน)'
-                      : `กำลังตรวจสอบรหัส: ${detectedCode}`}
-                  </div>
-                  <div className="text-[10px] text-neutral-400">
-                    {isMasterAdmin
-                      ? 'สิทธิ์การเข้าถึง: ADMIN (เข้าถึงระบบและอนุมัติยอดได้ทุกฟังก์ชัน)'
-                      : isTechStaff || isFinanceStaff
-                      ? 'สิทธิ์การเข้าถึง: STAFF (ต้องการรหัสมาสเตอร์เพื่อปลดล็อกคอนโซล)'
-                      : 'ระบุ PIN เพื่อถอดรหัสสิทธิ์ความปลอดภัย'}
-                  </div>
-                </div>
-              </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                isMasterAdmin
-                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                  : 'bg-neutral-800 border-neutral-700 text-neutral-400'
-              }`}>
-                {isMasterAdmin ? 'ADMIN' : 'STAFF'}
-              </span>
-            </div>
-
-            {/* Quick Presets Pills */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
-                <span className="flex items-center gap-1 font-bold text-neutral-300">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>ทางลัดกรอกรหัส (1-Click Presets):</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('', '')}
-                  className="text-[10px] text-neutral-400 hover:text-white underline"
-                >
-                  ล้างค่า
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('SI01', '5101')}
-                  className="px-2.5 py-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-emerald-500/50 hover:bg-neutral-850 text-left transition-all group"
-                >
-                  <div className="text-[10px] font-mono text-neutral-400 group-hover:text-emerald-400 flex items-center gap-1 font-bold">
-                    <span>👑 SI01 • 5101</span>
-                  </div>
-                  <div className="text-xs font-bold text-white truncate">ท่านประธาน</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('SI01', '1234')}
-                  className="px-2.5 py-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-amber-500/50 hover:bg-neutral-850 text-left transition-all group"
-                >
-                  <div className="text-[10px] font-mono text-neutral-400 group-hover:text-amber-400 flex items-center gap-1 font-bold">
-                    <span>🔑 SI01 • 1234</span>
-                  </div>
-                  <div className="text-xs font-bold text-white truncate">Master PIN</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('01', '11')}
-                  className="px-2.5 py-2 rounded-xl bg-neutral-900 border border-neutral-800 hover:border-blue-500/50 hover:bg-neutral-850 text-left transition-all group"
-                >
-                  <div className="text-[10px] font-mono text-neutral-400 group-hover:text-blue-400 flex items-center gap-1 font-bold">
-                    <span>🛠️ 01 • 11</span>
-                  </div>
-                  <div className="text-xs font-bold text-white truncate">ช่างเทคนิค</div>
-                </button>
-              </div>
             </div>
 
             {/* Error Message Box */}
@@ -1120,12 +1023,12 @@ export default function WebExecutiveDashboard() {
               {/* Dynamic Loading Terminal Stream Sequence (Active during Login) */}
               {isLoggingIn && (
                 <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3 font-mono text-xs shadow-inner">
-                  <div className="flex items-center justify-between border-b border-neutral-900 pb-2 text-[10px] text-neutral-500">
-                    <span className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-between border-b border-neutral-900 pb-2 text-[10px] text-neutral-400">
+                    <span className="flex items-center gap-1.5 font-sans font-medium">
                       <Terminal className="w-3 h-3 text-emerald-400" />
-                      <span>YOKOHAMA_AUTH_CORE // PID: 8842</span>
+                      <span>ระบบตรวจสอบความปลอดภัย • ผู้บริหาร</span>
                     </span>
-                    <span className="text-emerald-400 font-bold">{loginProgress}%</span>
+                    <span className="text-emerald-400 font-bold font-mono">{loginProgress}%</span>
                   </div>
 
                   {/* Progress Bar */}
@@ -1138,10 +1041,10 @@ export default function WebExecutiveDashboard() {
 
                   {/* Dynamic Typographic Telemetry Log */}
                   <div className="space-y-1 text-[11px]">
-                    <div className="text-neutral-500 text-[10px]">
-                      &gt; CONNECTING HOST: wss://supabase.co/realtime/v1 ... [OK]
+                    <div className="text-neutral-400 text-[10px] font-sans">
+                      &gt; สถานะการเชื่อมต่อ: พร้อมใช้งาน (ระบบความปลอดภัยระดับสูง)
                     </div>
-                    <div className="text-emerald-400 font-bold flex items-center gap-1.5">
+                    <div className="text-emerald-400 font-bold flex items-center gap-1.5 font-sans">
                       <span className="animate-spin text-xs">⚡</span>
                       <CyberScrambleText text={loginStepMessage} speed={25} />
                     </div>
@@ -1198,8 +1101,8 @@ export default function WebExecutiveDashboard() {
         {/* Left: Vercel Logo + Project Breadcrumb */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black group-hover:scale-105 transition-all">
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 75 65">
+            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black group-hover:scale-105 transition-all shrink-0 overflow-hidden">
+              <svg width="18" height="15" viewBox="0 0 75 65" className="w-4 h-4 fill-current shrink-0" style={{ width: '16px', height: '14px', maxWidth: '16px', maxHeight: '14px' }}>
                 <path d="M37.5 0L75 65H0z" />
               </svg>
             </div>
@@ -1307,22 +1210,22 @@ export default function WebExecutiveDashboard() {
       {/* ----------------------------------------------------------- */}
       <div className="flex-1 p-6 sm:p-8 lg:p-10 space-y-8 max-w-7xl mx-auto w-full">
 
-        {/* Léo Parpeix / Vercel Header Action Ribbon */}
+        {/* Vercel Header Action Ribbon */}
         <div className="border-b border-neutral-800 pb-5 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
           <div>
             <span className="text-xs font-mono text-neutral-400 block mb-1">
-              PROJECT // yokohama-attendance-engine • {storeSettingsForm.store_name}
+              ศูนย์บริการมาตรฐาน • {storeSettingsForm.store_name}
             </span>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight uppercase">
-              {activeTab === 'overview' && 'STAFF & ATTENDANCE'}
-              {activeTab === 'employees' && 'EMPLOYEE MANAGEMENT'}
-              {activeTab === 'advances' && 'SALARY ADVANCE MANAGER'}
-              {activeTab === 'leaves' && 'LEAVE REQUESTS HUB'}
-              {activeTab === 'violations' && 'SECURITY & VIOLATIONS'}
-              {activeTab === 'settings' && 'STORE POLICY & GEOFENCE'}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
+              {activeTab === 'overview' && 'ภาพรวมระบบ & การลงเวลาพนักงาน'}
+              {activeTab === 'employees' && 'จัดการข้อมูลและบัญชีพนักงาน'}
+              {activeTab === 'advances' && 'ระบบอนุมัติคำขอเบิกเงินด่วน'}
+              {activeTab === 'leaves' && 'ระบบอนุมัติคำขอลางาน'}
+              {activeTab === 'violations' && 'ประวัติด้านความปลอดภัยและการแจ้งเตือน'}
+              {activeTab === 'settings' && 'ตั้งค่านโยบายเวลาและพิกัดร้าน'}
             </h1>
-            <p className="text-xs font-mono text-neutral-400 mt-1 uppercase">
-              STANDARD: {storeSettingsForm.standard_time?.substring(0, 5)} • LATE CUTOFF: {storeSettingsForm.late_deadline?.substring(0, 5)} • GEOFENCE: {storeSettingsForm.radius_meters || 50}M
+            <p className="text-xs font-mono text-neutral-400 mt-1">
+              เวลาเข้างานปกติ: {storeSettingsForm.standard_time?.substring(0, 5)} น. • สายหลัง: {storeSettingsForm.late_deadline?.substring(0, 5)} น. • รัศมีร้าน: {storeSettingsForm.radius_meters || 50} เมตร
             </p>
           </div>
 
@@ -1333,7 +1236,7 @@ export default function WebExecutiveDashboard() {
               className="px-4 py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 font-bold transition-all flex items-center gap-2"
             >
               <Box className="w-3.5 h-3.5 text-blue-400" />
-              <span>{is3DMode ? '2D View' : '3D Hologram ↗'}</span>
+              <span>{is3DMode ? 'มุมมอง 2D' : 'กราฟ 3 มิติ ↗'}</span>
             </button>
 
             {/* Export CSV */}
@@ -1342,7 +1245,7 @@ export default function WebExecutiveDashboard() {
               className="px-4 py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 font-bold transition-all flex items-center gap-2"
             >
               <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Export CSV 📥</span>
+              <span>ส่งออก Excel / CSV 📥</span>
             </button>
 
             {/* Add Employee (Vercel White Pill) */}
@@ -1379,15 +1282,15 @@ export default function WebExecutiveDashboard() {
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
                   <div>
                     <span className="text-xs font-mono text-blue-400">
-                      3D SPATIAL DATA // WEBGL INTERACTIVE
+                      แผนภาพ 3 มิติ • แสดงสถิติการเข้างาน
                     </span>
                     <h3 className="font-bold text-lg text-white flex items-center gap-2">
                       <Box className="w-5 h-5 text-purple-400" />
-                      <span>ATTENDANCE HOLOGRAM VISUALIZER</span>
+                      <span>กราฟสถิติการลงเวลาแบบ 3 มิติ</span>
                     </h3>
                   </div>
                   <span className="text-xs font-mono font-bold text-neutral-500">
-                    🖱️ DRAG TO ROTATE 360°
+                    🖱️ แตะหรือลากเพื่อหมุนมุมมอง 360°
                   </span>
                 </div>
                 <ThreeBarChart3D data={weeklyData} />
@@ -1398,9 +1301,9 @@ export default function WebExecutiveDashboard() {
             <div className="vercel-card overflow-hidden">
               <div className="p-6 border-b border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-950/80">
                 <div>
-                  <span className="text-xs font-mono text-purple-400 font-bold">INDEX // 01 • REAL-TIME WORKFORCE CATALOG</span>
-                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">STAFF APPLICATIONS & CHECK-INS</h2>
-                  <p className="text-xs font-mono text-neutral-400 mt-0.5">ตารางรายชื่อและการลงเวลาพนักงานประจำสาขา</p>
+                  <span className="text-xs font-mono text-purple-400 font-bold">ข้อมูลพนักงานประจำสาขา</span>
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">รายชื่อและสถานะการลงเวลาวันนี้</h2>
+                  <p className="text-xs text-neutral-400 mt-0.5">ระบบอัปเดตข้อมูลอัตโนมัติแบบเรียลไทม์</p>
                 </div>
 
                 {/* Filter Search Input */}
@@ -1409,10 +1312,10 @@ export default function WebExecutiveDashboard() {
                   <input
                     id="search-input-field"
                     type="text"
-                    placeholder="SEARCH STAFF, ID..."
+                    placeholder="ค้นหาชื่อ หรือรหัสพนักงาน..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 rounded-full border border-neutral-800 text-xs bg-black text-white placeholder:text-neutral-500 focus:outline-none focus:border-white w-64 font-mono font-bold transition-all shadow-xs uppercase"
+                    className="pl-10 pr-4 py-2 rounded-full border border-neutral-800 text-xs bg-black text-white placeholder:text-neutral-500 focus:outline-none focus:border-white w-64 font-sans font-bold transition-all shadow-xs"
                   />
                 </div>
               </div>
@@ -1421,18 +1324,18 @@ export default function WebExecutiveDashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-mono text-xs">
                   <thead>
-                    <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 uppercase tracking-wider">
-                      <th className="py-3.5 px-5 font-bold">APPLICATION / STAFF</th>
-                      <th className="py-3.5 px-5 font-bold">STATUS</th>
-                      <th className="py-3.5 px-5 font-bold">TELEMETRY</th>
-                      <th className="py-3.5 px-5 font-bold">ROLE & DEVICE</th>
-                      <th className="py-3.5 px-5 text-right font-bold">ACTION</th>
+                    <tr className="border-b border-neutral-800 bg-neutral-950/60 text-neutral-400 tracking-wider font-sans">
+                      <th className="py-3.5 px-5 font-bold">รายชื่อพนักงาน</th>
+                      <th className="py-3.5 px-5 font-bold">สถานะวันนี้</th>
+                      <th className="py-3.5 px-5 font-bold">เวลาเข้างาน / ระยะห่าง</th>
+                      <th className="py-3.5 px-5 font-bold">ตำแหน่ง / อุปกรณ์</th>
+                      <th className="py-3.5 px-5 text-right font-bold">การจัดการ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-800 bg-black/40">
                     {filteredStaff.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-sm text-neutral-500 font-bold">
+                        <td colSpan={5} className="py-12 text-center text-sm text-neutral-500 font-bold font-sans">
                           ไม่พบรายชื่อพนักงานที่ตรงกับเงื่อนไข
                         </td>
                       </tr>
@@ -1447,12 +1350,12 @@ export default function WebExecutiveDashboard() {
                                 [{String(idx + 1).padStart(2, '0')}]
                               </span>
                               <div>
-                                <div className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                                <div className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors flex items-center gap-1.5 font-sans">
                                   <span>{emp.name}</span>
                                   <span className="text-neutral-500 text-xs">({emp.nickname})</span>
                                 </div>
                                 <div className="text-[11px] text-neutral-500 font-mono">
-                                  CODE: {emp.code}
+                                  รหัส: {emp.code}
                                 </div>
                               </div>
                             </div>
@@ -1461,19 +1364,19 @@ export default function WebExecutiveDashboard() {
                           {/* 2. Status */}
                           <td className="py-3.5 px-5">
                             {emp.status === 'PRESENT' && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold font-mono">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold font-sans">
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                                 <span>ตรงเวลา (+50฿)</span>
                               </span>
                             )}
                             {emp.status === 'LATE' && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[11px] font-bold font-mono">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[11px] font-bold font-sans">
                                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                                <span>มาสาย (Late)</span>
+                                <span>มาสาย</span>
                               </span>
                             )}
                             {emp.status === 'PENDING' && (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700 text-[11px] font-bold font-mono">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700 text-[11px] font-bold font-sans">
                                 <span className="w-2 h-2 rounded-full bg-neutral-500" />
                                 <span>ยังไม่ลงเวลา</span>
                               </span>
@@ -1484,10 +1387,10 @@ export default function WebExecutiveDashboard() {
                           <td className="py-3.5 px-5">
                             <div className="space-y-0.5">
                               <div className="text-xs font-bold text-blue-400 font-mono">
-                                IN: {emp.checkInTimeStr}
+                                {emp.checkInTimeStr !== '-' ? `เข้างาน: ${emp.checkInTimeStr}` : 'ยังไม่เข้างาน'}
                               </div>
                               <div className="text-neutral-500 font-mono text-[11px]">
-                                DIST: {emp.distanceStr}
+                                {emp.distanceStr !== '-' ? `ระยะ: ${emp.distanceStr}` : 'รอตำแหน่ง GPS'}
                               </div>
                             </div>
                           </td>
@@ -1495,11 +1398,15 @@ export default function WebExecutiveDashboard() {
                           {/* 4. Guide Role & HWID */}
                           <td className="py-3.5 px-5">
                             <div className="space-y-0.5">
-                              <div className="text-xs font-bold text-neutral-300">
+                              <div className="text-xs font-bold text-neutral-300 font-sans">
                                 {emp.role}
                               </div>
-                              <div className="text-[11px] font-mono text-neutral-500 uppercase">
-                                HWID: {emp.hwid ? 'LOCKED ✓' : 'UNBOUND'}
+                              <div className="text-[11px] font-sans text-neutral-400">
+                                {emp.hwid ? (
+                                  <span className="text-emerald-400">✓ ผูกเครื่องแล้ว</span>
+                                ) : (
+                                  <span className="text-neutral-500">ยังไม่ผูกเครื่อง</span>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -1509,10 +1416,10 @@ export default function WebExecutiveDashboard() {
                             <div className="inline-flex items-center gap-2">
                               <button
                                 onClick={() => handleResetHWID(emp.id, emp.name)}
-                                className="px-3 py-1 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 text-xs font-bold font-mono transition-all"
-                                title="ปลดล็อกอุปกรณ์ (Reset HWID)"
+                                className="px-3 py-1 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 text-xs font-bold font-sans transition-all"
+                                title="ปลดล็อกอุปกรณ์ประจำตัว (เพื่อให้พนักงานเปลี่ยนเครื่องล็อกอินได้)"
                               >
-                                Reset HWID
+                                รีเซ็ตเครื่อง
                               </button>
                               <button
                                 onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
@@ -1523,7 +1430,6 @@ export default function WebExecutiveDashboard() {
                               </button>
                             </div>
                           </td>
-
                         </tr>
                       ))
                     )}
@@ -1645,25 +1551,25 @@ export default function WebExecutiveDashboard() {
               <div className="overflow-x-auto rounded-xl border border-neutral-800">
                 <table className="w-full text-left font-mono text-xs">
                   <thead>
-                    <tr className="border-b border-neutral-800 bg-neutral-950 text-neutral-400 uppercase tracking-wider">
-                      <th className="py-3.5 px-4 font-bold">พนักงาน</th>
+                    <tr className="border-b border-neutral-800 bg-neutral-950 text-neutral-400 tracking-wider font-sans">
+                      <th className="py-3.5 px-4 font-bold">ชื่อ - นามสกุล</th>
                       <th className="py-3.5 px-4 font-bold">รหัสพนักงาน</th>
                       <th className="py-3.5 px-4 font-bold">ตำแหน่ง</th>
-                      <th className="py-3.5 px-4 font-bold">HWID Lock</th>
-                      <th className="py-3.5 px-4 text-right font-bold">Action</th>
+                      <th className="py-3.5 px-4 font-bold">การผูกโทรศัพท์</th>
+                      <th className="py-3.5 px-4 text-right font-bold">การจัดการ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-800 bg-black/40">
                     {formattedStaff.map((emp) => (
-                      <tr key={emp.id} className="editorial-row hover:bg-neutral-900/60">
+                      <tr key={emp.id} className="editorial-row hover:bg-neutral-900/60 font-sans">
                         <td className="py-3.5 px-4 font-bold text-sm text-white">
                           {emp.name} ({emp.nickname})
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-blue-400">{emp.code}</td>
+                        <td className="py-3.5 px-4 font-bold text-blue-400 font-mono">{emp.code}</td>
                         <td className="py-3.5 px-4 text-neutral-300">{emp.role}</td>
-                        <td className="py-3.5 px-4 text-neutral-400 text-xs">
+                        <td className="py-3.5 px-4 text-xs">
                           {emp.hwid ? (
-                            <span className="text-emerald-400 font-bold">{emp.hwid}</span>
+                            <span className="text-emerald-400 font-medium">✓ ผูกเครื่องแล้ว</span>
                           ) : (
                             <span className="text-neutral-500">ยังไม่ผูกเครื่อง</span>
                           )}
@@ -1672,12 +1578,14 @@ export default function WebExecutiveDashboard() {
                           <button
                             onClick={() => handleResetHWID(emp.id, emp.name)}
                             className="px-3 py-1.5 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 font-bold"
+                            title="ปลดล็อกอุปกรณ์ประจำตัว (เพื่อให้พนักงานเปลี่ยนเครื่องล็อกอินได้)"
                           >
-                            Reset HWID
+                            รีเซ็ตเครื่อง
                           </button>
                           <button
                             onClick={() => handleDeleteEmployee(emp.id, emp.code, emp.name)}
                             className="px-3 py-1.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold"
+                            title="ลบพนักงาน"
                           >
                             ลบ
                           </button>

@@ -414,9 +414,10 @@ export default function EmployeeLoginPage() {
 
       </div>
 
-      {/* Footer HWID Info */}
-      <div className="text-center text-[10px] text-slate-400 pt-2 font-mono">
-        Device HWID: {hwid ? `${hwid.slice(0, 10)}...` : 'Detecting...'}
+      {/* Footer Security Badge */}
+      <div className="text-center text-xs text-slate-400 pt-2 flex items-center justify-center gap-1.5 font-medium">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+        <span>ระบบความปลอดภัย 1 คน 1 เครื่อง (อุปกรณ์ผ่านการตรวจสอบแล้ว)</span>
       </div>
     </div>
   );

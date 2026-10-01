@@ -849,19 +849,33 @@ export default function ExactEmployeeApp() {
       </AnimatePresence>
 
       {/* ------------------------------------------------------------- */}
-      {/* 1. TOP DOME PROFILE & WAVE HEADER                             */}
+      {/* 1. TOP DOME PROFILE & WAVE HEADER (Custom Image Background)   */}
       {/* ------------------------------------------------------------- */}
-      <div className={`w-full relative z-10 pt-4 pb-2 transition-colors duration-300 ${
-        isDark ? 'bg-gradient-to-b from-[#131b2e] to-[#0c121e] text-white border-b border-white/5' : 'bg-gradient-to-b from-[#18223c] to-[#0f172a] text-white shadow-md'
-      }`}>
-        <div className="max-w-md mx-auto px-4">
+      <div className="w-full relative z-10 pt-4 pb-0 text-white overflow-hidden shadow-xl transition-colors duration-300">
+        
+        {/* User-Requested Background Image Layer */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 hover:scale-105"
+          style={{ 
+            backgroundImage: `url('/images/header-bg.jpg'), url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ8QCYsgy4CqN5vci4sljR3yX14qZUmgwuINy5SD98OLxNYF8lRp435iTPs&s=10')`,
+          }}
+        />
+
+        {/* High-Contrast Frosted Overlay (Ensures 100% Text & Card Legibility) */}
+        <div className={`absolute inset-0 transition-colors duration-300 ${
+          isDark 
+            ? 'bg-gradient-to-b from-[#090d16]/75 via-[#0c121e]/85 to-[#090d16] backdrop-blur-[2px]' 
+            : 'bg-gradient-to-b from-slate-950/70 via-slate-900/80 to-[#18223c]/90 backdrop-blur-[1.5px]'
+        }`} />
+
+        <div className="max-w-md mx-auto px-4 relative z-10">
           
           {/* Top Row with Profile Dome Center */}
           <div className="flex items-center justify-between relative">
             
             {/* Left: Store Brand Pill */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shadow-sm">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/30 border border-blue-400/40 flex items-center justify-center text-blue-300 shadow-sm backdrop-blur-md">
                 <Shield className="w-4 h-4" />
               </div>
               <div>
@@ -872,8 +886,8 @@ export default function ExactEmployeeApp() {
 
             {/* Center Dome Profile Avatar Notch */}
             <div className="relative -top-2 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-xl shadow-blue-500/30 flex items-center justify-center">
-                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center font-black text-xs text-white uppercase">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 p-0.5 shadow-xl shadow-blue-500/40 flex items-center justify-center ring-2 ring-white/20">
+                <div className="w-full h-full rounded-full bg-slate-900/90 backdrop-blur-md flex items-center justify-center font-black text-xs text-white uppercase">
                   {employee?.nickname ? employee.nickname.slice(0, 2) : (employee?.full_name ? employee.full_name.slice(0, 2) : 'EM')}
                 </div>
               </div>
@@ -883,14 +897,14 @@ export default function ExactEmployeeApp() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-yellow-300 transition-transform active:scale-90 border border-white/10"
+                className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-yellow-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm"
                 title="สลับโหมด Dark / Light"
               >
                 {isDark ? <Sun className="w-4 h-4 text-yellow-300" /> : <Moon className="w-4 h-4 text-sky-200" />}
               </button>
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-300 transition-transform active:scale-90 border border-white/10"
+                className="p-2 rounded-xl bg-black/40 hover:bg-rose-500/40 text-slate-300 hover:text-rose-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm"
                 title="ออกจากระบบ"
               >
                 <LogOut className="w-4 h-4" />
@@ -900,10 +914,10 @@ export default function ExactEmployeeApp() {
 
           {/* User Name & Code Subtitle */}
           <div className="text-center mt-1">
-            <span className="text-xs font-extrabold text-white tracking-wide">
+            <span className="text-xs font-extrabold text-white tracking-wide drop-shadow-md">
               {employee?.full_name || employee?.fullName || 'พนักงานปฏิบัติการ'}
             </span>
-            <span className="ml-1.5 font-mono text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+            <span className="ml-1.5 font-mono text-[10px] px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/40 backdrop-blur-md shadow-sm">
               {employee?.employee_code || employee?.employeeCode || 'EMP001'}
             </span>
           </div>
@@ -911,7 +925,7 @@ export default function ExactEmployeeApp() {
           {/* ========================================================= */}
           {/* "MyShift" Telemetry Card (Dynamic Geofence from DB)       */}
           {/* ========================================================= */}
-          <div className="mt-3.5 p-4 rounded-3xl bg-slate-900/90 border border-white/10 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+          <div className="mt-3.5 p-4 rounded-3xl bg-slate-900/85 border border-white/15 shadow-2xl backdrop-blur-xl relative overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-400">
@@ -952,7 +966,7 @@ export default function ExactEmployeeApp() {
         </div>
 
         {/* Smooth S-Curve Wave SVG Cutout */}
-        <div className="w-full overflow-hidden leading-none mt-2">
+        <div className="w-full overflow-hidden leading-none mt-2 relative z-10">
           <svg viewBox="0 0 500 40" preserveAspectRatio="none" className="w-full h-7 text-[#090d16] dark:text-[#090d16]" style={{ color: isDark ? '#090d16' : '#eef2f7' }}>
             <path d="M0,0 C150,40 350,0 500,40 L500,40 L0,40 Z" fill="currentColor" />
           </svg>
