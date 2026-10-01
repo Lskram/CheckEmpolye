@@ -1,5 +1,5 @@
 // Service Worker for Yokohama Attendance Mobile PWA
-const CACHE_NAME = 'attendance-pwa-v2';
+const CACHE_NAME = 'attendance-pwa-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -18,9 +18,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  // Strictly bypass service worker for Next.js build assets, admin, console, and APIs
+  // Strictly bypass service worker for Next.js build assets, admin, console, APIs, and HTML navigation
   if (
     event.request.method !== 'GET' || 
+    event.request.mode === 'navigate' ||
     url.pathname.startsWith('/_next/') || 
     url.pathname.startsWith('/admin') || 
     url.pathname.startsWith('/console') || 
@@ -29,7 +30,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First strategy
+  // Network-First strategy for static assets
   event.respondWith(
     fetch(event.request).catch(() => {
       return caches.match(event.request);

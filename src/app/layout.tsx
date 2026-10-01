@@ -39,6 +39,30 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              // Auto-recover from chunk loading errors caused by cached build files
+              window.addEventListener('error', function(e) {
+                if (e.message && (
+                  e.message.indexOf('Loading chunk') !== -1 ||
+                  e.message.indexOf('ChunkLoadError') !== -1 ||
+                  e.message.indexOf('CSS_CHUNK_LOAD_FAILED') !== -1
+                )) {
+                  console.warn('Chunk load error detected, auto-repairing cache...');
+                  var hasReloaded = sessionStorage.getItem('chunk_auto_reload');
+                  if (!hasReloaded) {
+                    sessionStorage.setItem('chunk_auto_reload', 'true');
+                    if ('caches' in window) {
+                      caches.keys().then(function(keys) {
+                        return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                      }).then(function() {
+                        window.location.reload(true);
+                      });
+                    } else {
+                      window.location.reload(true);
+                    }
+                  }
+                }
+              });
+
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   if (window.location.pathname.startsWith('/employee')) {
