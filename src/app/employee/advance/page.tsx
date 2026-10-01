@@ -349,15 +349,13 @@ export default function EmployeeSalaryAdvancePage() {
           </div>
         </div>
 
-        {/* Advance Request Form with 30% Visible Background */}
-        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-amber-500/20 bg-[#0c121e] space-y-3">
-          {/* Custom Background Image with Controlled Opacity */}
+        {/* Advance Request Form (0% Dark Overlay / 100% Full Clarity) */}
+        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-amber-500/30 bg-transparent space-y-3">
+          {/* Custom Background Image with 100% Full Clarity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-35 pointer-events-none transition-transform duration-700"
+            className="absolute inset-0 bg-cover bg-center opacity-100 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/advance-form-bg.jpg')` }}
           />
-          {/* Soft Dark Frosted Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16]/65 via-[#0c121e]/75 to-[#090d16]/90 pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">

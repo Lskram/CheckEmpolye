@@ -246,15 +246,13 @@ export default function EmployeeLeavePage() {
       {/* Main Content */}
       <main className="p-4 flex-1 space-y-4 relative z-10">
         
-        {/* Form Card with Vacation/Leave Custom Background */}
-        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-purple-500/20 bg-[#0c121e] space-y-3`}>
-          {/* Custom Vacation / Leave Background Image with Controlled 30-40% Opacity */}
+        {/* Form Card with Vacation/Leave Custom Background (0% Dark Overlay / 100% Full Clarity) */}
+        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-purple-500/30 bg-transparent space-y-3`}>
+          {/* Custom Vacation / Leave Background Image with 100% Full Clarity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none transition-transform duration-700"
+            className="absolute inset-0 bg-cover bg-center opacity-100 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/leave-form-bg.jpg')` }}
           />
-          {/* Soft Dark Frosted Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16]/60 via-[#0c121e]/70 to-[#090d16]/85 pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">

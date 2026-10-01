@@ -105,6 +105,7 @@ flowchart TD
 | **REQ-031** | UI & Attendance Tracking | ปรับลดความทึบของ Dark Overlay ทุกหน้าให้โปร่งแสง ~30% แสดงภาพพื้นหลังชัดเจนสวยงาม และเพิ่มตัวนับยอดวันเข้างานสะสมประจำเดือนในหน้าขอเบิกเงิน (`/employee/advance`) พร้อมระบบรีเซ็ตนับใหม่ทุกวันที่ 1 ของเดือน | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-032** | UI & Branding | แทนที่ไอคอนโล่เดิมด้านซ้ายบนของหน้าหลัก (`/employee`) ด้วยภาพโลโก้ทางการ "สีแสงยางยนต์ (Sisaeng Yang Yont Sisaket)" ลายแถบสปอร์ตสีแดง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-033** | UI & Navigation | ย้าย Avatar โปรไฟล์พนักงานจากส่วนหัวด้านบน ลงมาประจำที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar แทนที่เข็มนาฬิกาเดิม พร้อมแสดงรหัสพนักงาน | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx` & `/employee`) |
+| **REQ-034** | UI & Background Clarity | ปรับเลเยอร์คุมดำ (Dark Overlay) เป็น 0% (ไม่มีแผ่นฟิล์มมืดทับ) บน 3 การ์ดหลัก: ตารางปฏิทิน (`/employee/stats`), การ์ดเลือกประเภทการลา (`/employee/leave`), และการ์ดระบุจำนวนเงินเบิก (`/employee/advance`) แสดงภาพพื้นหลังคมชัดเต็ม 100% | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 
 ---
 
@@ -132,6 +133,14 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - 0% Dark Overlay & 100% Crystal Image Clarity Tuning (Version 3.23)
+- ✅ **0% Dark Overlay Elimination on 3 Key Cards (`/employee/*`)**:
+  - **ตารางปฏิทิน (`src/app/employee/stats/page.tsx`)**: ปรับลดแผ่นฟิล์มคุมดำเป็น 0% และปรับภาพ `stats-calendar-bg.jpg` ให้แสดงผลคมชัด 100% สว่างสดใส เต็มตา
+  - **แบบฟอร์มเลือกประเภทการลา (`src/app/employee/leave/page.tsx`)**: ปรับลดแผ่นฟิล์มคุมดำเป็น 0% และปรับภาพ `leave-form-bg.jpg` ให้แสดงผลคมชัด 100%
+  - **แบบฟอร์มระบุจำนวนเงินที่ต้องการขอเบิก (`src/app/employee/advance/page.tsx`)**: ปรับลดแผ่นฟิล์มคุมดำเป็น 0% และปรับภาพ `advance-form-bg.jpg` ให้แสดงผลคมชัด 100%
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (17/17 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - Profile Avatar Relocation to Bottom Nav Center Action Button (Version 3.22)
 - ✅ **Bottom Navigation Center Profile Button (`src/components/EmployeeBottomNav.tsx`)**:

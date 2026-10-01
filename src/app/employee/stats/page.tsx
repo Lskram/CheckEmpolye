@@ -263,15 +263,13 @@ export default function EmployeeStatsPage() {
           </div>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-white/10 bg-[#0c121e] space-y-3">
-          {/* Custom Calendar Background Image with Controlled Opacity */}
+        {/* Calendar Grid (0% Dark Overlay / 100% Full Clarity) */}
+        <div className="p-4 rounded-3xl relative overflow-hidden shadow-2xl border border-white/15 bg-transparent space-y-3">
+          {/* Custom Calendar Background Image with 100% Full Clarity */}
           <div 
-            className="absolute inset-0 bg-cover bg-center opacity-30 pointer-events-none transition-transform duration-700"
+            className="absolute inset-0 bg-cover bg-center opacity-100 pointer-events-none transition-transform duration-700"
             style={{ backgroundImage: `url('/images/stats-calendar-bg.jpg')` }}
           />
-          {/* Soft Dark Frosted Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#090d16]/65 via-[#0c121e]/75 to-[#090d16]/85 pointer-events-none" />
 
           <div className="relative z-10 space-y-3">
             <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-300 mb-1">

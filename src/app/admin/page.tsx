@@ -646,8 +646,20 @@ export default function WebExecutiveDashboard() {
     loadDashboardData(true);
   };
 
-  // 1-Click Leave Action with Instant Badge Clearing
+  // 1-Click Leave Action with Confirmation and Instant Badge Clearing
   const handleLeaveAction = async (leaveId: string, status: 'APPROVED' | 'REJECTED') => {
+    const targetLeave = (analyticsData?.leaveRequests || []).find((r: any) => r.id === leaveId);
+    const empName = targetLeave?.employee?.full_name || targetLeave?.employee?.nickname || 'พนักงาน';
+    const leaveTypeStr = targetLeave?.leave_type === 'SICK' ? 'ลาป่วย 🩺' : targetLeave?.leave_type === 'BUSINESS' ? 'ลากิจ 💼' : 'ลาพักร้อน 🏖️';
+    const days = targetLeave?.days_count || 1;
+    const dateStr = targetLeave?.start_date || '';
+
+    const confirmMsg = status === 'APPROVED'
+      ? `ยืนยันการ "อนุมัติ" คำขอลางานของคุณ ${empName} (${leaveTypeStr} วันที่ ${dateStr} จำนวน ${days} วัน) หรือไม่?`
+      : `ยืนยันการ "ปฏิเสธ" คำขอลางานของคุณ ${empName} หรือไม่?`;
+
+    if (!confirm(confirmMsg)) return;
+
     setNotificationsList((prevList) =>
       prevList.map((n) =>
         n.relatedId === leaveId ? { ...n, read: true, status } : n

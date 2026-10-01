@@ -22,6 +22,7 @@ import { thaiBahtText } from '@/components/CashAdvanceReceiptModal';
 interface MonthlyAttendanceReportModalProps {
   employee: any | null;
   attendanceLogs: any[];
+  leaveRequests?: any[];
   isOpen: boolean;
   onClose: () => void;
   storeSettings?: {
@@ -36,6 +37,7 @@ interface MonthlyAttendanceReportModalProps {
 export default function MonthlyAttendanceReportModal({
   employee,
   attendanceLogs,
+  leaveRequests = [],
   isOpen,
   onClose,
   storeSettings
@@ -56,7 +58,7 @@ export default function MonthlyAttendanceReportModal({
   const monthStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
   const thaiMonthYearStr = `${thaiMonthNames[selectedMonth]} ${selectedYear + 543}`;
 
-  // 1. Filter Logs for Employee in this Month
+  // 1. Filter Logs & Approved Leaves for Employee in this Month
   const daysInMonth = useMemo(() => {
     return new Date(selectedYear, selectedMonth + 1, 0).getDate();
   }, [selectedYear, selectedMonth]);
@@ -72,11 +74,23 @@ export default function MonthlyAttendanceReportModal({
       return l.check_in_time.startsWith(monthStr);
     });
 
+    // Filter approved leaves for this employee
+    const empApprovedLeaves = (leaveRequests || []).filter((lr: any) => {
+      const matchEmp = lr.employee_id === employee.id || lr.employee?.id === employee.id || lr.employee?.employee_code === employee.employee_code;
+      if (!matchEmp) return false;
+      return lr.status === 'APPROVED';
+    });
+
     const mapByDay = new Map<number, any>();
     empLogs.forEach((l: any) => {
       const day = new Date(l.check_in_time).getDate();
       mapByDay.set(day, l);
     });
+
+    const todayDate = new Date();
+    const todayYear = todayDate.getFullYear();
+    const todayMonth = todayDate.getMonth();
+    const todayDay = todayDate.getDate();
 
     const rows = [];
     for (let d = 1; d <= daysInMonth; d++) {
@@ -84,9 +98,14 @@ export default function MonthlyAttendanceReportModal({
       const dayOfWeek = dateObj.getDay(); // 0 = Sun
       const dayOfWeekThai = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'][dayOfWeek];
       const dateStr = `${d} ${thaiMonthNames[selectedMonth].substring(0, 3)}.`;
+      const dateStrIso = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+      const isFuture = selectedYear > todayYear || 
+        (selectedYear === todayYear && selectedMonth > todayMonth) || 
+        (selectedYear === todayYear && selectedMonth === todayMonth && d > todayDay);
 
       const log = mapByDay.get(d);
-      let status: 'PRESENT' | 'LATE' | 'ABSENT' | 'OFF' = 'OFF';
+      let status: 'PRESENT' | 'LATE' | 'LEAVE' | 'ABSENT' | 'PENDING' = 'PENDING';
       let checkInStr = '-';
       let checkOutStr = '-';
       let distanceStr = '-';
@@ -116,12 +135,30 @@ export default function MonthlyAttendanceReportModal({
           distanceStr = `${Number(log.distance_from_store).toFixed(1)} ม.`;
         }
       } else {
-        // If it's a Sunday, mark as day off
-        if (dayOfWeek === 0) {
-          status = 'OFF';
-          note = 'วันหยุดประจำสัปดาห์';
+        // Check if there is an APPROVED leave for this day
+        const matchedLeave = empApprovedLeaves.find((lr: any) => {
+          const start = lr.start_date ? lr.start_date.substring(0, 10) : '';
+          const end = lr.end_date ? lr.end_date.substring(0, 10) : start;
+          return dateStrIso >= start && dateStrIso <= end;
+        });
+
+        if (matchedLeave) {
+          status = 'LEAVE';
+          const typeName = matchedLeave.leave_type === 'SICK' 
+            ? 'ลาป่วย' 
+            : matchedLeave.leave_type === 'BUSINESS' 
+            ? 'ลากิจ' 
+            : matchedLeave.leave_type === 'VACATION' 
+            ? 'พักร้อน' 
+            : 'ลางาน';
+          note = matchedLeave.reason ? `วันหยุด (${typeName}: ${matchedLeave.reason})` : `วันหยุด (${typeName} อนุมัติแล้ว)`;
+          allowance = 0;
+        } else if (isFuture) {
+          status = 'PENDING';
+          note = '-';
         } else {
           status = 'ABSENT';
+          note = 'ขาดงาน / ไม่ได้ลงเวลา';
         }
       }
 
@@ -140,11 +177,13 @@ export default function MonthlyAttendanceReportModal({
     }
 
     return rows;
-  }, [employee, attendanceLogs, selectedYear, selectedMonth, daysInMonth, monthStr]);
+  }, [employee, attendanceLogs, leaveRequests, selectedYear, selectedMonth, daysInMonth, monthStr]);
 
   // Compute KPI Summary Totals
   const onTimeCount = monthlyReportData.filter((r) => r.status === 'PRESENT').length;
   const lateCount = monthlyReportData.filter((r) => r.status === 'LATE').length;
+  const leaveCount = monthlyReportData.filter((r) => r.status === 'LEAVE').length;
+  const absentCount = monthlyReportData.filter((r) => r.status === 'ABSENT').length;
   const totalAllowance = onTimeCount * 50;
   const allowanceThaiText = thaiBahtText(totalAllowance);
 
@@ -248,55 +287,69 @@ export default function MonthlyAttendanceReportModal({
           </div>
         </div>
 
-        {/* 2. Employee Info & 2 Core Status Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans text-xs">
+        {/* 2. Employee Info & Core Status Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 font-sans text-xs">
           
           {/* Employee Info */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-1.5">
-            <div className="text-slate-500 font-medium">ข้อมูลพนักงาน:</div>
-            <div className="font-bold text-sm text-slate-900">
+          <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-1">
+            <div className="text-slate-500 font-medium text-[11px]">ข้อมูลพนักงาน:</div>
+            <div className="font-bold text-sm text-slate-900 truncate">
               {employee.full_name || employee.name}
               {employee.nickname && <span className="text-slate-600 font-normal"> ({employee.nickname})</span>}
             </div>
-            <div className="text-slate-600">
-              <span className="font-semibold">รหัสพนักงาน (ID):</span> <strong className="font-mono text-slate-900 font-black">[{employee.employee_code || employee.code || '-'}]</strong>
-            </div>
-            <div className="text-slate-600">
-              <span className="font-semibold">ตำแหน่ง:</span> {employee.role || 'ช่างเทคนิค'}
+            <div className="text-slate-600 text-[11px]">
+              <span className="font-semibold">รหัส:</span> <strong className="font-mono text-slate-900 font-black">[{employee.employee_code || employee.code || '-'}]</strong> • {employee.role || 'ช่างเทคนิค'}
             </div>
           </div>
 
           {/* Status 1: มาตรงเวลา (ปกติ) */}
-          <div className="bg-emerald-50/60 rounded-xl p-4 border border-emerald-200 space-y-1">
-            <div className="text-emerald-800 font-bold flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-200 space-y-0.5">
+            <div className="text-emerald-800 font-bold flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 สถานะปกติ (ตรงเวลา)
               </span>
-              <span className="text-[10px] font-mono bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded font-bold">+50฿/วัน</span>
+              <span className="text-[9px] font-mono bg-emerald-200 text-emerald-900 px-1 py-0.2 rounded font-bold">+50฿</span>
             </div>
-            <div className="text-2xl font-black font-mono text-emerald-900 mt-1">
+            <div className="text-xl font-black font-mono text-emerald-900">
               {onTimeCount} <span className="text-xs font-sans font-bold">วัน</span>
             </div>
-            <div className="text-[11px] text-emerald-700">
-              เบี้ยขยันสะสม: <strong>฿{totalAllowance.toLocaleString()} บาท</strong>
+            <div className="text-[10px] text-emerald-700 truncate">
+              เบี้ยขยัน: <strong>฿{totalAllowance.toLocaleString()} บาท</strong>
             </div>
           </div>
 
           {/* Status 2: มาสาย */}
-          <div className="bg-amber-50/60 rounded-xl p-4 border border-amber-200 space-y-1">
-            <div className="text-amber-800 font-bold flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-amber-600" />
+          <div className="bg-amber-50/60 rounded-xl p-3.5 border border-amber-200 space-y-0.5">
+            <div className="text-amber-800 font-bold flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-amber-600" />
                 สถานะมาสาย
               </span>
-              <span className="text-[10px] font-mono bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold">ไม่ได้รับเบี้ย</span>
+              <span className="text-[9px] font-mono bg-amber-200 text-amber-900 px-1 py-0.2 rounded font-bold">0฿</span>
             </div>
-            <div className="text-2xl font-black font-mono text-amber-900 mt-1">
+            <div className="text-xl font-black font-mono text-amber-900">
               {lateCount} <span className="text-xs font-sans font-bold">วัน</span>
             </div>
-            <div className="text-[11px] text-amber-700">
-              {lateCount > 0 ? 'หลังเวลา 07:40 น. ที่กำหนด' : '✓ ไม่มีประวัติมาสายในเดือนนี้'}
+            <div className="text-[10px] text-amber-700 truncate">
+              {lateCount > 0 ? 'หลังเวลา 07:40 น.' : '✓ ไม่มีประวัติสาย'}
+            </div>
+          </div>
+
+          {/* Status 3: วันหยุด / ลาได้รับอนุมัติ */}
+          <div className="bg-blue-50/60 rounded-xl p-3.5 border border-blue-200 space-y-0.5">
+            <div className="text-blue-800 font-bold flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                วันหยุด (ลาอนุมัติ)
+              </span>
+              <span className="text-[9px] font-mono bg-blue-200 text-blue-900 px-1 py-0.2 rounded font-bold">ใบลาถูกต้อง</span>
+            </div>
+            <div className="text-xl font-black font-mono text-blue-900">
+              {leaveCount} <span className="text-xs font-sans font-bold">วัน</span>
+            </div>
+            <div className="text-[10px] text-blue-700 truncate">
+              {leaveCount > 0 ? 'ผ่านการอนุมัติแล้ว' : 'ไม่มีวันลาที่อนุมัติ'}
             </div>
           </div>
 
@@ -324,7 +377,7 @@ export default function MonthlyAttendanceReportModal({
               </thead>
               <tbody className="divide-y divide-slate-200 text-[11px]">
                 {monthlyReportData.map((row) => (
-                  <tr key={row.day} className={`hover:bg-slate-50 ${row.status === 'LATE' ? 'bg-amber-50/30' : ''}`}>
+                  <tr key={row.day} className={`hover:bg-slate-50 ${row.status === 'LATE' ? 'bg-amber-50/30' : row.status === 'LEAVE' ? 'bg-blue-50/30' : ''}`}>
                     <td className="py-1.5 px-3 text-center font-bold text-slate-700">
                       {row.day} ({row.dayOfWeekThai})
                     </td>
@@ -340,7 +393,7 @@ export default function MonthlyAttendanceReportModal({
                     <td className="py-1.5 px-3 text-center">
                       {row.status === 'PRESENT' && (
                         <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] font-sans">
-                          ● ปกติ
+                          ● ตรงเวลา
                         </span>
                       )}
                       {row.status === 'LATE' && (
@@ -348,12 +401,17 @@ export default function MonthlyAttendanceReportModal({
                           ▲ สาย
                         </span>
                       )}
-                      {row.status === 'OFF' && (
-                        <span className="text-slate-400 text-[10px] font-sans">
-                          วันหยุด
+                      {row.status === 'LEAVE' && (
+                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px] font-sans">
+                          🏖️ วันหยุด (อนุมัติ)
                         </span>
                       )}
                       {row.status === 'ABSENT' && (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 font-medium text-[10px] font-sans border border-rose-200">
+                          ขาดงาน / ไม่ลงเวลา
+                        </span>
+                      )}
+                      {row.status === 'PENDING' && (
                         <span className="text-slate-400 text-[10px] font-sans">
                           -
                         </span>
