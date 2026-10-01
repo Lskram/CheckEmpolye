@@ -110,6 +110,7 @@ flowchart TD
 | **REQ-036** | UI & Branding | เปลี่ยนภาพพื้นหลังการ์ดบันทึกกะปฏิบัติงาน MyShift (`/employee`) ด้วยภาพที่กำหนด พร้อมเลเยอร์คุมดำโปร่งแสงทับ 50% (`bg-slate-950/50`) คอนทราสต์สมบูรณ์แบบ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-037** | UI & Navigation | แทนที่ไอคอนทั้ง 4 เมนูใน Bottom Navigation Bar (`EmployeeBottomNav.tsx`) ด้วยภาพไอคอน HD จาก Google Drive (ลงเวลา, ปฏิทิน, ยื่นใบลา, เบิกเงิน) พร้อมเพิ่มเอฟเฟกต์มิติเงา Drop-Shadow และสเกลเนียนตาทุกปุ่ม | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
 | **REQ-038** | Database & Storage | ระบบอัปโหลดและจัดเก็บรูปภาพโปรไฟล์พนักงาน (Supabase Storage Bucket `avatars` + คอลัมน์ `avatar_url` + ตารางประวัติ `employee_photos`) พร้อม API `/api/employee/avatar` และหน้าต่าง Modal ถ่ายภาพ/เลือกรูปจากเครื่อง แสดงบนปุ่มนูนโปรไฟล์ทันที | ✅ เสร็จสิ้น | Supabase DB / Next.js / Mobile Staff App |
+| **REQ-039** | UI & User Experience | รวมศูนย์การตั้งค่ารูปโปรไฟล์พนักงานไว้ที่ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar เพียงจุดเดียว พร้อมตัวเลือกเลือกรูปจากแกลเลอรี (Gallery) หรือถ่ายรูปจากกล้อง (Camera) และซิงค์แสดงผลเรียลไทม์ทุกหน้า | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
 
 ---
 
@@ -137,6 +138,19 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Center Nav Profile Photo Setup & Gallery Picker Integration (Version 3.29)
+- ✅ **Centralized Center Nav Avatar Trigger (`src/components/EmployeeBottomNav.tsx`)**:
+  - กำหนดให้การตั้งค่ารูปโปรไฟล์พนักงานเปิดใช้งานได้จากการกดที่ **ปุ่มวงกลมนูนตรงกลางของ Bottom Navigation Bar** เพียงจุดเดียว
+  - ลบปุ่มไอคอนกล้องที่แถบหัวด้านบนออกเพื่อความคลีน สวยงาม และมินิมอล
+- ✅ **Dual-Mode Image Selection (Gallery & Camera)**:
+  - เพิ่มปุ่มตัวเลือก 2 รูปแบบชัดเจนในหน้าต่าง Modal:
+    - 🖼️ **"เลือกจากแกลเลอรี"**: เปิดคลังรูปภาพในมือถือ (`accept="image/*"`) เพื่อเลือกภาพที่ต้องการ
+    - 📸 **"ถ่ายรูปด้วยกล้อง"**: เปิดกล้องหน้าของอุปกรณ์ (`capture="user"`) เพื่อถ่ายภาพสด
+- ✅ **Cross-Page Real-Time Sync**:
+  - เมื่อบันทึกรูปโปรไฟล์ ระบบจะอัปเดตเข้า Supabase Storage และส่งสัญญาณอีเวนต์ `employee_profile_updated` ซิงค์แสดงผลบนปุ่มนูนทุกหน้าทันที
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่าน 100% (17/17 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - Employee Profile Photo Upload & Supabase Storage System (Version 3.28)
 - ✅ **Supabase Database Schema & Storage Migration (`supabase/employee_photos.sql`)**:
