@@ -154,6 +154,15 @@ export default function EmployeeStatsPage() {
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
+          <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/30 overflow-hidden flex items-center justify-center shrink-0">
+            {employee?.avatar_url ? (
+              <img src={employee.avatar_url} alt={employee.fullName || employee.full_name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-black text-xs text-emerald-400 font-sans">
+                {(employee?.nickname || employee?.fullName || employee?.full_name || 'U').charAt(0)}
+              </span>
+            )}
+          </div>
           <div>
             <h1 className="font-bold text-sm">ปฏิทิน & เบี้ยเลี้ยงสะสม</h1>
             <p className="text-[11px] text-slate-400 font-mono">

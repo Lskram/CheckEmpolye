@@ -60,6 +60,7 @@ interface StaffItem {
   code: string;
   name: string;
   nickname: string;
+  avatar_url?: string | null;
   role: string;
   status: 'PRESENT' | 'LATE' | 'PENDING';
   allowance: number;
@@ -553,6 +554,7 @@ export default function MobileExecutiveApp() {
       code: emp.employeeCode,
       name: emp.fullName,
       nickname: emp.nickname || '-',
+      avatar_url: emp.avatar_url || null,
       role: emp.role === 'SUPERVISOR' ? 'หัวหน้างาน' : 'พนักงาน',
       status,
       allowance: emp.todayAllowance !== undefined ? emp.todayAllowance : (emp.totalAllowance || 0),
@@ -815,8 +817,12 @@ export default function MobileExecutiveApp() {
                     className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 font-black text-xs flex items-center justify-center border border-blue-500/30">
-                        {emp.nickname[0] || 'U'}
+                      <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-300 font-black text-xs flex items-center justify-center border border-blue-500/30 overflow-hidden shrink-0">
+                        {emp.avatar_url ? (
+                          <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{(emp.nickname || emp.name || 'U').charAt(0)}</span>
+                        )}
                       </div>
                       <div>
                         <div className="text-xs font-bold text-white">
@@ -855,8 +861,12 @@ export default function MobileExecutiveApp() {
                 <div key={emp.id} className="bento-card p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-300 font-black text-xs flex items-center justify-center border border-blue-500/30">
-                        {emp.nickname[0] || 'U'}
+                      <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-300 font-black text-xs flex items-center justify-center border border-blue-500/30 overflow-hidden shrink-0">
+                        {emp.avatar_url ? (
+                          <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{(emp.nickname || emp.name || 'U').charAt(0)}</span>
+                        )}
                       </div>
                       <div>
                         <div className="font-bold text-xs text-white">{emp.name}</div>

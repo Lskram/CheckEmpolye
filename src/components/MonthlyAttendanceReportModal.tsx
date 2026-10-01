@@ -353,14 +353,25 @@ export default function MonthlyAttendanceReportModal({
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 font-sans text-xs">
           
           {/* Employee Info */}
-          <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-1">
-            <div className="text-slate-500 font-medium text-[11px]">ข้อมูลพนักงาน:</div>
-            <div className="font-bold text-sm text-slate-900 truncate">
-              {employee.full_name || employee.name}
-              {employee.nickname && <span className="text-slate-600 font-normal"> ({employee.nickname})</span>}
+          <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-slate-200 border border-slate-300 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
+              {employee.avatar_url ? (
+                <img src={employee.avatar_url} alt={employee.full_name || employee.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-black text-slate-700 font-sans text-sm">
+                  {(employee.nickname || employee.full_name || employee.name || '?').charAt(0)}
+                </span>
+              )}
             </div>
-            <div className="text-slate-600 text-[11px]">
-              <span className="font-semibold">รหัส:</span> <strong className="font-mono text-slate-900 font-black">[{employee.employee_code || employee.code || '-'}]</strong> • {employee.role || 'ช่างเทคนิค'}
+            <div className="min-w-0 space-y-0.5">
+              <div className="text-slate-500 font-medium text-[10px]">ข้อมูลพนักงาน:</div>
+              <div className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                {employee.full_name || employee.name}
+                {employee.nickname && <span className="text-slate-600 font-normal"> ({employee.nickname})</span>}
+              </div>
+              <div className="text-slate-600 text-[10px] truncate">
+                <span className="font-semibold">รหัส:</span> <strong className="font-mono text-slate-900 font-black">[{employee.employee_code || employee.code || '-'}]</strong> • {employee.role || 'ช่างเทคนิค'}
+              </div>
             </div>
           </div>
 

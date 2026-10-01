@@ -223,10 +223,19 @@ export default function EmployeeLeavePage() {
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
+          <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/30 overflow-hidden flex items-center justify-center shrink-0">
+            {employee?.avatar_url ? (
+              <img src={employee.avatar_url} alt={employee.fullName || employee.full_name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-black text-xs text-purple-300 font-sans">
+                {(employee?.nickname || employee?.fullName || employee?.full_name || 'U').charAt(0)}
+              </span>
+            )}
+          </div>
           <div>
             <h1 className="font-bold text-sm">ยื่นคำขอลาหยุด</h1>
             <p className="text-[11px] text-slate-400 font-mono">
-              {employee?.fullName} ({employee?.employeeCode})
+              {employee?.fullName || employee?.full_name} ({employee?.employeeCode || employee?.employee_code})
             </p>
           </div>
         </div>

@@ -387,8 +387,12 @@ export default function SalaryAdvanceManager({
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-800 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-neutral-900 border border-neutral-700 text-white font-mono font-black text-sm flex items-center justify-center">
-                      {emp?.employee_code || emp?.nickname?.charAt(0) || '01'}
+                    <div className="w-11 h-11 rounded-2xl bg-neutral-900 border border-neutral-700 text-white font-mono font-black text-sm flex items-center justify-center overflow-hidden shrink-0">
+                      {emp?.avatar_url ? (
+                        <img src={emp.avatar_url} alt={emp?.full_name || 'พนักงาน'} className="w-full h-full object-cover" />
+                      ) : (
+                        <span>{emp?.employee_code || emp?.nickname?.charAt(0) || '01'}</span>
+                      )}
                     </div>
                     <div>
                       <div className="font-black text-base text-white flex items-center gap-2 font-sans">

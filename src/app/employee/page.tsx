@@ -883,33 +883,55 @@ export default function ExactEmployeeApp() {
         <div className="max-w-md mx-auto px-4 relative z-10">
           
           {/* Top Header Row */}
-          <div className="flex items-center justify-between relative py-1">
+          <div className="flex items-center justify-between relative py-1 gap-2">
             
             {/* Left: Official Sisaeng Store Logo */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <img 
                 src="/images/store-logo.png" 
                 alt="สีแสงยางยนต์ (Sisaeng Yang Yont)" 
-                className="h-8 w-auto max-w-[120px] object-contain drop-shadow-md"
+                className="h-8 w-auto max-w-[110px] sm:max-w-[120px] object-contain drop-shadow-md"
               />
-              <div>
+              <div className="hidden xs:block">
                 <div className="text-[10px] font-bold text-blue-300 tracking-wider">YOKOHAMA NAYA</div>
                 <div className="text-xs font-black text-white leading-none">สีแสงยางยนต์</div>
               </div>
             </div>
 
-            {/* Right: Theme Toggle & Logout */}
-            <div className="flex items-center gap-1.5">
+            {/* Right: Employee Profile Pill + Theme Toggle & Logout */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              {employee && (
+                <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/40 border border-white/15 backdrop-blur-md shadow-sm min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 shadow-inner">
+                    {employee.avatar_url ? (
+                      <img src={employee.avatar_url} alt={employee.fullName || employee.full_name || 'User'} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="font-black text-[11px] text-white">
+                        {(employee.nickname || employee.fullName || employee.full_name || 'U').charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-left leading-tight pr-1 min-w-0 hidden sm:block">
+                    <div className="text-[11px] font-black text-white max-w-[80px] truncate">
+                      {employee.nickname || employee.fullName || employee.full_name || 'พนักงาน'}
+                    </div>
+                    <div className="text-[9px] font-mono text-blue-300 font-bold">
+                      {employee.employeeCode || employee.employee_code || '-'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-yellow-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm"
+                className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-yellow-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm shrink-0"
                 title="สลับโหมด Dark / Light"
               >
                 {isDark ? <Sun className="w-4 h-4 text-yellow-300" /> : <Moon className="w-4 h-4 text-sky-200" />}
               </button>
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-xl bg-black/40 hover:bg-rose-500/40 text-slate-300 hover:text-rose-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm"
+                className="p-2 rounded-xl bg-black/40 hover:bg-rose-500/40 text-slate-300 hover:text-rose-300 transition-transform active:scale-90 border border-white/15 backdrop-blur-md shadow-sm shrink-0"
                 title="ออกจากระบบ"
               >
                 <LogOut className="w-4 h-4" />

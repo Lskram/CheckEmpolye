@@ -91,6 +91,7 @@ interface StaffItem {
   code: string;
   name: string;
   nickname: string;
+  avatar_url?: string | null;
   role: string;
   status: 'PRESENT' | 'LATE' | 'PENDING';
   allowance: number;
@@ -856,6 +857,7 @@ export default function WebExecutiveDashboard() {
       code: emp.employeeCode,
       name: emp.fullName,
       nickname: emp.nickname || '-',
+      avatar_url: emp.avatar_url || null,
       role: emp.role === 'SUPERVISOR' ? 'หัวหน้างาน' : 'พนักงาน',
       status,
       allowance: emp.todayAllowance !== undefined ? emp.todayAllowance : (emp.totalAllowance || 0),
@@ -1352,6 +1354,15 @@ export default function WebExecutiveDashboard() {
                               <span className="font-mono text-xs font-bold text-neutral-500 select-none">
                                 [{String(idx + 1).padStart(2, '0')}]
                               </span>
+                              <div className="w-9 h-9 rounded-full bg-neutral-900 border border-neutral-700/80 overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
+                                {emp.avatar_url ? (
+                                  <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="font-black text-xs text-neutral-400 font-sans">
+                                    {(emp.nickname || emp.name || '?').charAt(0)}
+                                  </span>
+                                )}
+                              </div>
                               <div>
                                 <div className="font-bold text-sm text-white group-hover:text-blue-400 transition-colors flex items-center gap-1.5 font-sans">
                                   <span>{emp.name}</span>
@@ -1583,7 +1594,21 @@ export default function WebExecutiveDashboard() {
                     {formattedStaff.map((emp) => (
                       <tr key={emp.id} className="editorial-row hover:bg-neutral-900/60 font-sans">
                         <td className="py-3.5 px-4 font-bold text-sm text-white">
-                          {emp.name} ({emp.nickname})
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-neutral-900 border border-neutral-700/80 overflow-hidden flex items-center justify-center shrink-0">
+                              {emp.avatar_url ? (
+                                <img src={emp.avatar_url} alt={emp.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="font-black text-xs text-neutral-400 font-sans">
+                                  {(emp.nickname || emp.name || '?').charAt(0)}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <span>{emp.name}</span>
+                              <span className="text-neutral-500 text-xs ml-1.5">({emp.nickname})</span>
+                            </div>
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 font-bold text-blue-400 font-mono">{emp.code}</td>
                         <td className="py-3.5 px-4 text-neutral-300">{emp.role}</td>
@@ -1602,7 +1627,8 @@ export default function WebExecutiveDashboard() {
                                 full_name: emp.name,
                                 nickname: emp.nickname,
                                 employee_code: emp.code,
-                                role: emp.role
+                                role: emp.role,
+                                avatar_url: emp.avatar_url || null
                               });
                               setIsReportModalOpen(true);
                             }}

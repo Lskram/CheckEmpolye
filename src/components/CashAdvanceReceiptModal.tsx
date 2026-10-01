@@ -221,14 +221,25 @@ export default function CashAdvanceReceiptModal({
 
         {/* 2. Employee Info & ID */}
         <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
-          <div className="space-y-1.5">
-            <div className="text-slate-500 font-medium">ข้อมูลพนักงานผู้ขอเบิกเงิน:</div>
-            <div className="font-bold text-sm text-slate-900 flex items-center gap-2">
-              <span>{emp?.full_name || 'ไม่ระบุชื่อพนักงาน'}</span>
-              {emp?.nickname && <span className="text-slate-600 font-normal">({emp.nickname})</span>}
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-full bg-slate-200 border border-slate-300 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
+              {emp?.avatar_url ? (
+                <img src={emp.avatar_url} alt={emp?.full_name || 'พนักงาน'} className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-black text-slate-700 font-sans text-sm">
+                  {(emp?.nickname || emp?.full_name || '?').charAt(0)}
+                </span>
+              )}
             </div>
-            <div className="text-slate-600">
-              <span className="font-semibold">ตำแหน่ง / ฝ่าย:</span> {emp?.role || 'ช่างเทคนิคประจำศูนย์บริการ'}
+            <div className="space-y-0.5 min-w-0">
+              <div className="text-slate-500 font-medium text-[10px]">ข้อมูลพนักงานผู้ขอเบิกเงิน:</div>
+              <div className="font-bold text-sm text-slate-900 flex items-center gap-2 truncate">
+                <span>{emp?.full_name || 'ไม่ระบุชื่อพนักงาน'}</span>
+                {emp?.nickname && <span className="text-slate-600 font-normal">({emp.nickname})</span>}
+              </div>
+              <div className="text-slate-600 truncate text-[11px]">
+                <span className="font-semibold">ตำแหน่ง / ฝ่าย:</span> {emp?.role || 'ช่างเทคนิคประจำศูนย์บริการ'}
+              </div>
             </div>
           </div>
 

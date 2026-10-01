@@ -168,6 +168,26 @@ export const db = {
         console.error('[Supabase getEmployees Error]:', error);
       }
       if (!error && data) {
+        try {
+          const { data: photos } = await client
+            .from('employee_photos')
+            .select('employee_id, photo_url, is_current')
+            .order('created_at', { ascending: false });
+          if (photos && photos.length > 0) {
+            const photoMap = new Map<string, string>();
+            photos.forEach((p: any) => {
+              if (p.employee_id && p.photo_url && !photoMap.has(p.employee_id)) {
+                photoMap.set(p.employee_id, p.photo_url);
+              }
+            });
+            return data.map((e: any) => ({
+              ...e,
+              avatar_url: e.avatar_url || photoMap.get(e.id) || null,
+            })) as Employee[];
+          }
+        } catch (photoErr) {
+          // ignore
+        }
         return data as Employee[];
       }
     }
@@ -178,7 +198,21 @@ export const db = {
     const client = getClient();
     if (isSupabaseConfigured && client) {
       const { data } = await client.from('employees').select('*').eq('id', id).single();
-      if (data) return data as Employee;
+      if (data) {
+        if (!data.avatar_url) {
+          try {
+            const { data: photo } = await client
+              .from('employee_photos')
+              .select('photo_url')
+              .eq('employee_id', id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+            if (photo?.photo_url) data.avatar_url = photo.photo_url;
+          } catch (e) {}
+        }
+        return data as Employee;
+      }
     }
     return mockEmployees.find((e) => e.id === id) || null;
   },
@@ -191,7 +225,21 @@ export const db = {
         .select('*')
         .ilike('employee_code', code.trim())
         .single();
-      if (data) return data as Employee;
+      if (data) {
+        if (!data.avatar_url) {
+          try {
+            const { data: photo } = await client
+              .from('employee_photos')
+              .select('photo_url')
+              .eq('employee_id', data.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+            if (photo?.photo_url) data.avatar_url = photo.photo_url;
+          } catch (e) {}
+        }
+        return data as Employee;
+      }
     }
     return mockEmployees.find((e) => e.employee_code.toLowerCase() === code.trim().toLowerCase()) || null;
   },

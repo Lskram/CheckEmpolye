@@ -156,6 +156,7 @@ export async function GET(request: Request) {
         employeeCode: emp.employee_code,
         fullName: emp.full_name,
         nickname: emp.nickname,
+        avatar_url: emp.avatar_url || null,
         role: emp.role,
         hwid: emp.hwid,
         allowanceCount: stats.count,
