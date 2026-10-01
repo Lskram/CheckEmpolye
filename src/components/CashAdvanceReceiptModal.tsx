@@ -17,7 +17,9 @@ import {
   Download,
   Share2,
   Copy,
-  Layers
+  Layers,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { SalaryAdvanceRequest } from '@/lib/types';
 
@@ -93,6 +95,8 @@ export default function CashAdvanceReceiptModal({
   storeSettings
 }: CashAdvanceReceiptModalProps) {
   const [printCopyMode, setPrintCopyMode] = useState<'ORIGINAL' | 'COPY' | 'BOTH'>('BOTH');
+  const [isExportingPng, setIsExportingPng] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen || !request) return null;
@@ -127,6 +131,56 @@ export default function CashAdvanceReceiptModal({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExportPNG = async () => {
+    if (!printAreaRef.current) return;
+    setIsExportingPng(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(printAreaRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+      const link = document.createElement('a');
+      link.download = `CashAdvance-${docNumber}-${emp?.employee_code || 'ID'}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (e: any) {
+      alert('เกิดข้อผิดพลาดในการบันทึกภาพ PNG: ' + e.message);
+    } finally {
+      setIsExportingPng(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!printAreaRef.current) return;
+    setIsExportingPdf(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
+      const canvas = await html2canvas(printAreaRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`CashAdvance-${docNumber}-${emp?.employee_code || 'ID'}.pdf`);
+    } catch (e: any) {
+      alert('เกิดข้อผิดพลาดในการบันทึก PDF: ' + e.message);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   /**
@@ -169,23 +223,27 @@ export default function CashAdvanceReceiptModal({
         </div>
 
         {/* 1. Header Section */}
-        <div className="border-b-2 border-slate-900 pb-5 space-y-2">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="space-y-1 max-w-md">
+        <div className="border-b-2 border-slate-900 pb-4 space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 max-w-xl">
+            <img 
+              src="/images/official-store-logo.png" 
+              alt="สีแสงยางยนต์ YOKOHAMA NAYA COSMIS" 
+              className="h-12 sm:h-14 w-auto object-contain shrink-0" 
+            />
+            <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-[10px] uppercase">
+                <span className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-[9px] uppercase">
                   OFFICIAL VOUCHER
                 </span>
-                <span className="text-xs font-bold text-slate-600 font-mono">
-                  สาขาศรีสะเกษ
+                <span className="text-xs font-bold text-slate-700 font-mono">
+                  สาขาศรีสะเกษ • ศูนย์บริการมาตรฐาน
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
                 {storeName}
               </h1>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {storeAddress} <br />
-                โทรศัพท์: {storePhone} • ระบบบริหารงานบุคคลและสวัสดิการ
+              <p className="text-[11px] text-slate-600 leading-snug">
+                {storeAddress} • โทร: {storePhone}
               </p>
             </div>
           </div>
@@ -478,9 +536,9 @@ export default function CashAdvanceReceiptModal({
             </div>
           </div>
 
-          {/* Print Version Selector (ต้นฉบับ / สำเนา / ทั้ง 2 แบบ) */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center p-1 bg-neutral-900 border border-neutral-800 rounded-xl font-mono text-[11px]">
+          {/* Print Version Selector & Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+            <div className="flex items-center p-1 bg-neutral-900 border border-neutral-800 rounded-xl text-[11px]">
               <button
                 onClick={() => setPrintCopyMode('ORIGINAL')}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
@@ -508,8 +566,27 @@ export default function CashAdvanceReceiptModal({
             </div>
 
             <button
+              onClick={handleExportPNG}
+              disabled={isExportingPng || isExportingPdf}
+              className="px-3 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+              title="บันทึกรูปภาพ PNG"
+            >
+              {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin text-emerald-400" /> : <ImageIcon className="w-4 h-4 text-emerald-400" />}
+              <span className="hidden sm:inline">บันทึก PNG</span>
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExportingPng || isExportingPdf}
+              className="px-3 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+              title="บันทึกไฟล์ PDF"
+            >
+              {isExportingPdf ? <Loader2 className="w-4 h-4 animate-spin text-rose-400" /> : <FileText className="w-4 h-4 text-rose-400" />}
+              <span className="hidden sm:inline">บันทึก PDF</span>
+            </button>
+
+            <button
               onClick={handlePrint}
-              className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold font-mono flex items-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-95"
+              className="px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold flex items-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-95"
             >
               <Printer className="w-4 h-4 text-black" />
               <span>สั่งพิมพ์ (Print)</span>
@@ -554,16 +631,32 @@ export default function CashAdvanceReceiptModal({
             </span>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto font-mono text-xs">
+            <button
+              onClick={handleExportPNG}
+              disabled={isExportingPng || isExportingPdf}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isExportingPng ? <Loader2 className="w-4 h-4 animate-spin text-emerald-400" /> : <ImageIcon className="w-4 h-4 text-emerald-400" />}
+              <span>บันทึก PNG</span>
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExportingPng || isExportingPdf}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-200 font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isExportingPdf ? <Loader2 className="w-4 h-4 animate-spin text-rose-400" /> : <FileText className="w-4 h-4 text-rose-400" />}
+              <span>บันทึก PDF</span>
+            </button>
             <button
               onClick={onClose}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 text-xs font-bold font-mono transition-all"
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-neutral-300 font-bold transition-all"
             >
               ปิดหน้าต่าง
             </button>
             <button
               onClick={handlePrint}
-              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-black font-mono flex items-center justify-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-95"
+              className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black font-black flex items-center justify-center gap-2 shadow-lg shadow-white/10 transition-all active:scale-95"
             >
               <Printer className="w-4 h-4 text-black" />
               <span>🖨️ สั่งพิมพ์ ({printCopyMode === 'BOTH' ? '2 แผ่น' : '1 แผ่น'})</span>

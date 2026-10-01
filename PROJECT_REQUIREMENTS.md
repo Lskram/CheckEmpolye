@@ -108,13 +108,14 @@ flowchart TD
 | **REQ-034** | UI & Background Clarity | ปรับเลเยอร์คุมดำ (Dark Overlay) เป็น 0% (ไม่มีแผ่นฟิล์มมืดทับ) บน 3 การ์ดหลัก: ตารางปฏิทิน (`/employee/stats`), การ์ดเลือกประเภทการลา (`/employee/leave`), และการ์ดระบุจำนวนเงินเบิก (`/employee/advance`) แสดงภาพพื้นหลังคมชัดเต็ม 100% | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-035** | UI & Text Contrast | บังคับตัวหนังสือเป็นสีดำเข้มคมชัด (High-Contrast Black Text `text-slate-900 font-black`) และกล่องกรอกข้อความสีขาวทึบ (`bg-white/95 text-slate-900 border-slate-300`) ใน 3 การ์ดที่ปิดม่านคุมดำ 0% (ตารางปฏิทิน, ฟอร์มยื่นใบลา, ฟอร์มขอเบิกเงิน) เพื่อความคมชัด อ่านง่ายสูงสุด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 | **REQ-036** | UI & Branding | เปลี่ยนภาพพื้นหลังการ์ดบันทึกกะปฏิบัติงาน MyShift (`/employee`) ด้วยภาพที่กำหนด พร้อมเลเยอร์คุมดำโปร่งแสงทับ 50% (`bg-slate-950/50`) คอนทราสต์สมบูรณ์แบบ | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
+| **REQ-037** | UI & Navigation | แทนที่ไอคอนทั้ง 4 เมนูใน Bottom Navigation Bar (`EmployeeBottomNav.tsx`) ด้วยภาพไอคอน HD จาก Google Drive (ลงเวลา, ปฏิทิน, ยื่นใบลา, เบิกเงิน) พร้อมเพิ่มเอฟเฟกต์มิติเงา Drop-Shadow และสเกลเนียนตาทุกปุ่ม | ✅ เสร็จสิ้น | Mobile Staff App (`EmployeeBottomNav.tsx`) |
 
 ---
 
 ### 3.2 คลังความต้องการในอนาคต (Future Feature Backlog)
 
 | รหัส Ticket | หมวดหมู่ | รายละเอียดความต้องการ | ระดับความสำคัญ | แพลตฟอร์ม |
-| :--- | :--- | :--- | :---: | :--- |
+| :--- | :--- | :--- | :--- | :--- |
 | **REQ-013** | Notifications | แจ้งเตือน LINE Notify เมื่อมีพนักงานยื่นใบลาใหม่ และแจ้งเตือนผลการอนุมัติ/ปฏิเสธ | ปานกลาง | LINE Messaging API |
 | **REQ-014** | Security & Profile | ระบบให้พนักงานเปลี่ยนรหัสผ่าน PIN 4 หลัก ด้วยตนเองผ่านแอปมือถือ | ปานกลาง | Mobile Staff App |
 | **REQ-015** | Notifications | Push Notification บนโทรศัพท์ แจ้งเตือนพนักงานก่อน 07:40 น. ไม่ให้ลืมเข้างาน | แนะนำ | Native Push / Capacitor |
@@ -135,6 +136,17 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-01] - Custom Bottom Navigation Icons with HD Drop-Shadows (Version 3.27)
+- ✅ **Custom HD Icons for Bottom Navigation Bar (`src/components/EmployeeBottomNav.tsx`)**:
+  - ดาวน์โหลดไอคอนทั้ง 4 จาก Google Drive:
+    - ⏰ **ลงเวลา (Check-in)**: `public/images/nav-clock.png`
+    - 📅 **ปฏิทิน (Calendar)**: `public/images/nav-calendar.png`
+    - 📝 **ยื่นใบลา (Leave)**: `public/images/nav-leave.png`
+    - 💰 **เบิกเงิน (Advance)**: `public/images/nav-advance.png`
+  - ตกแต่งเอฟเฟกต์เงา `drop-shadow-md` ทุกปุ่ม และขยายสเกล 1.1x พร้อมเรืองแสงฟ้า `drop-shadow-[0_4px_6px_rgba(59,130,246,0.5)]` เมื่อเป็นแท็บที่กำลังเปิดใช้งาน (Active Tab)
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่าน 100% (17/17 Routes, 0 Errors)
 
 ### 📌 [2026-10-01] - MyShift Telemetry Card Custom Background with 50% Opacity Overlay (Version 3.26)
 - ✅ **Custom Background for MyShift Telemetry Card (`src/app/employee/page.tsx`)**:
@@ -580,6 +592,21 @@ flowchart TD
   - ระบบ 1-Click Approve/Reject เคลียร์ Badge การแจ้งเตือนออกจากหน้าจอแบบ Real-time พร้อม Optimistic UI
   - รองรับ Leaflet Interactive Store Map Picker ปรับพิกัดร้านและขยาย/ย่อรัศมี Geofence 50 เมตร แบบไดนามิก
 - ✅ **Zero Regression Guarantee**: ผ่านการทดสอบ `npm run build` ระดับ Production 100% (17 static and dynamic routes สมบูรณ์ 0 Errors)
+
+### 📌 [2026-10-01] - Official Store Logo Header & 1-Click PNG/PDF Document Export Hub (Version 3.25)
+- ✅ **เปลี่ยนส่วนหัวเอกสารเป็นโลโก้ศูนย์บริการทางการ (Official Yokohama & Sisaeng Store Logo)**:
+  - ดึงโลโก้จริงจาก Official Store Drive ติดตั้งลงในระบบ `public/images/official-store-logo.png`
+  - ฝังโลโก้ลงในส่วนหัวของทั้ง **เอกสารสรุปเวลาทำงานประจำเดือน (Monthly Timesheet & Allowance Report)** และ **ใบสำคัญจ่ายเงิน/ใบรับเงินเบิกล่วงหน้า (Cash Advance Voucher & Receipt)** พร้อมรายละเอียดสาขาอย่างครบถ้วน
+- ✅ **ระบบส่งออกภาพ PNG ความคมชัดสูง (1-Click PNG Export)**:
+  - พัฒนาระบบ `handleExportPNG()` ด้วย `html2canvas` อัตราสเกล 2x (High-DPI Ultra Sharp) บันทึกเป็นไฟล์รูปภาพ PNG พร้อมใช้งานทันที
+- ✅ **ระบบส่งออกเอกสาร PDF ตามมาตรฐาน ISO 216 A4 (1-Click PDF Export)**:
+  - พัฒนาระบบ `handleExportPDF()` ด้วย `jsPDF` แปลงเอกสารเป็นไฟล์ PDF ขนาด A4 แนวตั้ง (Portrait) คมชัดระดับมืออาชีพ
+- ✅ **ระบบเลือกโหมดพิมพ์และตรายางสีแดง 3 รูปแบบ**:
+  - รองรับการเลือกพิมพ์: **"ต้นฉบับ"** (สำหรับฝ่ายบัญชี/การเงิน), **"สำเนา"** (สำหรับพนักงาน), หรือ **"ทั้ง 2 แบบ"** (พิมพ์ 2 แผ่นต่อเนื่อง)
+- ✅ **การจัดวางลายเซ็นถูกต้องตามหลักสากล**:
+  - ฝ่าย CEO / ผู้บริหาร (ผู้อนุมัติ) อยู่ **ฝั่งซ้าย**
+  - ฝ่ายพนักงาน (ผู้รับทราบ/ผู้รับเงิน) อยู่ **ฝั่งขวา**
+  - มีช่องว่างสำหรับลงลายมือชื่อจริง และระบุชื่อ-นามสกุลพร้อมรหัสพนักงาน (ID) ชัดเจน
 
 ### 📌 [2026-10-01] - Modern Clean Bento Grid UI Overhaul (Version 2.8)
 - ✅ **ยกเครื่องแถบเมนูด้านล่าง (Smart Floating Frosted Glass Bottom Nav)**: ดีไซน์ใหม่แบบลอยตัวโค้งมน (`backdrop-blur-2xl bg-slate-900/90`), Active Pill Indicator พร้อมไฟนีออน และระบบ Smart Auto-Hide ซ่อนแถบอัตโนมัติเมื่อเลื่อนหน้าจอลงเพื่อเพิ่มพื้นที่การมองเห็นสูงสุด

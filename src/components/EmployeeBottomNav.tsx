@@ -103,8 +103,14 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
                 : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Clock className={`w-5 h-5 ${active === 'checkin' ? 'text-blue-500' : ''}`} />
-            <span className="text-[10px] mt-0.5 font-medium">ลงเวลา</span>
+            <img 
+              src="/images/nav-clock.png" 
+              alt="ลงเวลา" 
+              className={`w-6 h-6 object-contain drop-shadow-md transition-all ${
+                active === 'checkin' ? 'scale-110 drop-shadow-[0_4px_6px_rgba(59,130,246,0.5)]' : 'opacity-85 hover:opacity-100'
+              }`}
+            />
+            <span className="text-[10px] mt-1 font-bold">ลงเวลา</span>
           </Link>
 
           {/* Tab 2: Calendar */}
@@ -118,8 +124,14 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
                 : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Calendar className={`w-5 h-5 ${active === 'calendar' ? 'text-blue-500' : ''}`} />
-            <span className="text-[10px] mt-0.5 font-medium">ปฏิทิน</span>
+            <img 
+              src="/images/nav-calendar.png" 
+              alt="ปฏิทิน" 
+              className={`w-6 h-6 object-contain drop-shadow-md transition-all ${
+                active === 'calendar' ? 'scale-110 drop-shadow-[0_4px_6px_rgba(59,130,246,0.5)]' : 'opacity-85 hover:opacity-100'
+              }`}
+            />
+            <span className="text-[10px] mt-1 font-bold">ปฏิทิน</span>
           </Link>
 
           {/* Center Raised Profile Avatar Action Button */}
@@ -159,8 +171,14 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
                 : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <FileText className={`w-5 h-5 ${active === 'leave' ? 'text-blue-500' : ''}`} />
-            <span className="text-[10px] mt-0.5 font-medium">ยื่นใบลา</span>
+            <img 
+              src="/images/nav-leave.png" 
+              alt="ยื่นใบลา" 
+              className={`w-6 h-6 object-contain drop-shadow-md transition-all ${
+                active === 'leave' ? 'scale-110 drop-shadow-[0_4px_6px_rgba(59,130,246,0.5)]' : 'opacity-85 hover:opacity-100'
+              }`}
+            />
+            <span className="text-[10px] mt-1 font-bold">ยื่นใบลา</span>
           </Link>
 
           {/* Tab 4: Advance */}
@@ -174,8 +192,14 @@ export default function EmployeeBottomNav({ currentTab }: EmployeeBottomNavProps
                 : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            <Coins className={`w-5 h-5 ${active === 'advance' ? 'text-blue-500' : ''}`} />
-            <span className="text-[10px] mt-0.5 font-medium">เบิกเงิน</span>
+            <img 
+              src="/images/nav-advance.png" 
+              alt="เบิกเงิน" 
+              className={`w-6 h-6 object-contain drop-shadow-md transition-all ${
+                active === 'advance' ? 'scale-110 drop-shadow-[0_4px_6px_rgba(59,130,246,0.5)]' : 'opacity-85 hover:opacity-100'
+              }`}
+            />
+            <span className="text-[10px] mt-1 font-bold">เบิกเงิน</span>
           </Link>
 
         </nav>
