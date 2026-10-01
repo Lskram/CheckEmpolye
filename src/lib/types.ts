@@ -108,6 +108,10 @@ export interface StoreSettings {
   allowance_amount: number; // e.g. 50.00
   min_work_hours_for_allowance?: number; // e.g. 4.00
   ot_rate_per_hour?: number; // e.g. 60.00
+  line_access_token?: string | null;
+  line_target_id?: string | null;
+  line_notify_token?: string | null;
+  line_notifications_enabled?: boolean;
   updated_at?: string;
 }
 

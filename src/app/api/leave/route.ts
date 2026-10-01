@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db-store';
+import { sendLineLeaveRequestAlert, sendLineLeaveActionAlert } from '@/lib/line';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -51,6 +52,19 @@ export async function POST(request: Request) {
       reason: reason.trim(),
     });
 
+    // Fire LINE OA Notification asynchronously
+    sendLineLeaveRequestAlert({
+      leaveId: newLeave.id,
+      employeeCode: employee.employee_code,
+      fullName: employee.full_name,
+      nickname: employee.nickname,
+      leaveType: leaveType,
+      startDate: startDate,
+      endDate: endDate,
+      daysCount: days,
+      reason: reason.trim(),
+    }).catch((err) => console.error('[LINE OA Leave Alert Error]:', err));
+
     return NextResponse.json({
       success: true,
       message: 'ยื่นคำขอลาสำเร็จ รอผู้บริหารตรวจสอบอนุมัติ',
@@ -80,6 +94,21 @@ export async function PUT(request: Request) {
     const updated = await db.updateLeaveStatus(leaveId, status, reviewedBy, rejectionReason);
     if (!updated) {
       return NextResponse.json({ success: false, message: 'ไม่พบใบลาที่ต้องการอนุมัติ' }, { status: 404 });
+    }
+
+    // Fire LINE OA Notification for Leave Approval/Rejection
+    const emp = (updated as any).employee || await db.getEmployeeById(updated.employee_id);
+    if (emp) {
+      sendLineLeaveActionAlert({
+        leaveId: updated.id,
+        employeeCode: emp.employee_code,
+        fullName: emp.full_name,
+        nickname: emp.nickname,
+        leaveType: updated.leave_type,
+        status: status as 'APPROVED' | 'REJECTED',
+        reviewerName: reviewedBy === '00000000-0000-0000-0000-000000000000' ? 'ท่านประธาน (SI01)' : 'ผู้บริหาร',
+        rejectionReason: rejectionReason || null,
+      }).catch((err) => console.error('[LINE OA Leave Action Alert Error]:', err));
     }
 
     return NextResponse.json({
