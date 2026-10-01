@@ -903,10 +903,12 @@ export default function WebExecutiveDashboard() {
         {/* Header Bar with Live Clock */}
         <header className="max-w-5xl mx-auto w-full flex items-center justify-between py-4 border-b border-neutral-800/80">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center font-black text-xl shadow-md shrink-0 overflow-hidden">
-              <svg width="20" height="17" viewBox="0 0 75 65" className="w-5 h-5 fill-current shrink-0" style={{ width: '20px', height: '17px', maxWidth: '20px', maxHeight: '17px' }}>
-                <path d="M37.5 0L75 65H0z" />
-              </svg>
+            <div className="w-11 h-11 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-md shrink-0 overflow-hidden p-1">
+              <img 
+                src="/images/official-store-logo.png" 
+                alt="สีแสงยางยนต์ YOKOHAMA" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <div className="font-bold text-base sm:text-lg text-white">สีแสงยางยนต์ YOKOHAMA</div>
@@ -1110,10 +1112,12 @@ export default function WebExecutiveDashboard() {
         {/* Left: Vercel Logo + Project Breadcrumb */}
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black group-hover:scale-105 transition-all shrink-0 overflow-hidden">
-              <svg width="18" height="15" viewBox="0 0 75 65" className="w-4 h-4 fill-current shrink-0" style={{ width: '16px', height: '14px', maxWidth: '16px', maxHeight: '14px' }}>
-                <path d="M37.5 0L75 65H0z" />
-              </svg>
+            <div className="w-9 h-9 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center p-1 group-hover:scale-105 transition-all shrink-0 overflow-hidden">
+              <img 
+                src="/images/official-store-logo.png" 
+                alt="สีแสงยางยนต์ YOKOHAMA" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div className="hidden sm:flex items-center gap-2 text-xs font-mono">
               <span className="text-neutral-400 hover:text-white">สีแสงยางยนต์</span>

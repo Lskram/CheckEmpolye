@@ -76,11 +76,12 @@ export default function VercelPortalLandingPage() {
       <header className="max-w-7xl mx-auto w-full px-6 py-5 flex items-center justify-between border-b border-neutral-800/60 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-3 group">
-            {/* Vercel Triangle Icon */}
-            <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black transition-transform duration-200 group-hover:scale-105 shrink-0 overflow-hidden">
-              <svg width="18" height="15" viewBox="0 0 75 65" className="w-4 h-4 fill-current shrink-0" style={{ width: '16px', height: '14px', maxWidth: '16px', maxHeight: '14px' }}>
-                <path d="M37.5 0L75 65H0z" />
-              </svg>
+            <div className="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center p-1 transition-transform duration-200 group-hover:scale-105 shrink-0 overflow-hidden shadow-sm">
+              <img 
+                src="/images/official-store-logo.png" 
+                alt="สีแสงยางยนต์ YOKOHAMA" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <div className="font-bold text-white text-base tracking-tight flex items-center gap-2">
@@ -385,11 +386,13 @@ export default function VercelPortalLandingPage() {
       {/* 5. Vercel Footer                                              */}
       {/* ------------------------------------------------------------- */}
       <footer className="max-w-7xl mx-auto w-full px-6 py-8 border-t border-neutral-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-neutral-500">
-        <div className="flex items-center gap-2">
-          <svg width="16" height="14" viewBox="0 0 75 65" className="w-3.5 h-3.5 fill-current text-white shrink-0" style={{ width: '14px', height: '12px', maxWidth: '14px', maxHeight: '12px' }}>
-            <path d="M37.5 0L75 65H0z" />
-          </svg>
-          <span>© {new Date().getFullYear()} สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS) — Powered by Vercel & Supabase</span>
+        <div className="flex items-center gap-2.5">
+          <img 
+            src="/images/official-store-logo.png" 
+            alt="สีแสงยางยนต์ YOKOHAMA" 
+            className="w-5 h-5 object-contain shrink-0" 
+          />
+          <span>© {new Date().getFullYear()} สีแสงยางยนต์ (YOKOHAMA NAYA COSMIS) — ระบบบริหารงานบุคคลและสวัสดิการ</span>
         </div>
 
         <div className="flex items-center gap-4 text-neutral-400">
