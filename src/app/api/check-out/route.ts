@@ -136,6 +136,7 @@ export async function POST(request: Request) {
         employeeCode: employee.employee_code,
         fullName: employee.full_name,
         nickname: employee.nickname,
+        avatarUrl: employee.avatar_url,
         attemptTime: checkOutTimeStr,
         distance,
         allowedRadius: radiusMeters,
@@ -190,6 +191,7 @@ export async function POST(request: Request) {
       employeeCode: employee.employee_code,
       fullName: employee.full_name,
       nickname: employee.nickname,
+      avatarUrl: employee.avatar_url,
       checkOutTime: checkOutTimeStr,
       duration: durationStr,
     }).catch((err) => console.warn('[LINE] Check-out alert error:', err));

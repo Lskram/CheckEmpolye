@@ -10,6 +10,7 @@ export interface LineCheckInAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   checkInTime: string;
   distance: number;
   status: 'PRESENT' | 'LATE';
@@ -23,6 +24,7 @@ export interface LineCheckOutAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   checkOutTime: string;
   duration: string;
 }
@@ -31,6 +33,7 @@ export interface LineOutOfGeofenceAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   attemptTime: string;
   distance: number;
   allowedRadius: number;
@@ -42,6 +45,7 @@ export interface LineLateAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   checkInTime: string;
   lateMinutes: number;
   latitude: number;
@@ -53,6 +57,7 @@ export interface LineAdvanceRequestAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   amount: number;
   reason: string;
   neededBeforeDate?: string | null;
@@ -64,6 +69,7 @@ export interface LineAdvanceActionAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   amount: number;
   status: 'APPROVED' | 'REJECTED';
   reviewerName?: string;
@@ -75,6 +81,7 @@ export interface LineLeaveRequestAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   leaveType: string;
   startDate: string;
   endDate: string;
@@ -87,6 +94,7 @@ export interface LineLeaveActionAlertPayload {
   employeeCode: string;
   fullName: string;
   nickname?: string;
+  avatarUrl?: string | null;
   leaveType: string;
   status: 'APPROVED' | 'REJECTED';
   reviewerName?: string;
@@ -100,6 +108,7 @@ export interface LineViolationAlertPayload {
   employeeCode?: string;
   fullName?: string;
   nickname?: string;
+  avatarUrl?: string | null;
   hwid?: string;
   time?: string;
 }
@@ -113,9 +122,10 @@ export async function dispatchLineMessage(
     customToken?: string;
     customTarget?: string;
     flexMessage?: any;
+    imageUrl?: string | null;
   }
 ): Promise<{ success: boolean; message: string; channel?: string; details?: any }> {
-  console.log('[LINE OA NOTIFICATION DISPATCH]:\n' + text);
+  console.log('[LINE OA NOTIFICATION DISPATCH]:\n' + text + (options?.imageUrl ? `\n[Image: ${options.imageUrl}]` : ''));
 
   let token = options?.customToken;
   let target = options?.customTarget;
@@ -155,14 +165,28 @@ export async function dispatchLineMessage(
         ? 'https://api.line.me/v2/bot/message/push'
         : 'https://api.line.me/v2/bot/message/broadcast';
 
-      const messageObject = options?.flexMessage || {
+      const messages: any[] = [];
+      const validImageUrl = options?.imageUrl && typeof options.imageUrl === 'string' && options.imageUrl.startsWith('https://') 
+        ? options.imageUrl.trim() 
+        : null;
+
+      if (validImageUrl) {
+        messages.push({
+          type: 'image',
+          originalContentUrl: validImageUrl,
+          previewImageUrl: validImageUrl,
+        });
+      }
+
+      const textMessage = options?.flexMessage || {
         type: 'text',
         text: text,
       };
+      messages.push(textMessage);
 
       const payloadBody = (isPush && target) 
-        ? { to: target.trim(), messages: [messageObject] }
-        : { messages: [messageObject] };
+        ? { to: target.trim(), messages }
+        : { messages };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -260,7 +284,7 @@ export async function sendLineCheckInAlert(payload: LineCheckInAlertPayload) {
     `━━━━━━━━━━━━━━━━━━\n` +
     `📱 ระบบบันทึกเวลา Attendance PWA`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -280,7 +304,7 @@ export async function sendLineCheckOutAlert(payload: LineCheckOutAlertPayload) {
     `━━━━━━━━━━━━━━━━━━\n` +
     `📱 ระบบบันทึกเวลา Attendance PWA`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -300,7 +324,7 @@ export async function sendLineOutOfGeofenceAlert(payload: LineOutOfGeofenceAlert
     `━━━━━━━━━━━━━━━━━━\n` +
     `🛡️ บันทึกลง Security Violation Logs เรียบร้อย`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -319,7 +343,7 @@ export async function sendLineLateAlert(payload: LineLateAlertPayload) {
     `━━━━━━━━━━━━━━━━━━\n` +
     `📱 ระบบบันทึกเวลา Attendance PWA`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -340,7 +364,7 @@ export async function sendLineAdvanceRequestAlert(payload: LineAdvanceRequestAle
     `━━━━━━━━━━━━━━━━━━\n` +
     `⚡ ผู้บริหารสามารถกดอนุมัติได้ที่แดชบอร์ด Web / Mobile Console`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -364,7 +388,7 @@ export async function sendLineAdvanceActionAlert(payload: LineAdvanceActionAlert
     `━━━━━━━━━━━━━━━━━━\n` +
     `📱 ระบบบันทึกเวลาและสวัสดิการ Attendance PWA`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -391,7 +415,7 @@ export async function sendLineLeaveRequestAlert(payload: LineLeaveRequestAlertPa
     `━━━━━━━━━━━━━━━━━━\n` +
     `⚡ ผู้บริหารสามารถกดอนุมัติได้ที่แดชบอร์ด Web / Mobile Console`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -415,7 +439,7 @@ export async function sendLineLeaveActionAlert(payload: LineLeaveActionAlertPayl
     `━━━━━━━━━━━━━━━━━━\n` +
     `📱 ระบบบันทึกเวลา Attendance PWA`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
@@ -434,7 +458,7 @@ export async function sendLineViolationAlert(payload: LineViolationAlertPayload)
     `━━━━━━━━━━━━━━━━━━\n` +
     `🛡️ ตรวจสอบรายการเต็มได้ที่เมนู Security Logs ใน Web Admin`;
 
-  return dispatchLineMessage(text);
+  return dispatchLineMessage(text, { imageUrl: payload.avatarUrl });
 }
 
 // -------------------------------------------------------------------
