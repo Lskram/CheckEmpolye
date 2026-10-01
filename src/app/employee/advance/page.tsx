@@ -242,25 +242,50 @@ export default function EmployeeSalaryAdvancePage() {
       <main className="p-4 flex-1 space-y-4 relative z-10">
         
         {/* Quota Card */}
-        <div className="p-4 rounded-3xl bg-gradient-to-br from-amber-600 to-orange-700 text-white shadow-xl shadow-amber-950/30 relative overflow-hidden">
-          <div className="flex items-center justify-between text-amber-100 text-xs mb-1 font-semibold">
-            <span>วงเงินคงเหลือที่ขอเบิกได้</span>
-            <Coins className="w-5 h-5 text-yellow-300" />
-          </div>
-          <div className="text-3xl font-black my-1">
-            7,500 <span className="text-sm font-normal">บาท</span>
-          </div>
-          <div className="text-[10px] text-amber-100/90 font-medium">
-            เพดานสูงสุด 50% ของฐานเงินเดือน (รอบจ่ายสิ้นเดือน)
+        <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-amber-500/30">
+          {/* Custom Background Image */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+            style={{ backgroundImage: `url('/images/advance-quota-bg.jpg')` }}
+          />
+          {/* Frosted Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-950/85 via-orange-950/80 to-amber-900/90 backdrop-blur-[1px]" />
+
+          <div className="relative z-10">
+            <div className="flex items-center justify-between text-amber-200 text-xs mb-1 font-semibold">
+              <span className="drop-shadow-sm">วงเงินคงเหลือที่ขอเบิกได้</span>
+              <Coins className="w-5 h-5 text-yellow-300 drop-shadow-md" />
+            </div>
+            <div className="text-3xl font-black my-1 text-white drop-shadow-md">
+              7,500 <span className="text-sm font-normal">บาท</span>
+            </div>
+            <div className="text-[10px] text-amber-200/90 font-medium drop-shadow-sm">
+              เพดานสูงสุด 50% ของฐานเงินเดือน (รอบจ่ายสิ้นเดือน)
+            </div>
           </div>
         </div>
 
         {/* Advance Request Form */}
-        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-3`}>
-          <div className="font-bold text-xs flex items-center gap-1.5">
-            <Coins className="w-4 h-4 text-amber-500" />
-            <span>ระบุจำนวนเงินที่ต้องการขอเบิก</span>
-          </div>
+        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-xl border border-amber-500/30 ${
+          isDark ? 'neumorph-dark' : 'neumorph-light'
+        } space-y-3`}>
+          {/* Custom Background Image */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
+            style={{ backgroundImage: `url('/images/advance-form-bg.jpg')` }}
+          />
+          {/* Frosted Glass Overlay */}
+          <div className={`absolute inset-0 transition-colors duration-300 ${
+            isDark 
+              ? 'bg-gradient-to-b from-[#090d16]/85 via-[#0c121e]/85 to-[#090d16]/95 backdrop-blur-[2px]' 
+              : 'bg-gradient-to-b from-slate-900/80 via-slate-800/80 to-[#18223c]/85 backdrop-blur-[2px]'
+          }`} />
+
+          <div className="relative z-10 space-y-3">
+            <div className="font-bold text-xs flex items-center gap-1.5 text-white drop-shadow-sm">
+              <Coins className="w-4 h-4 text-amber-400" />
+              <span>ระบุจำนวนเงินที่ต้องการขอเบิก</span>
+            </div>
 
           {/* Quick Amount Chips */}
           <div className="grid grid-cols-3 gap-2">
@@ -342,6 +367,7 @@ export default function EmployeeSalaryAdvancePage() {
               <span>{isSubmitting ? 'กำลังส่งข้อมูล...' : 'ยื่นคำขอเบิกเงิน'}</span>
             </button>
           </form>
+          </div>
         </div>
 
         {/* Requests History */}

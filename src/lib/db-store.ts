@@ -76,7 +76,70 @@ let mockStoreSettings: StoreSettings = {
 
 let mockAttendanceLogs: AttendanceLog[] = [];
 let mockLeaveRequests: LeaveRequest[] = [];
-let mockViolationLogs: ViolationLog[] = [];
+let mockViolationLogs: ViolationLog[] = [
+  {
+    id: 'v-001',
+    employee_id: '14711ebc-cfaa-4674-ba8e-7ab0ea0aecaf', // 02 (ฟหก)
+    other_employee_id: 'cad180f3-28da-402f-b1fe-ab46f870c0ea', // 01 (ฟหกหฟก)
+    violation_type: 'HWID_OVERLAP',
+    severity: 'CRITICAL',
+    description: 'ตรวจพบการใช้อุปกรณ์ซ้ำซ้อน: พนักงานรหัส 02 (คุณฟหก) พยายามล็อกอินบนโทรศัพท์ที่ผูกไว้กับพนักงานรหัส 01 (คุณฟหกหฟก)',
+    hwid: 'HWID_7970d174_pkqx4tgi',
+    is_resolved: false,
+    created_at: '2026-10-01T07:48:32.000Z',
+  },
+  {
+    id: 'v-002',
+    employee_id: '14711ebc-cfaa-4674-ba8e-7ab0ea0aecaf', // 02 (ฟหก)
+    other_employee_id: 'cad180f3-28da-402f-b1fe-ab46f870c0ea', // 01 (ฟหกหฟก)
+    violation_type: 'HWID_OVERLAP',
+    severity: 'CRITICAL',
+    description: 'ตรวจพบการใช้อุปกรณ์ซ้ำซ้อน: พนักงานรหัส 02 พยายามลงชื่อเข้าใช้บนเครื่องของรหัส 01',
+    hwid: 'HWID_7970d174_pkqx4tgi',
+    is_resolved: false,
+    created_at: '2026-09-30T07:51:15.000Z',
+  },
+  {
+    id: 'v-003',
+    employee_id: '14711ebc-cfaa-4674-ba8e-7ab0ea0aecaf', // 02 (ฟหก)
+    other_employee_id: 'cad180f3-28da-402f-b1fe-ab46f870c0ea', // 01 (ฟหกหฟก)
+    violation_type: 'HWID_OVERLAP',
+    severity: 'CRITICAL',
+    description: 'ตรวจพบการใช้อุปกรณ์ซ้ำซ้อน: พนักงานรหัส 02 พยายามลงชื่อเข้าใช้บนเครื่องของรหัส 01',
+    hwid: 'HWID_7970d174_pkqx4tgi',
+    is_resolved: true,
+    created_at: '2026-09-29T07:44:20.000Z',
+  },
+  {
+    id: 'v-004',
+    employee_id: 'cad180f3-28da-402f-b1fe-ab46f870c0ea', // 01 (ฟหกหฟก)
+    violation_type: 'OUT_OF_GEOFENCE_BLOCKED',
+    severity: 'HIGH',
+    description: 'พยายามลงเวลานอกพื้นที่ร้าน: ระยะห่าง 184.2 เมตร (พิกัด GPS: Lat 15.111820, Lng 104.359910 - เกินรัศมีร้านที่กำหนด 50 เมตร)',
+    hwid: 'HWID_7970d174_pkqx4tgi',
+    is_resolved: false,
+    created_at: '2026-10-01T07:42:10.000Z',
+  },
+  {
+    id: 'v-005',
+    employee_id: 'cad180f3-28da-402f-b1fe-ab46f870c0ea', // 01
+    violation_type: 'DEVICE_MISMATCH',
+    severity: 'MEDIUM',
+    description: 'พยายามเข้าสู่ระบบจากเครื่องใหม่ที่ไม่ตรงกับเครื่องประจำตัวที่ลงทะเบียนไว้',
+    hwid: 'HWID_samsung_galaxy_a54_unknown',
+    is_resolved: true,
+    created_at: '2026-09-28T08:15:00.000Z',
+  },
+  {
+    id: 'v-006',
+    employee_id: '14711ebc-cfaa-4674-ba8e-7ab0ea0aecaf', // 02
+    violation_type: 'INVALID_PIN_ATTEMPTS',
+    severity: 'LOW',
+    description: 'กรอกรหัส PIN ไม่ถูกต้องต่อเนื่อง 3 ครั้ง',
+    is_resolved: true,
+    created_at: '2026-09-27T08:02:45.000Z',
+  },
+];
 
 // Helper to generate RFC4122 compliant UUIDs
 const generateUUID = () => {

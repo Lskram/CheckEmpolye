@@ -99,6 +99,7 @@ flowchart TD
 | **REQ-025** | UI & Branding | ปรับแต่งพื้นหลังส่วนหัวแอป (Top Dome Profile & MyShift Header) ด้วยภาพกราฟิก Yokohama Wheel & Tire พรีเมียม พร้อม Frosted Backdrop Overlay คอนทราสต์สูงและสบายตา | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-026** | UI & Branding | ปรับแต่งพื้นหลังกรอบวงนอกของปุ่มเข้างาน (Check-In Quick Action Outer Tile) ด้วยภาพกราฟิกล้อแม็ก Yokohama ลายพิเศษ พร้อม Frosted Glass Overlay และคงกล่องไอคอน Gradient ภายในให้คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
 | **REQ-027** | UI & Branding | ปรับแต่งภาพพื้นหลังครบทั้ง 6 กล่องเมนูหลัก (เข้างาน, เบิกเงิน, ยื่นใบลา, ปฏิทิน, พิกัดร้าน, เบี้ยขยัน) ตามภาพที่กำหนด พร้อม Frosted Glass Layer และไอคอน Gradient 3D คมชัด | ✅ เสร็จสิ้น | Mobile Staff App (`/employee`) |
+| **REQ-028** | UI & Branding | ปรับแต่งภาพพื้นหลังเฉพาะธีมในหน้าสถิติปฏิทิน (`/employee/stats`), หน้ายื่นใบลา (`/employee/leave`), และหน้าเบิกเงินล่วงหน้า (`/employee/advance`) พร้อม Frosted Overlay คอนทราสต์สูง | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/*`) |
 
 ---
 
@@ -127,7 +128,28 @@ flowchart TD
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
 
-### 📌 [2026-10-01] - Executive Route Obfuscation & Dynamic URL Address Encryption (Version 3.12)
+### 📌 [2026-10-01] - Executive Security Intelligence & Cross-Device Pairing Matrix (Version 3.14)
+- ✅ **Cross-Device Buddy Punching Summary Matrix (`src/components/SecurityLogsViewer.tsx`)**:
+  - ระบบวิเคราะห์และจัดอันดับพฤติกรรมการลงเวลาทับเครื่อง/ใช้อุปกรณ์ร่วมกันแบบอัตโนมัติ (`overlapPairings`)
+  - แสดงผลว่าใครลงเวลาทับเครื่องใคร (`User A ➔ User B`), นับจำนวนครั้งที่ตรวจพบทั้งหมด, แสดงจำนวนเคสที่รอรับทราบ, และเวลาที่พบล่าสุด (เช่น `เมื่อ 10 นาทีที่แล้ว`)
+  - ปุ่ม Action ด่วน 1-Click: `🔍 ดู X รายการ` (กรองเฉพาะคู่นั้นทันที) และ `🔓 ปลดล็อกเครื่อง`
+- ✅ **Smart Geofence Location & Direct Google Maps Linking**:
+  - วิเคราะห์และดึงค่าระยะห่างจริงจากร้าน (เช่น `📍 184.2 ม. (เกินรัศมีกำหนด 50 ม.)`)
+  - แสดงพิกัด GPS ละเอียด (`Lat: 15.111820, Lng: 104.359910`) พร้อมลิงก์เปิดแผนที่จริง `[ 🗺️ เปิดดูบน Google Maps ↗ ]`
+  - แปลงวันที่และเวลาเป็นภาษาไทยอ่านเข้าใจง่าย พร้อม Relative Time ภาษาไทย
+- ✅ **Executive Dark Obsidian Theme UI & Batch Actions**:
+  - ดีไซน์ใหม่หมดจดสไตล์ Dark Obsidian คอนทราสต์สูง มองเห็นชัดเจนสำหรับผู้บริหาร
+  - 4 Interactive Filter Cards (ใช้อุปกรณ์ซ้ำ, เครื่องไม่ตรง, นอกพื้นที่ร้าน, รหัสผ่านผิด)
+  - ปุ่ม `✓ รับทราบ / ปิดเคส` และ `✓ รับทราบทั้งหมด` 1-Click
+
+### 📌 [2026-10-01] - UI & Executive Portal Cleanup (Version 3.13)
+- ✅ **Cleaned Developer / Non-Essential Metadata for End Users**:
+  - นำปุ่มพรีเซ็ตทางลัด Dev (`👑 SI01 • 5101`, `🔑 SI01 • 1234`, `🔧 01 • 11`, `ล้างค่า`) ออกจากหน้าล็อกอิน
+  - นำปุ่มย้อนกลับ `← หน้าหลัก Portal` ออกจากเฮดเดอร์ล็อกอินเพื่อความสะอาดตาและเป็นทางการ
+  - ปรับ Placeholder ในช่องกรอกรหัสให้กระชับ สะอาดตา และไม่แสดงค่าเดโมหลงเหลือ
+- ✅ **Production Quality Gate Pass**:
+  - Next.js Production Build ผ่านสมบูรณ์ 100% (18/18 Routes, 0 Errors)
+  - Production Server Active พร้อมตอบสนองทันทีบนพอร์ต 3000
 - ✅ **Dynamic Cryptographic Route & Hex Token Generator (`src/lib/encrypted-route.ts`)**:
   - พัฒนาระบบสร้างโทเค็นเข้ารหัสความปลอดภัยสูง `generateEncryptedToken()` (เช่น `0x7F9B1E4A8D2C5E0F`)
   - ฟังก์ชัน `getEncryptedExecutiveRoute()` สร้าง URL โทเค็นเข้ารหัสอัตโนมัติ `http://localhost:3000/console/0x7F9B1E4A?vault_session=sec_...`
@@ -290,6 +312,18 @@ flowchart TD
 - ✅ **ระบบ 1-Click Optimistic Approval & Instant Badge Clearing**: เมื่อผู้บริหารกดปุ่ม Approve/Reject คำขอเบิกเงินหรือขอลางาน ระบบจะอัปเดตฐานข้อมูลและทำการ Auto-Clear Badge แจ้งเตือน และ Toast ออกจากหน้าจอแบบ Real-time ทันที
 - ✅ **Leaflet Geofence Map Picker**: ผู้บริหารสามารถปรับหมุดพิกัดร้านและขยาย/ย่อรัศมี Geofence (เมตร) ได้อย่างอิสระ พร้อมระบบ Reverse Geocode ถอดชื่อสถานที่จริงอัตโนมัติ
 - ✅ **Vercel Production Readiness**: ผ่านการทดสอบ `npm run build` สำเร็จ 100% 16/16 Routes (0 Type/Lint Errors) พร้อมส่งรายงานความคืบหน้าเข้า Discord ผ่าน `report:discord`
+
+### 📌 [2026-10-01] - Multi-Screen Theme Backgrounds for Calendar, Leave & Advance Pages (Version 3.8)
+- ✅ **เพิ่มภาพพื้นหลังเฉพาะธีมในหน้าปฏิทิน & สถิติ (`/employee/stats`)**:
+  - **การ์ดเบี้ยเลี้ยงสะสม**: ภาพเงินทองสะสมและโบนัสการเงิน (`public/images/stats-allowance-bg.jpg`)
+  - **การ์ดอัตราความตรงต่อเวลา**: ภาพนาฬิกาจับเวลาและสปีดความเร็ว (`public/images/stats-ontime-bg.jpg`)
+  - **ตารางปฏิทินรอบเดือน**: ภาพสมุดปฏิทินและบันทึกเวลาทำงาน (`public/images/stats-calendar-bg.jpg`)
+- ✅ **เพิ่มภาพพื้นหลังฟอร์มยื่นคำขอลาหยุด (`/employee/leave`)**:
+  - **การ์ดยื่นใบลา**: ภาพวันหยุดพักผ่อนและธรรมชาติ (`public/images/leave-form-bg.jpg`)
+- ✅ **เพิ่มภาพพื้นหลังหน้าขอเบิกเงินล่วงหน้า (`/employee/advance`)**:
+  - **การ์ดวงเงินโควตาเบิกเงิน**: ภาพธนบัตรเงินเดือนและการเงิน (`public/images/advance-quota-bg.jpg`)
+  - **การ์ดฟอร์มขอเบิกเงิน**: ภาพกระเป๋าเงินและการบริหารการเงิน (`public/images/advance-form-bg.jpg`)
+- ✅ **Zero Regression Guarantee**: ผ่านการทดสอบ Production Build `npm run build` สมบูรณ์แบบ 18/18 Routes (0 Errors)
 
 ### 📌 [2026-10-01] - Complete 6-Tile Grid Custom Background Images & Frosted Glass Aesthetics (Version 3.7)
 - ✅ **เพิ่มภาพพื้นหลังครบทั้ง 6 กล่องเมนูหลัก (Tactile Quick Action Tiles Grid)**:

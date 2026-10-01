@@ -191,36 +191,58 @@ export default function EmployeeStatsPage() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 gap-3">
           {/* Allowance Card */}
-          <div className="p-4 rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-xl shadow-emerald-950/30 relative overflow-hidden">
-            <div className="flex items-center justify-between text-emerald-100 text-xs mb-1 font-semibold">
-              <span>เบี้ยเลี้ยงสะสม</span>
-              <Coins className="w-4 h-4 text-yellow-300" />
-            </div>
-            <div className="text-2xl font-black my-1">
-              {statsData?.summary?.totalAllowance || 0} <span className="text-xs font-normal">บาท</span>
-            </div>
-            <div className="text-[10px] text-emerald-100 flex items-center gap-1 mt-1 font-medium">
-              <Zap className="w-3 h-3 text-yellow-300" />
-              ตรงเวลา {statsData?.summary?.presentDays || 0} วัน (50฿/วัน)
+          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-emerald-500/30">
+            {/* Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ backgroundImage: `url('/images/stats-allowance-bg.jpg')` }}
+            />
+            {/* Frosted Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/85 via-emerald-900/80 to-teal-950/90 backdrop-blur-[1px]" />
+
+            <div className="relative z-10">
+              <div className="flex items-center justify-between text-emerald-200 text-xs mb-1 font-semibold">
+                <span className="drop-shadow-sm">เบี้ยเลี้ยงสะสม</span>
+                <Coins className="w-4 h-4 text-yellow-300 drop-shadow-md" />
+              </div>
+              <div className="text-2xl font-black my-1 text-white drop-shadow-md">
+                {statsData?.summary?.totalAllowance || 0} <span className="text-xs font-normal">บาท</span>
+              </div>
+              <div className="text-[10px] text-emerald-200 flex items-center gap-1 mt-1 font-medium drop-shadow-sm">
+                <Zap className="w-3 h-3 text-yellow-300" />
+                ตรงเวลา {statsData?.summary?.presentDays || 0} วัน (50฿/วัน)
+              </div>
             </div>
           </div>
 
           {/* On-Time Rate */}
-          <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} flex flex-col justify-between`}>
-            <div>
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-1 font-semibold">
-                <span>อัตราตรงเวลา</span>
-                <TrendingUp className="w-4 h-4 text-blue-500" />
+          <div className="p-4 rounded-3xl text-white shadow-xl relative overflow-hidden group border border-blue-500/30 flex flex-col justify-between">
+            {/* Background Image */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ backgroundImage: `url('/images/stats-ontime-bg.jpg')` }}
+            />
+            {/* Frosted Gradient Overlay */}
+            <div className={`absolute inset-0 transition-colors duration-300 ${
+              isDark 
+                ? 'bg-gradient-to-br from-slate-950/85 via-blue-950/80 to-slate-900/90 backdrop-blur-[1px]'
+                : 'bg-gradient-to-br from-slate-900/80 via-blue-950/75 to-slate-800/85 backdrop-blur-[1px]'
+            }`} />
+
+            <div className="relative z-10">
+              <div className="flex items-center justify-between text-xs text-blue-200 mb-1 font-semibold">
+                <span className="drop-shadow-sm">อัตราตรงเวลา</span>
+                <TrendingUp className="w-4 h-4 text-sky-400 drop-shadow-md" />
               </div>
-              <div className="text-2xl font-black text-blue-500 my-1">
-                {statsData?.summary?.onTimeRate || 0}<span className="text-xs font-bold">%</span>
+              <div className="text-2xl font-black text-cyan-300 my-1 drop-shadow-md">
+                {statsData?.summary?.onTimeRate || 0}<span className="text-xs font-bold text-cyan-200">%</span>
               </div>
             </div>
-            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 font-bold">
+            <div className="text-[10px] text-slate-200 flex items-center gap-1.5 flex-wrap relative z-10 mt-1">
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-200 border border-amber-400/30 font-bold backdrop-blur-sm">
                 สาย {statsData?.summary?.lateDays || 0}
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 font-bold">
+              <span className="px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-200 border border-blue-400/30 font-bold backdrop-blur-sm">
                 ลา {statsData?.summary?.leaveDays || 0}
               </span>
             </div>
@@ -250,31 +272,47 @@ export default function EmployeeStatsPage() {
         </div>
 
         {/* Calendar Grid */}
-        <div className={`p-4 rounded-3xl ${isDark ? 'neumorph-dark' : 'neumorph-light'} space-y-3`}>
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1">
-            <span className="text-rose-500">อา</span>
-            <span>จ</span>
-            <span>อ</span>
-            <span>พ</span>
-            <span>พฤ</span>
-            <span>ศ</span>
-            <span className="text-blue-500">ส</span>
-          </div>
+        <div className={`p-4 rounded-3xl relative overflow-hidden shadow-xl border border-white/10 ${
+          isDark ? 'neumorph-dark' : 'neumorph-light'
+        } space-y-3`}>
+          {/* Custom Calendar Background Image */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-700"
+            style={{ backgroundImage: `url('/images/stats-calendar-bg.jpg')` }}
+          />
+          {/* Frosted Glass Overlay */}
+          <div className={`absolute inset-0 transition-colors duration-300 ${
+            isDark 
+              ? 'bg-gradient-to-b from-[#090d16]/90 via-[#0c121e]/90 to-[#090d16]/95 backdrop-blur-[2px]' 
+              : 'bg-gradient-to-b from-slate-900/85 via-slate-800/85 to-[#18223c]/90 backdrop-blur-[2px]'
+          }`} />
 
-          <div className="grid grid-cols-7 gap-1.5">
-            {renderCalendar()}
-          </div>
+          <div className="relative z-10 space-y-3">
+            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-300 mb-1">
+              <span className="text-rose-400">อา</span>
+              <span>จ</span>
+              <span>อ</span>
+              <span>พ</span>
+              <span>พฤ</span>
+              <span>ศ</span>
+              <span className="text-blue-400">ส</span>
+            </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-500/10 font-medium">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> ตรงเวลา (+50฿)
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span> สาย (0฿)
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span> ลาหยุด
-            </span>
+            <div className="grid grid-cols-7 gap-1.5">
+              {renderCalendar()}
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-300 pt-3 border-t border-white/10 font-medium">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm"></span> ตรงเวลา (+50฿)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-sm"></span> สาย (0฿)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-400 shadow-sm"></span> ลาหยุด
+              </span>
+            </div>
           </div>
         </div>
 
