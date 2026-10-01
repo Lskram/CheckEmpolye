@@ -137,8 +137,8 @@ export async function POST(request: Request) {
         hwid: hwid || '',
       });
 
-      // 2. Dispatch LINE Out-of-Geofence Security Alert
-      await sendLineOutOfGeofenceAlert({
+      // 2. Dispatch LINE Out-of-Geofence Security Alert (Non-blocking background dispatch)
+      sendLineOutOfGeofenceAlert({
         employeeCode: employee.employee_code,
         fullName: employee.full_name,
         nickname: employee.nickname,
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
         allowedRadius: radiusMeters,
         latitude,
         longitude,
-      });
+      }).catch((err) => console.warn('[LINE] Out of geofence alert background error:', err));
 
       return NextResponse.json(
         {
@@ -195,8 +195,8 @@ export async function POST(request: Request) {
 
     const shortLogId = `#LOG-${attendanceRecord.id.slice(0, 8).toUpperCase()}`;
 
-    // 3. Dispatch LINE Check-In Notification with unique Log ID
-    await sendLineCheckInAlert({
+    // 3. Dispatch LINE Check-In Notification with unique Log ID (Non-blocking background dispatch)
+    sendLineCheckInAlert({
       logId: attendanceRecord.id,
       employeeCode: employee.employee_code,
       fullName: employee.full_name,
@@ -207,12 +207,12 @@ export async function POST(request: Request) {
       allowance,
       latitude,
       longitude,
-    });
+    }).catch((err) => console.warn('[LINE] Check-in alert background error:', err));
 
     // If late, also trigger LINE late breakdown
     if (isLate) {
       const lateMinutes = totalMinutes - deadlineTotalMinutes;
-      await sendLineLateAlert({
+      sendLineLateAlert({
         employeeCode: employee.employee_code,
         fullName: employee.full_name,
         nickname: employee.nickname,
@@ -220,7 +220,7 @@ export async function POST(request: Request) {
         lateMinutes,
         latitude,
         longitude,
-      });
+      }).catch((err) => console.warn('[LINE] Late alert background error:', err));
     }
 
     return NextResponse.json({

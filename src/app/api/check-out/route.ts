@@ -131,7 +131,8 @@ export async function POST(request: Request) {
         hwid: hwid || '',
       });
 
-      await sendLineOutOfGeofenceAlert({
+      // Dispatch LINE Out-of-Geofence Alert (Non-blocking background dispatch)
+      sendLineOutOfGeofenceAlert({
         employeeCode: employee.employee_code,
         fullName: employee.full_name,
         nickname: employee.nickname,
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
         allowedRadius: radiusMeters,
         latitude,
         longitude,
-      });
+      }).catch((err) => console.warn('[LINE] Check-out out-of-geofence alert error:', err));
 
       return NextResponse.json(
         {
@@ -183,15 +184,15 @@ export async function POST(request: Request) {
       }
     );
 
-    // Dispatch LINE Check-Out notification with Log ID
-    await sendLineCheckOutAlert({
+    // Dispatch LINE Check-Out notification with Log ID (Non-blocking background dispatch)
+    sendLineCheckOutAlert({
       logId: todayLog.id,
       employeeCode: employee.employee_code,
       fullName: employee.full_name,
       nickname: employee.nickname,
       checkOutTime: checkOutTimeStr,
       duration: durationStr,
-    });
+    }).catch((err) => console.warn('[LINE] Check-out alert error:', err));
 
     return NextResponse.json({
       success: true,

@@ -416,16 +416,19 @@ export default function ExactEmployeeApp() {
       let freshLng = currentCoords?.lng;
       let freshAcc = gpsAccuracy || 5;
 
-      try {
-        const livePos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 0 });
-        freshLat = livePos.latitude;
-        freshLng = livePos.longitude;
-        freshAcc = livePos.accuracy;
-        setCurrentCoords({ lat: livePos.latitude, lng: livePos.longitude });
-        setGpsAccuracy(livePos.accuracy);
-        recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
-      } catch (e) {
-        console.warn('Using cached coordinates:', e);
+      // Only if coordinates are not yet available from live watcher, do a fast acquisition
+      if (freshLat === undefined || freshLng === undefined) {
+        try {
+          const livePos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 2000, maximumAge: 10000 });
+          freshLat = livePos.latitude;
+          freshLng = livePos.longitude;
+          freshAcc = livePos.accuracy;
+          setCurrentCoords({ lat: livePos.latitude, lng: livePos.longitude });
+          setGpsAccuracy(livePos.accuracy);
+          recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
+        } catch (e) {
+          console.warn('Using cached coordinates fallback:', e);
+        }
       }
 
       if (freshLat === undefined || freshLng === undefined) {
@@ -599,16 +602,19 @@ export default function ExactEmployeeApp() {
       let freshLng = currentCoords?.lng;
       let freshAcc = gpsAccuracy || 5;
 
-      try {
-        const livePos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 6000, maximumAge: 0 });
-        freshLat = livePos.latitude;
-        freshLng = livePos.longitude;
-        freshAcc = livePos.accuracy;
-        setCurrentCoords({ lat: livePos.latitude, lng: livePos.longitude });
-        setGpsAccuracy(livePos.accuracy);
-        recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
-      } catch (e) {
-        console.warn('Using cached coordinates:', e);
+      // Only if coordinates are not yet available from live watcher, do a fast acquisition
+      if (freshLat === undefined || freshLng === undefined) {
+        try {
+          const livePos = await getLiveHardwarePosition({ enableHighAccuracy: true, timeout: 2000, maximumAge: 10000 });
+          freshLat = livePos.latitude;
+          freshLng = livePos.longitude;
+          freshAcc = livePos.accuracy;
+          setCurrentCoords({ lat: livePos.latitude, lng: livePos.longitude });
+          setGpsAccuracy(livePos.accuracy);
+          recalculateDistance({ lat: livePos.latitude, lng: livePos.longitude }, storeSettings);
+        } catch (e) {
+          console.warn('Using cached coordinates fallback:', e);
+        }
       }
 
       if (freshLat === undefined || freshLng === undefined) {
