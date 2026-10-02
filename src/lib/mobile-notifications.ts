@@ -19,14 +19,25 @@ export const MobileNotificationService = {
     }
   },
 
-  // 1. Schedule Pre-Shift Countdown Notification (5 Minutes Before Standard Shift Time)
+  // Clear any stray or legacy scheduled alarms
+  async cancelAllPendingOrLegacyNotifications() {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+      }
+    } catch (e) {
+      console.warn('Cancel notifications error:', e);
+    }
+  },
+
+  // 1. Schedule Pre-Shift Countdown Notification (Exact 07:35 AM matching device wall-clock)
   async scheduleShiftCountdown(standardTimeStr: string = '07:40:00') {
     try {
       const parts = standardTimeStr.split(':');
-      const targetHours = parseInt(parts[0], 10);
-      const targetMinutes = parseInt(parts[1], 10);
+      const targetHours = parseInt(parts[0], 10) || 7;
+      const targetMinutes = parseInt(parts[1], 10) || 40;
 
-      // Target time minus 5 minutes
+      // Target time minus 5 minutes (07:40 -> 07:35)
       let notifyHours = targetHours;
       let notifyMinutes = targetMinutes - 5;
       if (notifyMinutes < 0) {
@@ -34,26 +45,26 @@ export const MobileNotificationService = {
         notifyHours = (notifyHours - 1 + 24) % 24;
       }
 
-      const now = new Date();
-      const scheduledDate = new Date();
-      scheduledDate.setHours(notifyHours, notifyMinutes, 0, 0);
-
-      // If already passed for today, schedule for tomorrow
-      if (scheduledDate.getTime() <= now.getTime()) {
-        scheduledDate.setDate(scheduledDate.getDate() + 1);
-      }
-
       const timeFormatted = `${targetHours.toString().padStart(2, '0')}:${targetMinutes.toString().padStart(2, '0')} น.`;
 
       if (Capacitor.isNativePlatform()) {
+        // Cancel previous repeating alarms
         await LocalNotifications.cancel({ notifications: [{ id: 1001 }] });
+
+        // Schedule exact daily match at 07:35 AM (wall-clock time)
         await LocalNotifications.schedule({
           notifications: [
             {
               id: 1001,
               title: '⏰ อีก 5 นาทีจะถึงเวลาเข้างาน!',
               body: `เข้างานเวลา ${timeFormatted} กรุณาเตรียมตัวเช็คอินในรัศมีร้านเพื่อรับเบี้ยขยัน 50฿`,
-              schedule: { at: scheduledDate, repeats: true, every: 'day' },
+              schedule: { 
+                on: { 
+                  hour: notifyHours, 
+                  minute: notifyMinutes 
+                },
+                allowWhileIdle: true 
+              },
               sound: 'beep.wav',
               smallIcon: 'ic_stat_name',
             },

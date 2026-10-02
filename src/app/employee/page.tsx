@@ -133,7 +133,11 @@ export default function ExactEmployeeApp() {
 
   // Request Notification Permissions on Mount & Init Offline Engine
   useEffect(() => {
-    MobileNotificationService.requestPermission();
+    MobileNotificationService.requestPermission().then((granted) => {
+      if (granted) {
+        MobileNotificationService.scheduleShiftCountdown(storeSettings?.standard_time || '07:40:00');
+      }
+    });
     const cleanupOffline = initOfflineSyncListeners();
 
     // Check initial online status

@@ -114,6 +114,7 @@ flowchart TD
 | **REQ-040** | UI & Branding | ปรับปรุงโฉมหน้าจอล็อกอินพนักงานบนมือถือ (`/employee/login`) ให้มีธีมและเอกลักษณ์ตรงตามหน้าภายในทั้งหมด (Top Dome Header ภาพพื้นหลัง Yokohama `header-bg.jpg`, โลโก้ทางการสีแสงยางยนต์ `store-logo.png`, เส้นโค้งคลื่น S-Curve Cutout, กล่องข้อมูลพนักงานเดิมที่ผูกเครื่องแล้วพร้อมปุ่มสลับบัญชี, ระบบค้นหาข้อมูลพนักงานแบบสด, ตัวแสดงผลรหัส PIN จุดเรืองแสง และแป้นพิมพ์สัมผัส Tactile 3D Neumorphic Keypad) | ✅ เสร็จสิ้น | Mobile Staff App (`/employee/login`) |
 | **REQ-041** | Database & UI Synchronization | ดึงและแสดงรูปโปรไฟล์พนักงาน (`avatar_url`) จากฐานข้อมูล Supabase อัตโนมัติในหน้าจอล็อกอิน (`/employee/login`), หน้าหลักพนักงาน (`/employee`), และแถบเมนูนำทาง (`EmployeeBottomNav.tsx`) พร้อมระบบ Background Profile Sync, การค้นหารหัสพนักงานสด และ Fallback Image Error Handling | ✅ เสร็จสิ้น | API `/api/auth/check-code`, `/api/auth/verify-pin` / Mobile Staff App |
 | **REQ-042** | Notifications & UX | ระบบแจ้งเตือน Realtime Notification (Native Push Alert, In-App Banner, และ Audio Alert) เมื่อคำขอเบิกเงินหรือคำขอลางานถูกปฏิเสธ (หรืออนุมัติ) โดยผู้บริหาร พร้อมปรับให้ช่องระบุเหตุผลในการขอเบิกเงินและขอลางานเป็นแบบไม่บังคับ (Optional Reason Submission) | ✅ เสร็จสิ้น | `EmployeeNotificationListener.tsx` / API Leave & Advance |
+| **REQ-043** | Notifications & Timing Engine | แก้ไขข้อผิดพลาดการตั้งเวลาแจ้งเตือนเข้างานล่วงหน้า (Pre-Shift Countdown Alarm Fix) เปลี่ยนจากการใช้ 24h Interval Alarm มาเป็น Exact Wall-Clock Match (`schedule.on: { hour: 7, minute: 35 }`) ตรงเวลา 07:35 น. ทุกเช้า พร้อมระบบล้างการแจ้งเตือนตกค้างเก่าในระบบปฏิบัติการ Android | ✅ เสร็จสิ้น | `MobileNotificationService.ts` / Capacitor LocalNotifications |
 
 ---
 
@@ -123,7 +124,7 @@ flowchart TD
 | :--- | :--- | :--- | :--- | :--- |
 | **REQ-013** | Notifications | แจ้งเตือน LINE Notify เมื่อมีพนักงานยื่นใบลาใหม่ และแจ้งเตือนผลการอนุมัติ/ปฏิเสธ | ปานกลาง | LINE Messaging API |
 | **REQ-014** | Security & Profile | ระบบให้พนักงานเปลี่ยนรหัสผ่าน PIN 4 หลัก ด้วยตนเองผ่านแอปมือถือ | ปานกลาง | Mobile Staff App |
-| **REQ-015** | Notifications | Push Notification บนโทรศัพท์ แจ้งเตือนพนักงานก่อน 07:40 น. ไม่ให้ลืมเข้างาน | แนะนำ | Native Push / Capacitor |
+| **REQ-015** | Notifications | Push Notification บนโทรศัพท์ แจ้งเตือนพนักงานก่อน 07:40 น. ไม่ให้ลืมเข้างาน | ✅ เสร็จสิ้น (REQ-043) | Native Push / Capacitor |
 | **REQ-016** | Reporting | ตัวเลือกเลือกช่วงวันที่รายงานแบบกำหนดเองอิสระ (Custom Date Range Filter) | แนะนำ | Web Admin Dashboard |
 | **REQ-017** | Reliability | แถบแสดงสถานะเตือนเมื่อเน็ตมือถือหลุดชั่วขณะ (Offline Indicator Banner) | แนะนำ | Mobile Staff App |
 
@@ -141,6 +142,12 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-02] - Pre-Shift Countdown Notification Exact Wall-Clock Alignment (Version 3.33)
+- ✅ **Exact Wall-Clock Alarm Match (`src/lib/mobile-notifications.ts`)**:
+  - แก้ไขปัญหาแจ้งเตือนเตือนเข้างานผิดเวลา (เช่น ดังตอน 20:38 / 20:41 น.) ซึ่งเกิดจากระบบ AlarmManager ของ Android ทำการเลื่อนเวลาเตือนแบบ 24h Interval รอบค้าง
+  - ปรับการตั้งเวลาเป็นแบบเจาะจงเวลาตามเขฬิกาจริงของเครื่อง (`schedule: { on: { hour: 7, minute: 35 }, allowWhileIdle: true }`) ตรงเวลา **07:35 น. ของทุกวัน** (ก่อนเวลาเข้างาน 07:40 น. 5 นาทีพอดี)
+  - เพิ่มระบบ Auto-Cleanup ล้างการแจ้งเตือนเก่าที่ค้างอยู่ในระบบ Android เมื่อเปิดแอป
 
 ### 📌 [2026-10-02] - Realtime Rejection/Approval Notifications & Optional Reason Submission (Version 3.32)
 - ✅ **Global Real-Time Status Notification Watcher (`src/components/EmployeeNotificationListener.tsx`)**:
