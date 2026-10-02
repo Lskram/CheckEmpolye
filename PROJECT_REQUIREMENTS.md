@@ -115,6 +115,7 @@ flowchart TD
 | **REQ-041** | Database & UI Synchronization | ดึงและแสดงรูปโปรไฟล์พนักงาน (`avatar_url`) จากฐานข้อมูล Supabase อัตโนมัติในหน้าจอล็อกอิน (`/employee/login`), หน้าหลักพนักงาน (`/employee`), และแถบเมนูนำทาง (`EmployeeBottomNav.tsx`) พร้อมระบบ Background Profile Sync, การค้นหารหัสพนักงานสด และ Fallback Image Error Handling | ✅ เสร็จสิ้น | API `/api/auth/check-code`, `/api/auth/verify-pin` / Mobile Staff App |
 | **REQ-042** | Notifications & UX | ระบบแจ้งเตือน Realtime Notification (Native Push Alert, In-App Banner, และ Audio Alert) เมื่อคำขอเบิกเงินหรือคำขอลางานถูกปฏิเสธ (หรืออนุมัติ) โดยผู้บริหาร พร้อมปรับให้ช่องระบุเหตุผลในการขอเบิกเงินและขอลางานเป็นแบบไม่บังคับ (Optional Reason Submission) | ✅ เสร็จสิ้น | `EmployeeNotificationListener.tsx` / API Leave & Advance |
 | **REQ-043** | Notifications & Timing Engine | แก้ไขข้อผิดพลาดการตั้งเวลาแจ้งเตือนเข้างานล่วงหน้า (Pre-Shift Countdown Alarm Fix) เปลี่ยนจากการใช้ 24h Interval Alarm มาเป็น Exact Wall-Clock Match (`schedule.on: { hour: 7, minute: 35 }`) ตรงเวลา 07:35 น. ทุกเช้า พร้อมระบบล้างการแจ้งเตือนตกค้างเก่าในระบบปฏิบัติการ Android | ✅ เสร็จสิ้น | `MobileNotificationService.ts` / Capacitor LocalNotifications |
+| **REQ-044** | Security & Server Time Enforcement | ระบบป้องกันการโกงเวลาและปรับเวลาเครื่อง (Atomic Server Time Synchronization & Anti-Tamper Clock Engine) ซิงค์เวลามาตรฐานประเทศไทย (Asia/Bangkok UTC+7) จาก Cloud Server ทุกครั้งที่มีการเชื่อมต่อ บังคับการคำนวณเบี้ยขยันและการมาสายด้วยเวลาเซิร์ฟเวอร์ 100% ป้องกันการแก้เวลาบนมือถือเพื่อเอาเบี้ยเลี้ยง | ✅ เสร็จสิ้น | `server-time.ts` / API Auth & Check-in / Supabase DB |
 
 ---
 
@@ -142,6 +143,16 @@ flowchart TD
 ---
 
 ## 📝 5. บันทึกการเปลี่ยนแปลงและความต้องการเพิ่มเติม (Changelog)
+
+### 📌 [2026-10-02] - Atomic Server Time Synchronization & Anti-Tamper Clock Engine (Version 3.34)
+- ✅ **Central Server Clock Enforcement (Backend Guard)**:
+  - การลงเวลาเข้างาน (`/api/check-in`), การคำนวณเบี้ยขยัน 50฿ และการตัดสินว่ามาสาย (> 08:00 น.) ทำงานโดยใช้ **เวลาสากลของ Cloud Server (Asia/Bangkok UTC+7)** 100% ไม่พึ่งพาเวลาของโทรศัพท์มือถือ
+  - พนักงานไม่สามารถแก้ไขเวลาในเครื่องโทรศัพท์ (เช่น ตั้งเวลากลับไป 07:30 น. ทั้งที่มาจริง 08:05 น.) เพื่อเอาเบี้ยขยันได้
+- ✅ **Atomic Client Time Synchronization Engine (`src/lib/server-time.ts`)**:
+  - พัฒนาระบบคำนวณส่วนต่างเวลา $\Delta t$ (`cachedServerOffset = serverTimestamp - deviceLocalTime`) ซิงค์อัตโนมัติทุกครั้งที่มีการเรียก API (`/api/auth/check-code`, `/api/auth/verify-pin`, `/api/auth/login`, `/api/check-in`)
+  - ฟังก์ชัน `getNowWithServerSync()` ปรับนาฬิกาบนหน้าจอมือถือพนักงาน (`src/app/employee/page.tsx`) ให้ตรงกับเวลามาตรฐานเซิร์ฟเวอร์แบบเรียลไทม์ แม้เครื่องของพนักงานจะตั้งเวลาเดินช้าหรือเร็วก็ตาม
+- ✅ **Anti-Tamper & Clock Drift Detection**:
+  - ตรวจจับความคลาดเคลื่อนของเวลาเครื่องเกิน 3 นาที (`isDeviceClockTampered`) และดักจับความผิดปกติแบบเชิงรุก
 
 ### 📌 [2026-10-02] - Pre-Shift Countdown Notification Exact Wall-Clock Alignment (Version 3.33)
 - ✅ **Exact Wall-Clock Alarm Match (`src/lib/mobile-notifications.ts`)**:

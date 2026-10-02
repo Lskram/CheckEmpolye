@@ -79,6 +79,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'ยืนยันรหัส PIN สำเร็จ',
+      server_timestamp: Date.now(),
+      server_time_bangkok: new Date().toISOString(),
       employee: employeePayload,
       data: employeePayload,
     });

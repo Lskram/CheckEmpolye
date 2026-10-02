@@ -128,6 +128,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'เข้าสู่ระบบสำเร็จ',
+      server_timestamp: Date.now(),
+      server_time_bangkok: new Date().toISOString(),
       employee: employeePayload,
       data: employeePayload,
       warning: violationTriggered ? violationMessage : null,

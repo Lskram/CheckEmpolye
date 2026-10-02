@@ -32,6 +32,8 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       found: true,
+      server_timestamp: Date.now(),
+      server_time_bangkok: new Date().toISOString(),
       employee: {
         id: employee.id,
         employee_code: employee.employee_code,
@@ -46,7 +48,11 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message,
+      server_timestamp: Date.now(),
+    }, { status: 500 });
   }
 }
 

@@ -27,6 +27,7 @@ import {
 import { getDeviceHWID } from '@/lib/hwid';
 import { useAppTheme } from '@/lib/theme';
 import NetworkGuard from '@/components/NetworkGuard';
+import { syncServerTime } from '@/lib/server-time';
 
 export default function EmployeeLoginPage() {
   const router = useRouter();
@@ -55,6 +56,9 @@ export default function EmployeeLoginPage() {
       const param = id ? `id=${encodeURIComponent(id)}` : `code=${encodeURIComponent(code || '')}`;
       const res = await fetch(`/api/auth/check-code?${param}`);
       const data = await res.json();
+      if (data.server_timestamp) {
+        syncServerTime(data.server_timestamp);
+      }
       if (data.success && data.found && data.employee) {
         setCachedUser((prev: any) => {
           const updated = {
@@ -205,6 +209,10 @@ export default function EmployeeLoginPage() {
           return;
         }
 
+        if (data.server_timestamp) {
+          syncServerTime(data.server_timestamp);
+        }
+
         if (data.warning) {
           setWarningMsg(data.warning);
         }
@@ -231,6 +239,10 @@ export default function EmployeeLoginPage() {
           setErrorMsg(data.message || 'รหัส PIN ไม่ถูกต้อง');
           setIsLoading(false);
           return;
+        }
+
+        if (data.server_timestamp) {
+          syncServerTime(data.server_timestamp);
         }
 
         if (data.warning) {

@@ -191,6 +191,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         isReentry: true,
+        server_timestamp: Date.now(),
         message: `🎉 กลับเข้าทำงานเรียบร้อย! (${timeString} น.) [${shortLogId}] ระบบเริ่มจับเวลาทำงานต่อทันที`,
         data: {
           id: todayExistingLog.id,
@@ -320,6 +321,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      server_timestamp: Date.now(),
       message: isLate 
         ? `เช็คอินสำเร็จ [${shortLogId}] แต่สายกว่ากำหนด (${timeString} น.) ไม่ได้รับเบี้ยเลี้ยง` 
         : `เช็คอินตรงเวลาสำเร็จ! [${shortLogId}] (${timeString} น.) ได้รับเบี้ยเลี้ยง +${allowance} บาท`,
@@ -373,6 +375,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         success: true,
         hasCheckedIn: false,
+        server_timestamp: Date.now(),
         data: null,
       });
     }
@@ -400,6 +403,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       hasCheckedIn: true,
+      server_timestamp: Date.now(),
       data: {
         id: todayLog.id,
         logReference: shortLogId,

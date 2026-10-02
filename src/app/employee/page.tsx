@@ -57,6 +57,7 @@ import {
   initOfflineSyncListeners, 
   getPendingOfflineActions 
 } from '@/lib/offline-sync';
+import { syncServerTime, getNowWithServerSync, isDeviceClockTampered, getServerTimeDriftMinutes } from '@/lib/server-time';
 import EmployeeBottomNav from '@/components/EmployeeBottomNav';
 import NetworkGuard from '@/components/NetworkGuard';
 
@@ -217,6 +218,9 @@ export default function ExactEmployeeApp() {
           fetch(`/api/auth/check-code?${param}`)
             .then(res => res.json())
             .then(data => {
+              if (data.server_timestamp) {
+                syncServerTime(data.server_timestamp);
+              }
               if (data.success && data.found && data.employee) {
                 const fresh = {
                   ...parsed,
@@ -236,6 +240,9 @@ export default function ExactEmployeeApp() {
         fetch(`/api/check-in?employeeId=${parsed.id}`)
           .then(res => res.json())
           .then(data => {
+            if (data.server_timestamp) {
+              syncServerTime(data.server_timestamp);
+            }
             if (data.success && data.hasCheckedIn && data.data) {
               setCheckInResult(data.data);
             }
@@ -264,10 +271,10 @@ export default function ExactEmployeeApp() {
     setHwid(currentHWID);
   }, []);
 
-  // 3. Real-Time Bangkok Clock Tick
+  // 3. Real-Time Bangkok Clock Tick (Atomic Server Time Synced)
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
+      const now = getNowWithServerSync();
       const thaiDays = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
       const thaiMonths = [
         'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -560,6 +567,10 @@ export default function ExactEmployeeApp() {
           });
           setIsCheckingIn(false);
           return;
+        }
+
+        if (data.server_timestamp) {
+          syncServerTime(data.server_timestamp);
         }
 
         setCheckInResult(data.data);
